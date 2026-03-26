@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Saber Tracker</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f10; --surface: #1a1a1e; --card: #222228;
+    --border: #2e2e36; --text: #e8e8f0; --muted: #888899;
+    --accent: #6c63ff; --accent2: #00c896; --warn: #e0a020;
+    --danger: #e04040; --success: #30c870;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+  a { color: var(--accent); }
+  input, select, textarea {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: var(--radius); padding: 6px 10px; font-size: 13px; width: 100%;
+    outline: none; transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  button {
+    cursor: pointer; border-radius: var(--radius); padding: 6px 14px; font-size: 13px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    transition: background .15s;
+  }
+  button:hover { background: var(--border); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #574ed6; }
+  button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  button.sm { padding: 3px 10px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; white-space: nowrap; }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-hilt       { background: #2d2a4a; color: #a09af0; }
+  .badge-parts      { background: #1e3030; color: #40c8a0; }
+  .badge-electronics{ background: #1e2a40; color: #60a0e0; }
+  .badge-blade      { background: #3a2020; color: #e08060; }
+  .badge-saber      { background: #2a2010; color: #d0a040; }
+  .badge-consumed   { background: #2a1010; color: var(--danger); }
+  .badge-ok         { background: #102010; color: var(--success); }
+  .stat { background: var(--card); border-radius: var(--radius); padding: 14px 18px; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 600; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; width: 640px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
+         padding: 8px 16px; color: var(--muted); cursor: pointer; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar input { max-width: 220px; }
+  .toolbar select { max-width: 160px; }
+  h1 { font-size: 18px; font-weight: 600; }
+  h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .header { display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 24px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+  .content { padding: 24px; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .overflow-x { overflow-x: auto; }
+  .empty { text-align: center; color: var(--muted); padding: 40px; }
+  .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const API = '';  // same-origin on Vercel
+
+// ── helpers ──────────────────────────────
+const fmt$ = v => v == null ? '—' : '$' + Number(v).toFixed(2);
+const fmtN = v => v == null ? '—' : Number(v).toLocaleString();
+const srcBadge = s => {
+  const map = { Hilt:'badge-hilt', Parts:'badge-parts', Electronics:'badge-electronics', Blade:'badge-blade', Saber:'badge-saber' };
+  return <span className={`badge ${map[s] || 'badge-parts'}`}>{s}</span>;
+};
+
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (r.status === 204) return null;
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+
+// ── Modal wrapper ─────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+          <h2 style={{ margin:0 }}>{title}</h2>
+          <button onClick={onClose} style={{ fontSize:18, lineHeight:1 }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Inventory Form ────────────────────────
+const SOURCE_TYPES = ['Hilt','Parts','Electronics','Blade','Saber'];
+const CONDITIONS = ['New','Used','Refurbished','Damaged'];
+
+function InventoryForm({ initial = {}, onSave, onClose }) {
+  const [f, setF] = useState({
+    category:'', vendor:'', order_number:'', date_purchased:'', item_name:'',
+    variant:'', qty_purchased:1, qty_remaining:1, unit_cost:'', shipping_allocated:'',
+    tax_allocated:'', condition:'New', source_type:'Electronics', assigned_build:'',
+    consumed: false, location:'', notes:'', ...initial
+  });
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const handle = e => set(e.target.name, e.target.type === 'checkbox' ? e.target.checked : e.target.value);
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
+      <div className="form-grid">
+        <div className="form-group full">
+          <label>Item Name *</label>
+          <input name="item_name" value={f.item_name} onChange={handle} required />
+        </div>
+        <div className="form-group">
+          <label>Source Type *</label>
+          <select name="source_type" value={f.source_type} onChange={handle}>
+            {SOURCE_TYPES.map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Category</label>
+          <input name="category" value={f.category} onChange={handle} placeholder="e.g. LED, Switch, Chassis" />
+        </div>
+        <div className="form-group">
+          <label>Vendor</label>
+          <input name="vendor" value={f.vendor} onChange={handle} />
+        </div>
+        <div className="form-group">
+          <label>Order #</label>
+          <input name="order_number" value={f.order_number} onChange={handle} />
+        </div>
+        <div className="form-group">
+          <label>Date Purchased</label>
+          <input type="date" name="date_purchased" value={f.date_purchased} onChange={handle} />
+        </div>
+        <div className="form-group">
+          <label>Variant / Description</label>
+          <input name="variant" value={f.variant} onChange={handle} />
+        </div>
+        <div className="form-group">
+          <label>Condition</label>
+          <select name="condition" value={f.condition} onChange={handle}>
+            {CONDITIONS.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Qty Purchased</label>
+          <input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" />
+        </div>
+        <div className="form-group">
+          <label>Qty Remaining</label>
+          <input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0" />
+        </div>
+        <div className="form-group">
+          <label>Unit Cost</label>
+          <input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" />
+        </div>
+        <div className="form-group">
+          <label>Location</label>
+          <input name="location" value={f.location} onChange={handle} placeholder="Bin A3, Shelf 2…" />
+        </div>
+        <div className="form-group">
+          <label>Assigned Build</label>
+          <input name="assigned_build" value={f.assigned_build} onChange={handle} placeholder="BLD-001" />
+        </div>
+        <div className="form-group" style={{ display:'flex', alignItems:'center', gap:8, paddingTop:18 }}>
+          <input type="checkbox" name="consumed" checked={f.consumed} onChange={handle} style={{ width:'auto' }} id="cb_consumed" />
+          <label htmlFor="cb_consumed" style={{ marginBottom:0, cursor:'pointer' }}>Consumed</label>
+        </div>
+        <div className="form-group full">
+          <label>Notes</label>
+          <textarea name="notes" value={f.notes} onChange={handle} rows={2} />
+        </div>
+      </div>
+      <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:20 }}>
+        <button type="button" onClick={onClose}>Cancel</button>
+        <button type="submit" className="primary">Save</button>
+      </div>
+    </form>
+  );
+}
+
+// ── Inventory Tab ─────────────────────────
+function InventoryTab() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterSrc, setFilterSrc] = useState('');
+  const [filterConsumed, setFilterConsumed] = useState('');
+  const [modal, setModal] = useState(null); // null | 'add' | item_object
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (filterSrc) params.set('source_type', filterSrc);
+    if (filterConsumed !== '') params.set('consumed', filterConsumed);
+    const data = await apiFetch('/api/inventory?' + params);
+    setItems(data);
+    setLoading(false);
+  }, [search, filterSrc, filterConsumed]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = async f => {
+    if (modal === 'add') await apiFetch('/api/inventory', { method:'POST', body: f });
+    else await apiFetch(`/api/inventory/${modal.item_id}`, { method:'PUT', body: f });
+    setModal(null); load();
+  };
+
+  const del = async item => {
+    if (!confirm(`Delete ${item.item_id} — ${item.item_name}?`)) return;
+    await apiFetch(`/api/inventory/${item.item_id}`, { method:'DELETE' });
+    load();
+  };
+
+  const totalValue = items.reduce((s, i) => s + Number(i.unit_cost || 0) * Number(i.qty_remaining || 0), 0);
+  const consumed = items.filter(i => i.consumed).length;
+  const lowStock = items.filter(i => !i.consumed && i.qty_remaining === 0).length;
+
+  return (
+    <>
+      <div className="stats-row">
+        <div className="stat"><div className="stat-label">Items</div><div className="stat-value">{items.length}</div></div>
+        <div className="stat"><div className="stat-label">Stock Value</div><div className="stat-value">{fmt$(totalValue)}</div></div>
+        <div className="stat"><div className="stat-label">Consumed</div><div className="stat-value" style={{ color:'var(--warn)' }}>{consumed}</div></div>
+        <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{ color:'var(--danger)' }}>{lowStock}</div></div>
+      </div>
+
+      <div className="toolbar">
+        <input placeholder="Search name, ID, vendor…" value={search} onChange={e => setSearch(e.target.value)} />
+        <select value={filterSrc} onChange={e => setFilterSrc(e.target.value)}>
+          <option value="">All types</option>
+          {SOURCE_TYPES.map(s => <option key={s}>{s}</option>)}
+        </select>
+        <select value={filterConsumed} onChange={e => setFilterConsumed(e.target.value)}>
+          <option value="">All</option>
+          <option value="false">In Stock</option>
+          <option value="true">Consumed</option>
+        </select>
+        <button className="primary" onClick={() => setModal('add')}>+ Add Item</button>
+      </div>
+
+      <div className="overflow-x">
+        {loading ? <div className="empty">Loading…</div> : items.length === 0 ? <div className="empty">No items found.</div> : (
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Name</th><th>Type</th><th>Vendor</th><th>Qty Rem.</th>
+              <th>Unit Cost</th><th>Total Line</th><th>Location</th><th>Build</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody>
+              {items.map(i => (
+                <tr key={i.item_id}>
+                  <td style={{ fontFamily:'monospace', fontSize:12 }}>{i.item_id}</td>
+                  <td><div style={{ fontWeight:500 }}>{i.item_name}</div>{i.variant && <div style={{ fontSize:11, color:'var(--muted)' }}>{i.variant}</div>}</td>
+                  <td>{srcBadge(i.source_type)}</td>
+                  <td>{i.vendor || '—'}</td>
+                  <td style={{ fontWeight:500, color: i.qty_remaining === 0 ? 'var(--danger)' : 'inherit' }}>{i.qty_remaining}</td>
+                  <td>{fmt$(i.unit_cost)}</td>
+                  <td>{fmt$(i.total_line_cost)}</td>
+                  <td style={{ fontSize:12 }}>{i.location || '—'}</td>
+                  <td style={{ fontSize:12, fontFamily:'monospace' }}>{i.assigned_build || '—'}</td>
+                  <td><span className={`badge ${i.consumed ? 'badge-consumed' : 'badge-ok'}`}>{i.consumed ? 'Consumed' : 'In Stock'}</span></td>
+                  <td>
+                    <div style={{ display:'flex', gap:4 }}>
+                      <button className="sm" onClick={() => setModal(i)}>Edit</button>
+                      <button className="sm danger" onClick={() => del(i)}>Del</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {modal && (
+        <Modal title={modal === 'add' ? 'Add Item' : `Edit ${modal.item_id}`} onClose={() => setModal(null)}>
+          <InventoryForm initial={modal === 'add' ? {} : modal} onSave={save} onClose={() => setModal(null)} />
+        </Modal>
+      )}
+    </>
+  );
+}
+
+// ── Build Form ────────────────────────────
+function BuildForm({ initial = {}, tiers, onSave, onClose }) {
+  const [f, setF] = useState({
+    hilt_item_id:'', customer:'', tier_id:'', parts_cost:'', labor_value:'',
+    target_price:'', listed_price:'', sold_price:'', date_sold:'',
+    status:'In Progress', notes:'', ...initial,
+    tier_id: initial.tier_id ?? ''
+  });
+  const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+  const totalCost = (Number(f.parts_cost) || 0) + (Number(f.labor_value) || 0);
+  const profit = (Number(f.sold_price) || 0) - totalCost;
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
+      <div className="form-grid">
+        <div className="form-group">
+          <label>Hilt Item ID</label>
+          <input name="hilt_item_id" value={f.hilt_item_id} onChange={handle} placeholder="HB-001" />
+        </div>
+        <div className="form-group">
+          <label>Customer</label>
+          <input name="customer" value={f.customer} onChange={handle} />
+        </div>
+        <div className="form-group">
+          <label>Build Tier</label>
+          <select name="tier_id" value={f.tier_id} onChange={handle}>
+            <option value="">— select —</option>
+            {tiers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Status</label>
+          <select name="status" value={f.status} onChange={handle}>
+            {['In Progress','Complete','Sold','On Hold'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Parts Cost</label>
+          <input type="number" name="parts_cost" value={f.parts_cost} onChange={handle} step="0.01" min="0" />
+        </div>
+        <div className="form-group">
+          <label>Labor Value</label>
+          <input type="number" name="labor_value" value={f.labor_value} onChange={handle} step="0.01" min="0" />
+        </div>
+        <div className="form-group">
+          <label>Target Price</label>
+          <input type="number" name="target_price" value={f.target_price} onChange={handle} step="0.01" min="0" />
+        </div>
+        <div className="form-group">
+          <label>Listed Price</label>
+          <input type="number" name="listed_price" value={f.listed_price} onChange={handle} step="0.01" min="0" />
+        </div>
+        <div className="form-group">
+          <label>Sold Price</label>
+          <input type="number" name="sold_price" value={f.sold_price} onChange={handle} step="0.01" min="0" />
+        </div>
+        <div className="form-group">
+          <label>Date Sold</label>
+          <input type="date" name="date_sold" value={f.date_sold} onChange={handle} />
+        </div>
+        <div className="form-group full">
+          <label>Notes</label>
+          <textarea name="notes" value={f.notes} onChange={handle} rows={2} />
+        </div>
+      </div>
+      <div style={{ background:'var(--surface)', borderRadius:'var(--radius)', padding:'10px 14px', marginTop:12, fontSize:13, display:'flex', gap:24 }}>
+        <span>Total Cost: <strong>{fmt$(totalCost)}</strong></span>
+        <span>Profit: <strong style={{ color: profit >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmt$(profit)}</strong></span>
+      </div>
+      <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:20 }}>
+        <button type="button" onClick={onClose}>Cancel</button>
+        <button type="submit" className="primary">Save</button>
+      </div>
+    </form>
+  );
+}
+
+// ── Builds Tab ────────────────────────────
+function BuildsTab({ tiers }) {
+  const [builds, setBuilds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null);
+  const [usageModal, setUsageModal] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    setBuilds(await apiFetch('/api/builds'));
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const save = async f => {
+    if (modal === 'add') await apiFetch('/api/builds', { method:'POST', body: f });
+    else await apiFetch(`/api/builds/${modal.build_id}`, { method:'PUT', body: f });
+    setModal(null); load();
+  };
+
+  const del = async b => {
+    if (!confirm(`Delete build ${b.build_id}?`)) return;
+    await apiFetch(`/api/builds/${b.build_id}`, { method:'DELETE' });
+    load();
+  };
+
+  const totalProfit = builds.reduce((s, b) => s + Number(b.profit || 0), 0);
+  const sold = builds.filter(b => b.status === 'Sold').length;
+
+  return (
+    <>
+      <div className="stats-row">
+        <div className="stat"><div className="stat-label">Total Builds</div><div className="stat-value">{builds.length}</div></div>
+        <div className="stat"><div className="stat-label">Sold</div><div className="stat-value">{sold}</div></div>
+        <div className="stat"><div className="stat-label">Total Profit</div><div className="stat-value" style={{ color: totalProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmt$(totalProfit)}</div></div>
+      </div>
+
+      <div className="toolbar">
+        <button className="primary" onClick={() => setModal('add')}>+ New Build</button>
+      </div>
+
+      <div className="overflow-x">
+        {loading ? <div className="empty">Loading…</div> : builds.length === 0 ? <div className="empty">No builds yet.</div> : (
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Hilt</th><th>Customer</th><th>Tier</th><th>Parts Cost</th>
+              <th>Labor</th><th>Total Cost</th><th>Sold Price</th><th>Profit</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody>
+              {builds.map(b => (
+                <tr key={b.build_id}>
+                  <td style={{ fontFamily:'monospace', fontSize:12 }}>{b.build_id}</td>
+                  <td style={{ fontFamily:'monospace', fontSize:12 }}>{b.hilt_item_id || '—'}</td>
+                  <td>{b.customer || '—'}</td>
+                  <td>{b.tier_name || '—'}</td>
+                  <td>{fmt$(b.parts_cost)}</td>
+                  <td>{fmt$(b.labor_value)}</td>
+                  <td>{fmt$(b.total_build_cost)}</td>
+                  <td>{fmt$(b.sold_price)}</td>
+                  <td style={{ color: Number(b.profit) >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight:500 }}>{fmt$(b.profit)}</td>
+                  <td><span className="badge" style={{ background:'#1e2a1e', color:'var(--accent2)' }}>{b.status}</span></td>
+                  <td>
+                    <div style={{ display:'flex', gap:4 }}>
+                      <button className="sm" onClick={() => setUsageModal(b)}>Parts</button>
+                      <button className="sm" onClick={() => setModal(b)}>Edit</button>
+                      <button className="sm danger" onClick={() => del(b)}>Del</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {modal && (
+        <Modal title={modal === 'add' ? 'New Build' : `Edit ${modal.build_id}`} onClose={() => setModal(null)}>
+          <BuildForm initial={modal === 'add' ? {} : modal} tiers={tiers} onSave={save} onClose={() => setModal(null)} />
+        </Modal>
+      )}
+
+      {usageModal && (
+        <Modal title={`Parts — ${usageModal.build_id}`} onClose={() => setUsageModal(null)}>
+          <UsagePanel buildId={usageModal.build_id} />
+        </Modal>
+      )}
+    </>
+  );
+}
+
+// ── Usage Panel ───────────────────────────
+function UsagePanel({ buildId }) {
+  const [usage, setUsage] = useState([]);
+  const [inv, setInv] = useState([]);
+  const [f, setF] = useState({ item_id:'', qty_used:1, unit_cost:'' });
+
+  const load = async () => {
+    const [u, i] = await Promise.all([
+      apiFetch(`/api/usage?build_id=${buildId}`),
+      apiFetch('/api/inventory?consumed=false')
+    ]);
+    setUsage(u); setInv(i);
+  };
+  useEffect(() => { load(); }, [buildId]);
+
+  const pickItem = id => {
+    const item = inv.find(i => i.item_id === id);
+    setF(p => ({ ...p, item_id: id, unit_cost: item ? item.unit_cost : '' }));
+  };
+
+  const add = async e => {
+    e.preventDefault();
+    await apiFetch('/api/usage', { method:'POST', body: { ...f, build_id: buildId } });
+    setF({ item_id:'', qty_used:1, unit_cost:'' }); load();
+  };
+
+  const del = async id => {
+    await apiFetch(`/api/usage?id=${id}`, { method:'DELETE' });
+    load();
+  };
+
+  const total = usage.reduce((s, u) => s + Number(u.total_cost || 0), 0);
+
+  return (
+    <div>
+      <table style={{ marginBottom:16 }}>
+        <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Total</th><th></th></tr></thead>
+        <tbody>
+          {usage.map(u => (
+            <tr key={u.id}>
+              <td><span style={{ fontFamily:'monospace', fontSize:11 }}>{u.item_id}</span> {u.item_name}</td>
+              <td>{u.qty_used}</td>
+              <td>{fmt$(u.unit_cost)}</td>
+              <td>{fmt$(u.total_cost)}</td>
+              <td><button className="sm danger" onClick={() => del(u.id)}>✕</button></td>
+            </tr>
+          ))}
+          {usage.length === 0 && <tr><td colSpan={5} style={{ color:'var(--muted)', textAlign:'center', padding:16 }}>No parts linked.</td></tr>}
+        </tbody>
+      </table>
+      <div style={{ textAlign:'right', marginBottom:16, fontWeight:500 }}>Parts Total: {fmt$(total)}</div>
+      <form onSubmit={add} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr auto', gap:8, alignItems:'end' }}>
+        <div>
+          <label style={{ fontSize:11, color:'var(--muted)' }}>Item</label>
+          <select value={f.item_id} onChange={e => pickItem(e.target.value)} required>
+            <option value="">— select —</option>
+            {inv.map(i => <option key={i.item_id} value={i.item_id}>{i.item_id} — {i.item_name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize:11, color:'var(--muted)' }}>Qty</label>
+          <input type="number" value={f.qty_used} onChange={e => setF(p => ({ ...p, qty_used: e.target.value }))} min="1" required />
+        </div>
+        <div>
+          <label style={{ fontSize:11, color:'var(--muted)' }}>Unit Cost</label>
+          <input type="number" value={f.unit_cost} onChange={e => setF(p => ({ ...p, unit_cost: e.target.value }))} step="0.01" />
+        </div>
+        <button type="submit" className="primary">Add</button>
+      </form>
+    </div>
+  );
+}
+
+// ── Tiers Tab ─────────────────────────────
+function TiersTab({ tiers, onRefresh }) {
+  const [name, setName] = useState('');
+  const add = async e => {
+    e.preventDefault();
+    await apiFetch('/api/tiers', { method:'POST', body: { name } });
+    setName(''); onRefresh();
+  };
+  const del = async id => {
+    if (!confirm('Delete this tier?')) return;
+    await apiFetch(`/api/tiers?id=${id}`, { method:'DELETE' });
+    onRefresh();
+  };
+  return (
+    <div style={{ maxWidth:400 }}>
+      <h2>Build Tiers</h2>
+      {tiers.map(t => (
+        <div key={t.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+          padding:'8px 12px', border:'1px solid var(--border)', borderRadius:'var(--radius)', marginBottom:6 }}>
+          <span>{t.name}</span>
+          <button className="sm danger" onClick={() => del(t.id)}>Delete</button>
+        </div>
+      ))}
+      <form onSubmit={add} style={{ display:'flex', gap:8, marginTop:16 }}>
+        <input placeholder="New tier name" value={name} onChange={e => setName(e.target.value)} required />
+        <button type="submit" className="primary">Add</button>
+      </form>
+    </div>
+  );
+}
+
+// ── Orders Tab ────────────────────────────
+function OrdersTab() {
+  const [orders, setOrders] = useState([]);
+  const [f, setF] = useState({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
+  const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const load = async () => setOrders(await apiFetch('/api/orders'));
+  useEffect(() => { load(); }, []);
+
+  const save = async e => {
+    e.preventDefault();
+    await apiFetch('/api/orders', { method:'POST', body: f });
+    setF({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
+    load();
+  };
+
+  return (
+    <div>
+      <h2>Order Allocations</h2>
+      <p style={{ color:'var(--muted)', marginBottom:16, fontSize:13 }}>
+        Enter order-level shipping & tax. The app will proportionally split costs across all inventory items with that order number.
+      </p>
+      <form onSubmit={save}>
+        <div className="form-grid" style={{ maxWidth:640 }}>
+          <div className="form-group">
+            <label>Order # *</label>
+            <input name="order_number" value={f.order_number} onChange={handle} required />
+          </div>
+          <div className="form-group">
+            <label>Vendor</label>
+            <input name="vendor" value={f.vendor} onChange={handle} />
+          </div>
+          <div className="form-group">
+            <label>Order Date</label>
+            <input type="date" name="order_date" value={f.order_date} onChange={handle} />
+          </div>
+          <div className="form-group">
+            <label>Shipping Total</label>
+            <input type="number" name="shipping_total" value={f.shipping_total} onChange={handle} step="0.01" min="0" />
+          </div>
+          <div className="form-group">
+            <label>Tax Total</label>
+            <input type="number" name="tax_total" value={f.tax_total} onChange={handle} step="0.01" min="0" />
+          </div>
+          <div className="form-group full">
+            <label>Notes</label>
+            <input name="notes" value={f.notes} onChange={handle} />
+          </div>
+        </div>
+        <button type="submit" className="primary" style={{ marginTop:12 }}>Save & Allocate</button>
+      </form>
+
+      {orders.length > 0 && (
+        <div style={{ marginTop:24 }}>
+          <h2>Past Orders</h2>
+          <div className="overflow-x">
+            <table>
+              <thead><tr><th>Order #</th><th>Vendor</th><th>Date</th><th>Shipping</th><th>Tax</th></tr></thead>
+              <tbody>
+                {orders.map(o => (
+                  <tr key={o.id}>
+                    <td style={{ fontFamily:'monospace' }}>{o.order_number}</td>
+                    <td>{o.vendor || '—'}</td>
+                    <td>{o.order_date || '—'}</td>
+                    <td>{fmt$(o.shipping_total)}</td>
+                    <td>{fmt$(o.tax_total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────
+function App() {
+  const [tab, setTab] = useState('inventory');
+  const [tiers, setTiers] = useState([]);
+
+  const loadTiers = async () => setTiers(await apiFetch('/api/tiers'));
+  useEffect(() => { loadTiers(); }, []);
+
+  const tabs = [
+    { id:'inventory', label:'Inventory' },
+    { id:'builds',    label:'Builds' },
+    { id:'orders',    label:'Orders / Alloc' },
+    { id:'tiers',     label:'Build Tiers' },
+  ];
+
+  return (
+    <>
+      <div className="header">
+        <h1>⚔ Saber Tracker</h1>
+        <span style={{ fontSize:12, color:'var(--muted)' }}>Jedi Master Tech</span>
+      </div>
+      <div className="content">
+        <div className="tab-bar">
+          {tabs.map(t => <button key={t.id} className={`tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
+        </div>
+        {tab === 'inventory' && <InventoryTab />}
+        {tab === 'builds'    && <BuildsTab tiers={tiers} />}
+        {tab === 'orders'    && <OrdersTab />}
+        {tab === 'tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers} />}
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
