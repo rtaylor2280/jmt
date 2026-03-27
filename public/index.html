@@ -61,9 +61,6 @@
   .tab-bar { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px; flex-wrap:wrap; }
   .tab { background:none; border:none; border-bottom:2px solid transparent; border-radius:0; padding:8px 16px; color:var(--muted); cursor:pointer; }
   .tab.active { color:var(--text); border-bottom-color:var(--accent); }
-  .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
-  .toolbar input  { max-width:200px; }
-  .toolbar select { max-width:160px; }
   h1 { font-size:18px; font-weight:600; }
   h2 { font-size:15px; font-weight:600; margin-bottom:12px; }
   h3 { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
@@ -77,7 +74,7 @@
   .kebab-wrap { position:relative; display:inline-block; }
   .kebab-btn { background:none; border:none; padding:2px 8px; font-size:18px; color:var(--muted); line-height:1; cursor:pointer; }
   .kebab-btn:hover { color:var(--text); background:none; }
-  .kebab-menu { position:absolute; right:0; top:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); min-width:140px; z-index:50; }
+  .kebab-menu { position:absolute; right:0; top:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); min-width:120px; z-index:50; }
   .kebab-menu button { display:block; width:100%; text-align:left; background:none; border:none; border-radius:0; padding:8px 14px; font-size:13px; }
   .kebab-menu button:hover { background:var(--border); }
   .kebab-menu .danger-item { color:var(--danger); }
@@ -90,12 +87,15 @@
   .alloc-input { padding:3px 6px !important; font-size:12px !important; width:80px !important; }
   .toggle-link { font-size:12px; color:var(--accent); cursor:pointer; background:none; border:none; padding:0; }
   .toggle-link:hover { text-decoration:underline; background:none; }
+  .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; padding:10px 14px; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); }
+  .filter-bar label { font-size:11px; color:var(--muted); margin-right:2px; }
+  .filter-group { display:flex; align-items:center; gap:4px; }
   .view-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; font-size:13px; }
   .view-grid .vk { font-size:11px; color:var(--muted); }
   .view-grid .vv { font-weight:500; }
-  .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; padding:10px 14px; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); }
-  .filter-bar label { font-size:11px; color:var(--muted); margin-right:4px; }
-  .filter-group { display:flex; align-items:center; gap:4px; }
+  .spinner { display:inline-block; width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .dirty-badge { background:var(--warn); color:#000; font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600; }
 </style>
 </head>
 <body>
@@ -186,27 +186,60 @@ function Kebab({items}){
   );
 }
 
-// ── Item Form (shared add/edit) ───────────
-function ItemForm({initial={},onSave,onClose}){
+// ── ItemForm — shared add/edit ────────────
+function ItemForm({initial={},onSave,onClose,title}){
   const [f,setF]=useState({item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'',...initial});
   const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
   return(
-    <form onSubmit={e=>{e.preventDefault();onSave(f);}} style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
-      <div className="form-grid">
-        <div className="form-group full"><label>Item Name *</label><input name="item_name" value={f.item_name} onChange={handle} required/></div>
-        <div className="form-group"><label>Source Type</label><select name="source_type" value={f.source_type} onChange={handle}>{SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
-        <div className="form-group"><label>Category</label><input name="category" value={f.category||''} onChange={handle}/></div>
-        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant||''} onChange={handle}/></div>
-        <div className="form-group"><label>Condition</label><select name="condition" value={f.condition||'New'} onChange={handle}>{CONDITIONS.map(c=><option key={c}>{c}</option>)}</select></div>
-        <div className="form-group"><label>Qty</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1"/></div>
-        <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0"/></div>
-        <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes||''} onChange={handle}/></div>
-      </div>
-      <div style={{display:'flex',gap:8,marginTop:10}}>
-        <button type="submit" className="primary sm">Save</button>
-        <button type="button" className="sm" onClick={onClose}>Cancel</button>
-      </div>
-    </form>
+    <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--radius)',padding:16,marginBottom:14}}>
+      {title&&<div style={{fontSize:13,fontWeight:600,marginBottom:12,color:'var(--muted)'}}>{title}</div>}
+      <form onSubmit={e=>{e.preventDefault();onSave(f);}}>
+        <div className="form-grid">
+          <div className="form-group full"><label>Item Name *</label><input name="item_name" value={f.item_name} onChange={handle} required/></div>
+          <div className="form-group"><label>Source Type</label><select name="source_type" value={f.source_type} onChange={handle}>{SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div className="form-group"><label>Category</label><input name="category" value={f.category||''} onChange={handle}/></div>
+          <div className="form-group"><label>Variant</label><input name="variant" value={f.variant||''} onChange={handle}/></div>
+          <div className="form-group"><label>Condition</label><select name="condition" value={f.condition||'New'} onChange={handle}>{CONDITIONS.map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="form-group"><label>Qty</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1"/></div>
+          <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0"/></div>
+          <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes||''} onChange={handle}/></div>
+        </div>
+        <div style={{display:'flex',gap:8,marginTop:12}}>
+          <button type="submit" className="primary sm">Save Item</button>
+          <button type="button" className="sm" onClick={onClose}>Cancel</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ── Order Header Form ─────────────────────
+function OrderHeaderForm({initial={},onSave,onClose,title='Edit Order Header'}){
+  const [f,setF]=useState({order_number:'',vendor:'',order_date:'',shipping_total:'',tax_total:'',notes:'',...initial});
+  const [saving,setSaving]=useState(false);
+  const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
+  const save=async e=>{
+    e.preventDefault();setSaving(true);
+    await onSave(f);
+    setSaving(false);
+  };
+  return(
+    <Modal title={title} onClose={onClose} width="560px">
+      <form onSubmit={save}>
+        <div className="form-grid">
+          <div className="form-group"><label>Order # *</label><input name="order_number" value={f.order_number} onChange={handle} required/></div>
+          <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor||''} onChange={handle}/></div>
+          <div className="form-group"><label>Order Date</label><input type="date" name="order_date" value={f.order_date?fmtDate(f.order_date):''} onChange={handle}/></div>
+          <div className="form-group"><label>Shipping Total</label><input type="number" name="shipping_total" value={f.shipping_total||''} onChange={handle} step="0.01" min="0"/></div>
+          <div className="form-group"><label>Tax Total</label><input type="number" name="tax_total" value={f.tax_total||''} onChange={handle} step="0.01" min="0"/></div>
+          <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes||''} onChange={handle}/></div>
+        </div>
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="primary" disabled={saving}>{saving?'Saving…':'Save Order'}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -224,12 +257,11 @@ function LineItemsTable({rows,shipTarget,taxTarget,onAllocChange,onDelete,onEdit
             {rows[0]?.item_id&&<th>ID</th>}
             <th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th>
             {hasAlloc&&<><th>Ship Alloc</th><th>Tax Alloc</th></>}
-            <th>Line Total</th>
-            <th></th>
+            <th>Line Total</th><th></th>
           </tr></thead>
           <tbody>
             {rows.map((r,i)=>{
-              const lineTotal=round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1)+Number(r.ship_alloc||0)+Number(r.tax_alloc||0));
+              const lt=round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1)+Number(r.ship_alloc||0)+Number(r.tax_alloc||0));
               return(
                 <tr key={r.item_id||r._key||i}>
                   {r.item_id&&<td style={{fontFamily:'monospace',fontSize:11}}>{r.item_id}</td>}
@@ -241,13 +273,11 @@ function LineItemsTable({rows,shipTarget,taxTarget,onAllocChange,onDelete,onEdit
                     <td><input className="alloc-input" type="number" value={r.ship_alloc??0} step="0.01" onChange={e=>onAllocChange(i,'ship_alloc',round2(parseFloat(e.target.value)||0))}/></td>
                     <td><input className="alloc-input" type="number" value={r.tax_alloc??0} step="0.01" onChange={e=>onAllocChange(i,'tax_alloc',round2(parseFloat(e.target.value)||0))}/></td>
                   </>}
-                  <td style={{fontWeight:500}}>{fmt$(lineTotal)}</td>
-                  <td>
-                    <Kebab items={[
-                      ...(onEdit?[{label:'Edit',action:()=>onEdit(r,i)}]:[]),
-                      ...(onDelete?[{label:'Delete',danger:true,action:()=>onDelete(r)}]:[]),
-                    ]}/>
-                  </td>
+                  <td style={{fontWeight:500}}>{fmt$(lt)}</td>
+                  <td><Kebab items={[
+                    ...(onEdit?[{label:'Edit',action:()=>onEdit(r,i)}]:[]),
+                    ...(onDelete?[{label:'Delete',danger:true,action:()=>onDelete(r)}]:[]),
+                  ]}/></td>
                 </tr>
               );
             })}
@@ -297,10 +327,7 @@ function NewOrderModal({onClose,onSaved}){
   const canSave=header.order_number&&rows.length>0&&balanced;
 
   const handleHeader=e=>setHeader(p=>({...p,[e.target.name]:e.target.value}));
-  const handleShipTax=e=>{
-    const upd={...header,[e.target.name]:e.target.value};
-    setHeader(upd);setRows(r=>distribute(r,upd.shipping_total,upd.tax_total));
-  };
+  const handleShipTax=e=>{const upd={...header,[e.target.name]:e.target.value};setHeader(upd);setRows(r=>distribute(r,upd.shipping_total,upd.tax_total));};
 
   const parseHeaderPaste=()=>{
     const r=parseCSVText(pasteText)[0];if(!r)return;
@@ -325,12 +352,7 @@ function NewOrderModal({onClose,onSaved}){
 
   const parsePasteItems=()=>{
     const valid=['Hilt','Parts','Electronics','Blade','Saber'];
-    setPreview(parseCSVText(pasteItemText).map((r,i)=>({
-      item_name:r.item_name||'?',variant:r.variant||'',category:r.category||'',
-      source_type:valid.includes(r.source_type)?r.source_type:'Parts',
-      qty_purchased:parseInt(r.qty_purchased)||1,unit_cost:parseFloat(r.unit_cost)||0,
-      condition:r.condition||'New',notes:r.notes||'',ship_alloc:0,tax_alloc:0,_key:Date.now()+i,
-    })));
+    setPreview(parseCSVText(pasteItemText).map((r,i)=>({item_name:r.item_name||'?',variant:r.variant||'',category:r.category||'',source_type:valid.includes(r.source_type)?r.source_type:'Parts',qty_purchased:parseInt(r.qty_purchased)||1,unit_cost:parseFloat(r.unit_cost)||0,condition:r.condition||'New',notes:r.notes||'',ship_alloc:0,tax_alloc:0,_key:Date.now()+i})));
   };
 
   const confirmPaste=()=>{
@@ -345,9 +367,7 @@ function NewOrderModal({onClose,onSaved}){
     setSaving(true);setErr('');
     try{
       await api('/api/orders',{method:'POST',body:{order_number:header.order_number,vendor:header.vendor||null,order_date:header.order_date||null,shipping_total:shipTarget,tax_total:taxTarget,notes:header.notes||null}});
-      for(const row of rows){
-        await api('/api/purchased-items',{method:'POST',body:{order_number:header.order_number,item_name:row.item_name,variant:row.variant||null,category:row.category||null,vendor:header.vendor||null,date_purchased:header.order_date||null,qty_purchased:row.qty_purchased,unit_cost:row.unit_cost,condition:row.condition||'New',source_type:row.source_type,notes:row.notes||null,shipping_allocated:row.ship_alloc||0,tax_allocated:row.tax_alloc||0}});
-      }
+      for(const row of rows) await api('/api/purchased-items',{method:'POST',body:{order_number:header.order_number,item_name:row.item_name,variant:row.variant||null,category:row.category||null,vendor:header.vendor||null,date_purchased:header.order_date||null,qty_purchased:row.qty_purchased,unit_cost:row.unit_cost,condition:row.condition||'New',source_type:row.source_type,notes:row.notes||null,shipping_allocated:row.ship_alloc||0,tax_allocated:row.tax_alloc||0}});
       onSaved();
     }catch(e){setErr(e.message);}
     setSaving(false);
@@ -362,7 +382,7 @@ function NewOrderModal({onClose,onSaved}){
         </div>
         {pasteHeader?(
           <div>
-            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>Paste order footer CSV row:<br/><code style={{fontSize:11}}>order_number,vendor,order_date,shipping_total,tax_total</code></p>
+            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>Paste order footer CSV:<br/><code style={{fontSize:11}}>order_number,vendor,order_date,shipping_total,tax_total</code></p>
             <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={3} style={{fontFamily:'monospace',fontSize:12,marginBottom:8}}/>
             <div style={{display:'flex',gap:8}}>
               <button className="primary sm" onClick={parseHeaderPaste} disabled={!pasteText.trim()}>Parse & Fill</button>
@@ -391,8 +411,8 @@ function NewOrderModal({onClose,onSaved}){
           </div>
         </div>
 
-        {showAdd&&<ItemForm onSave={addItem} onClose={()=>setShowAdd(false)}/>}
-        {editIdx!==null&&<ItemForm initial={rows[editIdx]} onSave={f=>editItem(f,editIdx)} onClose={()=>setEditIdx(null)}/>}
+        {showAdd&&<ItemForm title="New Item" onSave={addItem} onClose={()=>setShowAdd(false)}/>}
+        {editIdx!==null&&<ItemForm title={`Editing row ${editIdx+1}`} initial={rows[editIdx]} onSave={f=>editItem(f,editIdx)} onClose={()=>setEditIdx(null)}/>}
 
         {pasteItems&&!preview&&(
           <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
@@ -438,55 +458,54 @@ function NewOrderModal({onClose,onSaved}){
 }
 
 // ── Order Detail Modal ────────────────────
-function OrderDetailModal({order,onClose,onOpenOrder}){
-  const [items,setItems]=useState([]);
-  const [allocRows,setAllocRows]=useState([]);
+function OrderDetailModal({order:initOrder,onClose,onReload}){
+  const [order,setOrder]=useState(initOrder);
+  const [dbItems,setDbItems]=useState([]);
+  const [stagedRows,setStagedRows]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [editMode,setEditMode]=useState(false);
+  const [dirty,setDirty]=useState(false);
   const [showAdd,setShowAdd]=useState(false);
   const [editItemIdx,setEditItemIdx]=useState(null);
   const [pasteItems,setPasteItems]=useState(false);
   const [pasteText,setPasteText]=useState('');
   const [preview,setPreview]=useState(null);
   const [saving,setSaving]=useState(false);
+  const [showEditHeader,setShowEditHeader]=useState(false);
 
   const shipTarget=round2(Number(order.shipping_total)||0);
   const taxTarget =round2(Number(order.tax_total)||0);
   const hasAlloc=shipTarget>0||taxTarget>0;
-  const shipSum=round2(allocRows.reduce((s,r)=>s+Number(r.ship_alloc||0),0));
-  const taxSum =round2(allocRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
+  const shipSum=round2(stagedRows.reduce((s,r)=>s+Number(r.ship_alloc||0),0));
+  const taxSum =round2(stagedRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
   const balanced=(!hasAlloc)||(shipSum===shipTarget&&taxSum===taxTarget);
 
-  const loadAndDistribute=async()=>{
+  const loadItems=async()=>{
     setLoading(true);
     const rows=await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    setItems(rows);
-    setAllocRows(distribute(rows.map(r=>({...r,ship_alloc:Number(r.shipping_allocated||0),tax_alloc:Number(r.tax_allocated||0)})),order.shipping_total,order.tax_total));
+    setDbItems(rows);
+    setStagedRows(distribute(rows.map(r=>({...r,ship_alloc:Number(r.shipping_allocated||0),tax_alloc:Number(r.tax_allocated||0)})),order.shipping_total,order.tax_total));
+    setDirty(false);
     setLoading(false);
   };
-  useEffect(()=>{loadAndDistribute();},[order.order_number]);
+  useEffect(()=>{loadItems();},[order.order_number]);
 
-  const afterMutation=async()=>{
-    const rows=await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    setItems(rows);
-    setAllocRows(distribute(rows.map(r=>({...r,ship_alloc:Number(r.shipping_allocated||0),tax_alloc:Number(r.tax_allocated||0)})),order.shipping_total,order.tax_total));
-  };
+  const markDirty=newRows=>{setStagedRows(newRows);setDirty(true);};
 
   const addItem=async f=>{
     await api('/api/purchased-items',{method:'POST',body:{...f,order_number:order.order_number,vendor:order.vendor,date_purchased:order.order_date}});
-    setShowAdd(false);await afterMutation();
+    await loadItems();
   };
 
-  const saveEditItem=async(f,idx)=>{
-    const item=allocRows[idx];
-    await api(`/api/purchased-items/${item.item_id}`,{method:'PUT',body:{...f,qty_remaining:f.qty_purchased}});
-    setEditItemIdx(null);await afterMutation();
+  const editItemLocal=(f,idx)=>{
+    const updated=stagedRows.map((r,i)=>i===idx?{...r,...f,qty_purchased:parseInt(f.qty_purchased)||1,unit_cost:parseFloat(f.unit_cost)||0}:r);
+    markDirty(distribute(updated,order.shipping_total,order.tax_total));
+    setEditItemIdx(null);
   };
 
   const delItem=async item=>{
     if(!confirm(`Delete ${item.item_id}?`))return;
     await api(`/api/purchased-items/${item.item_id}`,{method:'DELETE'});
-    await afterMutation();
+    await loadItems();
   };
 
   const parsePaste=()=>{
@@ -498,21 +517,38 @@ function OrderDetailModal({order,onClose,onOpenOrder}){
     setSaving(true);
     for(const row of preview) await api('/api/purchased-items',{method:'POST',body:{...row,order_number:order.order_number,vendor:order.vendor,date_purchased:order.order_date}});
     setPreview(null);setPasteText('');setPasteItems(false);
-    await afterMutation();setSaving(false);
+    await loadItems();setSaving(false);
   };
 
-  const allocChange=(i,field,val)=>setAllocRows(r=>r.map((x,j)=>j===i?{...x,[field]:val}:x));
+  const allocChange=(i,field,val)=>markDirty(stagedRows.map((x,j)=>j===i?{...x,[field]:val}:x));
 
-  const saveAlloc=async()=>{
+  // Save all staged changes (item edits + allocation)
+  const saveAll=async()=>{
+    if(!balanced)return;
     setSaving(true);
-    for(let i=0;i<allocRows.length;i++){
-      const r=allocRows[i];
-      await api(`/api/purchased-items/${r.item_id}`,{method:'PUT',body:{_partial:true,shipping_allocated:r.ship_alloc||0,tax_allocated:r.tax_alloc||0}});
+    for(const r of stagedRows){
+      const orig=dbItems.find(x=>x.item_id===r.item_id);
+      const allocChanged=orig&&(Number(orig.shipping_allocated||0)!==r.ship_alloc||Number(orig.tax_allocated||0)!==r.tax_alloc);
+      const fieldsChanged=orig&&(orig.item_name!==r.item_name||orig.unit_cost!==r.unit_cost||orig.qty_purchased!==r.qty_purchased||orig.source_type!==r.source_type);
+      if(fieldsChanged){
+        await api(`/api/purchased-items/${r.item_id}`,{method:'PUT',body:{item_name:r.item_name,variant:r.variant||null,category:r.category||null,vendor:r.vendor||null,date_purchased:r.date_purchased||null,qty_purchased:r.qty_purchased,qty_remaining:r.qty_purchased,unit_cost:r.unit_cost,condition:r.condition||'New',source_type:r.source_type,location:r.location||null,notes:r.notes||null}});
+      } else if(allocChanged){
+        await api(`/api/purchased-items/${r.item_id}`,{method:'PUT',body:{_partial:true,shipping_allocated:r.ship_alloc||0,tax_allocated:r.tax_alloc||0}});
+      }
     }
-    setSaving(false);await afterMutation();
+    await loadItems();setSaving(false);
   };
 
-  const subtotal=items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
+  const saveHeader=async f=>{
+    await api('/api/orders',{method:'POST',body:{order_number:f.order_number,vendor:f.vendor||null,order_date:f.order_date||null,shipping_total:parseFloat(f.shipping_total)||0,tax_total:parseFloat(f.tax_total)||0,notes:f.notes||null}});
+    const updated={...order,...f,shipping_total:parseFloat(f.shipping_total)||0,tax_total:parseFloat(f.tax_total)||0};
+    setOrder(updated);
+    setStagedRows(distribute(stagedRows,f.shipping_total,f.tax_total));
+    setShowEditHeader(false);
+    if(onReload)onReload();
+  };
+
+  const subtotal=stagedRows.reduce((s,r)=>s+round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1)+Number(r.ship_alloc||0)+Number(r.tax_alloc||0)),0);
 
   return(
     <Modal title={`Order ${order.order_number}`} onClose={onClose}>
@@ -523,29 +559,36 @@ function OrderDetailModal({order,onClose,onOpenOrder}){
         <span><span style={{color:'var(--muted)'}}>Shipping:</span> <strong>{fmt$(order.shipping_total)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Tax:</span> <strong>{fmt$(order.tax_total)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Total:</span> <strong style={{color:'var(--accent2)'}}>{fmt$(subtotal)}</strong></span>
-        <span style={{marginLeft:'auto'}}>
-          <button className="sm primary" onClick={()=>{setEditMode(e=>!e);setShowAdd(false);setEditItemIdx(null);}}>
-            {editMode?'Done Editing':'Edit Order'}
-          </button>
-        </span>
+        <button className="sm" style={{marginLeft:'auto'}} onClick={()=>setShowEditHeader(true)}>Edit Header</button>
       </div>
+
+      {showEditHeader&&(
+        <OrderHeaderForm
+          title={`Edit Order ${order.order_number}`}
+          initial={order}
+          onSave={saveHeader}
+          onClose={()=>setShowEditHeader(false)}
+        />
+      )}
 
       <div className="section">
         <div className="section-header">
-          <h3>Line Items ({items.length})</h3>
-          {editMode&&(
-            <div style={{display:'flex',gap:8}}>
-              {hasAlloc&&allocRows.length>0&&<button className="sm" onClick={()=>setAllocRows(distribute(allocRows,order.shipping_total,order.tax_total))}>Redistribute</button>}
-              <button className="sm" onClick={()=>{setShowAdd(a=>!a);setPasteItems(false);setEditItemIdx(null);}}>+ Add Item</button>
-              <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAdd(false);setPreview(null);setEditItemIdx(null);}}>Paste Items</button>
-            </div>
-          )}
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <h3 style={{margin:0}}>Line Items ({dbItems.length})</h3>
+            {dirty&&<span className="dirty-badge">Unsaved changes</span>}
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            {dirty&&<button className="primary sm" onClick={saveAll} disabled={!balanced||saving}>{saving?'Saving…':'Save Changes'}</button>}
+            {hasAlloc&&stagedRows.length>0&&<button className="sm" onClick={()=>setStagedRows(distribute(stagedRows,order.shipping_total,order.tax_total))}>Redistribute</button>}
+            <button className="sm" onClick={()=>{setShowAdd(a=>!a);setPasteItems(false);setEditItemIdx(null);}}>+ Add Item</button>
+            <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAdd(false);setPreview(null);setEditItemIdx(null);}}>Paste Items</button>
+          </div>
         </div>
 
-        {editMode&&showAdd&&<ItemForm onSave={addItem} onClose={()=>setShowAdd(false)}/>}
-        {editMode&&editItemIdx!==null&&<ItemForm initial={allocRows[editItemIdx]} onSave={(f)=>saveEditItem(f,editItemIdx)} onClose={()=>setEditItemIdx(null)}/>}
+        {showAdd&&<ItemForm title="New Item" onSave={async f=>{await addItem(f);setShowAdd(false);}} onClose={()=>setShowAdd(false)}/>}
+        {editItemIdx!==null&&<ItemForm title={`Editing: ${stagedRows[editItemIdx]?.item_name}`} initial={stagedRows[editItemIdx]} onSave={f=>editItemLocal(f,editItemIdx)} onClose={()=>setEditItemIdx(null)}/>}
 
-        {editMode&&pasteItems&&!preview&&(
+        {pasteItems&&!preview&&(
           <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
             <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={6} style={{fontFamily:'monospace',fontSize:12,marginBottom:8}} placeholder="item_name,variant,category,..."/>
             <div style={{display:'flex',gap:8}}>
@@ -555,7 +598,7 @@ function OrderDetailModal({order,onClose,onOpenOrder}){
           </div>
         )}
 
-        {editMode&&preview&&(
+        {preview&&(
           <div style={{marginBottom:14}}>
             <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{preview.length} items parsed:</div>
             <div className="overflow-x" style={{marginBottom:10}}>
@@ -570,47 +613,31 @@ function OrderDetailModal({order,onClose,onOpenOrder}){
           </div>
         )}
 
-        {loading?<div className="empty">Loading…</div>:allocRows.length===0?<div className="empty">No items on this order.</div>:(
-          editMode
-            ? <LineItemsTable rows={allocRows} shipTarget={shipTarget} taxTarget={taxTarget}
+        {loading
+          ? <div style={{display:'flex',alignItems:'center',gap:10,padding:24,color:'var(--muted)',fontSize:13}}><div className="spinner"/><span>Loading items…</span></div>
+          : stagedRows.length===0
+            ? <div className="empty">No items on this order.</div>
+            : <LineItemsTable
+                rows={stagedRows} shipTarget={shipTarget} taxTarget={taxTarget}
                 onAllocChange={allocChange}
                 onDelete={delItem}
                 onEdit={(_,idx)=>{setEditItemIdx(idx);setShowAdd(false);setPasteItems(false);}}
-                onSaveAlloc={hasAlloc?saveAlloc:undefined}
-                onRedistribute={()=>setAllocRows(distribute(allocRows,order.shipping_total,order.tax_total))}
-                saving={saving}/>
-            : <div className="overflow-x">
-                <table>
-                  <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th>{hasAlloc&&<><th>Ship Alloc</th><th>Tax Alloc</th></>}<th>Line Total</th></tr></thead>
-                  <tbody>
-                    {allocRows.map(r=>{
-                      const lt=round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1)+Number(r.ship_alloc||0)+Number(r.tax_alloc||0));
-                      return(
-                        <tr key={r.item_id}>
-                          <td style={{fontFamily:'monospace',fontSize:11}}>{r.item_id}</td>
-                          <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
-                          <td>{srcBadge(r.source_type)}</td>
-                          <td>{r.qty_purchased}</td>
-                          <td>{fmt$(r.unit_cost)}</td>
-                          {hasAlloc&&<><td style={{fontSize:12}}>{fmt$(r.ship_alloc)}</td><td style={{fontSize:12}}>{fmt$(r.tax_alloc)}</td></>}
-                          <td style={{fontWeight:500}}>{fmt$(lt)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-        )}
+                onSaveAlloc={hasAlloc&&dirty?saveAll:undefined}
+                onRedistribute={()=>setStagedRows(distribute(stagedRows,order.shipping_total,order.tax_total))}
+                saving={saving}
+              />
+        }
       </div>
     </Modal>
   );
 }
 
 // ── Orders Tab ────────────────────────────
-function OrdersTab(){
+function OrdersTab({onOpenOrderModal}){
   const [orders,setOrders]=useState([]);
   const [loading,setLoading]=useState(true);
   const [detail,setDetail]=useState(null);
+  const [editOrder,setEditOrder]=useState(null);
   const [showNew,setShowNew]=useState(false);
   const [search,setSearch]=useState('');
   const [filterVendor,setFilterVendor]=useState('');
@@ -633,6 +660,11 @@ function OrdersTab(){
   const del=async o=>{
     if(!confirm(`Delete order ${o.order_number}?`))return;
     await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});load();
+  };
+
+  const saveEditHeader=async f=>{
+    await api('/api/orders',{method:'POST',body:{order_number:f.order_number,vendor:f.vendor||null,order_date:f.order_date||null,shipping_total:parseFloat(f.shipping_total)||0,tax_total:parseFloat(f.tax_total)||0,notes:f.notes||null}});
+    setEditOrder(null);load();
   };
 
   const totalSpend=orders.reduce((s,o)=>s+Number(o.order_total||0),0);
@@ -676,15 +708,21 @@ function OrdersTab(){
                   <td>{fmt$(o.shipping_total)}</td>
                   <td>{fmt$(o.tax_total)}</td>
                   <td style={{fontWeight:500}}>{fmt$(o.order_total)}</td>
-                  <td><Kebab items={[{label:'Open Order',action:()=>setDetail(o)},{label:'Delete',danger:true,action:()=>del(o)}]}/></td>
+                  <td><Kebab items={[
+                    {label:'View',action:()=>setDetail(o)},
+                    {label:'Edit',action:()=>setEditOrder(o)},
+                    {label:'Delete',danger:true,action:()=>del(o)}
+                  ]}/></td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
       {showNew&&<NewOrderModal onClose={()=>setShowNew(false)} onSaved={()=>{setShowNew(false);load();}}/>}
-      {detail&&<OrderDetailModal order={detail} onClose={()=>{setDetail(null);load();}} onOpenOrder={setDetail}/>}
+      {detail&&<OrderDetailModal order={detail} onClose={()=>{setDetail(null);load();}} onReload={load}/>}
+      {editOrder&&<OrderHeaderForm title={`Edit Order ${editOrder.order_number}`} initial={editOrder} onSave={saveEditHeader} onClose={()=>setEditOrder(null)}/>}
     </>
   );
 }
@@ -702,15 +740,12 @@ function PurchasedItemsTab({onOpenOrder}){
   const [viewItem,setViewItem]=useState(null);
   const [editItem,setEditItem]=useState(null);
 
-  const load=useCallback(async()=>{
-    setLoading(true);
-    setItems(await api('/api/purchased-items'));
-    setLoading(false);
-  },[]);
+  const load=useCallback(async()=>{setLoading(true);setItems(await api('/api/purchased-items'));setLoading(false);},[]);
   useEffect(()=>{load();},[load]);
 
-  const vendors=useMemo(()=>[...new Set(items.map(i=>i.vendor).filter(Boolean))].sort(),[items]);
-  const srcTypes=useMemo(()=>[...new Set(items.map(i=>i.source_type).filter(Boolean))].sort(),[items]);
+  const vendors   =useMemo(()=>[...new Set(items.map(i=>i.vendor).filter(Boolean))].sort(),[items]);
+  const srcTypes  =useMemo(()=>[...new Set(items.map(i=>i.source_type).filter(Boolean))].sort(),[items]);
+  const conditions=useMemo(()=>[...new Set(items.map(i=>i.condition).filter(Boolean))].sort(),[items]);
 
   const filtered=useMemo(()=>items.filter(i=>{
     if(search&&!i.item_name.toLowerCase().includes(search.toLowerCase())&&!i.item_id.toLowerCase().includes(search.toLowerCase())&&!(i.vendor||'').toLowerCase().includes(search.toLowerCase()))return false;
@@ -722,16 +757,8 @@ function PurchasedItemsTab({onOpenOrder}){
     return true;
   }),[items,search,filterSrc,filterVendor,filterCondition,filterDateFrom,filterDateTo]);
 
-  const saveEdit=async f=>{
-    await api(`/api/purchased-items/${editItem.item_id}`,{method:'PUT',body:f});
-    setEditItem(null);setViewItem(null);load();
-  };
-
-  const del=async item=>{
-    if(!confirm(`Delete ${item.item_id}?`))return;
-    await api(`/api/purchased-items/${item.item_id}`,{method:'DELETE'});
-    setViewItem(null);load();
-  };
+  const saveEdit=async f=>{await api(`/api/purchased-items/${editItem.item_id}`,{method:'PUT',body:f});setEditItem(null);setViewItem(null);load();};
+  const del=async item=>{if(!confirm(`Delete ${item.item_id}?`))return;await api(`/api/purchased-items/${item.item_id}`,{method:'DELETE'});setViewItem(null);load();};
 
   const totalCost=filtered.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
   const totalShip=filtered.reduce((s,i)=>s+Number(i.shipping_allocated||0),0);
@@ -748,7 +775,7 @@ function PurchasedItemsTab({onOpenOrder}){
       </div>
 
       <div className="filter-bar">
-        <div className="filter-group"><label>Search</label><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Name, ID, vendor" style={{width:180}}/></div>
+        <div className="filter-group"><label>Search</label><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Name, ID, vendor" style={{width:170}}/></div>
         <div className="filter-group"><label>Type</label>
           <select value={filterSrc} onChange={e=>setFilterSrc(e.target.value)} style={{width:130}}>
             <option value="">All</option>{srcTypes.map(s=><option key={s}>{s}</option>)}
@@ -761,7 +788,7 @@ function PurchasedItemsTab({onOpenOrder}){
         </div>
         <div className="filter-group"><label>Condition</label>
           <select value={filterCondition} onChange={e=>setFilterCondition(e.target.value)} style={{width:120}}>
-            <option value="">All</option>{CONDITIONS.map(c=><option key={c}>{c}</option>)}
+            <option value="">All</option>{conditions.map(c=><option key={c}>{c}</option>)}
           </select>
         </div>
         <div className="filter-group"><label>From</label><input type="date" value={filterDateFrom} onChange={e=>setFilterDateFrom(e.target.value)} style={{width:140}}/></div>
@@ -802,14 +829,15 @@ function PurchasedItemsTab({onOpenOrder}){
       {viewItem&&!editItem&&(
         <Modal title={`${viewItem.item_id} — ${viewItem.item_name}`} onClose={()=>setViewItem(null)} width="560px">
           <div className="view-grid" style={{marginBottom:20}}>
-            {[['Item ID',viewItem.item_id],['Source Type',viewItem.source_type],['Variant',viewItem.variant||'—'],['Category',viewItem.category||'—'],['Vendor',viewItem.vendor||'—'],
+            {[['Item ID',viewItem.item_id],['Source Type',viewItem.source_type],['Variant',viewItem.variant||'—'],['Category',viewItem.category||'—'],
+              ['Vendor',viewItem.vendor||'—'],
               ['Order #',viewItem.order_number?<span className="order-link" onClick={()=>{setViewItem(null);onOpenOrder(viewItem.order_number);}}>{viewItem.order_number}</span>:'—'],
               ['Date',fmtDate(viewItem.date_purchased)],['Condition',viewItem.condition||'—'],
-              ['Qty Purchased',viewItem.qty_purchased],['Qty Remaining',viewItem.qty_remaining],
-              ['Unit Cost',fmt$(viewItem.unit_cost)],['Shipping Alloc',fmt$(viewItem.shipping_allocated)],
-              ['Tax Alloc',fmt$(viewItem.tax_allocated)],['Line Total',fmt$(viewItem.total_line_cost)],
-              ['Location',viewItem.location||'—'],['Notes',viewItem.notes||'—'],
-            ].map(([k,v])=>(
+              ['Qty Purchased',viewItem.qty_purchased],['Unit Cost',fmt$(viewItem.unit_cost)],
+              ['Shipping Alloc',fmt$(viewItem.shipping_allocated)],['Tax Alloc',fmt$(viewItem.tax_allocated)],
+              ['Line Total',fmt$(viewItem.total_line_cost)],['Location',viewItem.location||'—'],
+              ['Notes',viewItem.notes||'—'],['',null],
+            ].filter(([,v])=>v!==null).map(([k,v])=>(
               <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
             ))}
           </div>
@@ -843,7 +871,6 @@ function PurchasedItemForm({initial={},onSave,onClose}){
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant||''} onChange={handle}/></div>
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition} onChange={handle}>{CONDITIONS.map(c=><option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1"/></div>
-        <div className="form-group"><label>Qty Remaining</label><input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0"/></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0"/></div>
         <div className="form-group"><label>Location</label><input name="location" value={f.location||''} onChange={handle}/></div>
         <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes||''} onChange={handle} rows={2}/></div>
@@ -881,29 +908,10 @@ function StockTab(){
 
   const srcTypes=useMemo(()=>[...new Set(items.map(i=>i.source_type).filter(Boolean))].sort(),[items]);
 
-  const addStock=async e=>{
-    e.preventDefault();
-    await api('/api/stock',{method:'POST',body:f});
-    setF({name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:''});
-    setShowAdd(false);load();
-  };
-
-  const openReceive=async item=>{
-    setReceiveItem(item);
-    setRf({stock_item_id:item.id,purchased_item_id:'',qty_received:1,unit_cost:item.unit_cost||''});
-    setPurchasedItems(await api('/api/purchased-items'));
-  };
-
-  const doReceive=async e=>{
-    e.preventDefault();
-    await api('/api/stock/receive',{method:'POST',body:rf});
-    setReceiveItem(null);load();
-  };
-
-  const del=async item=>{
-    if(!confirm(`Delete stock item ${item.sku}?`))return;
-    await api(`/api/stock/${item.id}`,{method:'DELETE'});load();
-  };
+  const addStock=async e=>{e.preventDefault();await api('/api/stock',{method:'POST',body:f});setF({name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:''});setShowAdd(false);load();};
+  const openReceive=async item=>{setReceiveItem(item);setRf({stock_item_id:item.id,purchased_item_id:'',qty_received:1,unit_cost:item.unit_cost||''});setPurchasedItems(await api('/api/purchased-items'));};
+  const doReceive=async e=>{e.preventDefault();await api('/api/stock/receive',{method:'POST',body:rf});setReceiveItem(null);load();};
+  const del=async item=>{if(!confirm(`Delete stock item ${item.sku}?`))return;await api(`/api/stock/${item.id}`,{method:'DELETE'});load();};
 
   const lowStock=items.filter(i=>i.qty_on_hand===1).length;
   const outStock=items.filter(i=>i.qty_on_hand===0).length;
@@ -917,6 +925,7 @@ function StockTab(){
         <div className="stat"><div className="stat-label">Low Stock</div><div className="stat-value" style={{color:'var(--warn)'}}>{lowStock}</div></div>
         <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{color:'var(--danger)'}}>{outStock}</div></div>
       </div>
+
       <div className="filter-bar">
         <div className="filter-group"><label>Search</label><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Name or SKU" style={{width:180}}/></div>
         <div className="filter-group"><label>Type</label>
@@ -933,296 +942,4 @@ function StockTab(){
           <h2>New Stock Item</h2>
           <form onSubmit={addStock}>
             <div className="form-grid">
-              <div className="form-group full"><label>Canonical Name *</label><input name="name" value={f.name} onChange={handle} required placeholder="e.g. Keeppower 18650 3500mAh"/></div>
-              <div className="form-group"><label>Variant</label><input name="variant" value={f.variant} onChange={handle}/></div>
-              <div className="form-group"><label>Category</label><input name="category" value={f.category} onChange={handle}/></div>
-              <div className="form-group"><label>Source Type *</label><select name="source_type" value={f.source_type} onChange={handle}>{SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
-              <div className="form-group"><label>Location</label><input name="location" value={f.location} onChange={handle}/></div>
-              <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes} onChange={handle}/></div>
-            </div>
-            <div style={{display:'flex',gap:8,marginTop:12}}>
-              <button type="submit" className="primary">Create</button>
-              <button type="button" onClick={()=>setShowAdd(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="overflow-x">
-        {loading?<div className="empty">Loading…</div>:items.length===0
-          ?<div className="empty">No stock items yet.<br/>Create stock items then receive purchased items into them.</div>:(
-          <table>
-            <thead><tr><th>SKU</th><th>Name</th><th>Type</th><th>Category</th><th>On Hand</th><th>Avg Cost</th><th>Location</th><th></th></tr></thead>
-            <tbody>
-              {items.map(i=>{
-                const sc=i.qty_on_hand===0?'badge-out':i.qty_on_hand<=1?'badge-low':'badge-ok';
-                return(
-                  <tr key={i.id}>
-                    <td style={{fontFamily:'monospace',fontSize:11}}>{i.sku}</td>
-                    <td><div style={{fontWeight:500}}>{i.name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
-                    <td>{srcBadge(i.source_type)}</td>
-                    <td style={{fontSize:12}}>{i.category||'—'}</td>
-                    <td><span className={`badge ${sc}`}>{i.qty_on_hand}</span></td>
-                    <td>{fmt$(i.unit_cost)}</td>
-                    <td style={{fontSize:12}}>{i.location||'—'}</td>
-                    <td><Kebab items={[{label:'Receive to Stock',action:()=>openReceive(i)},{label:'Delete',danger:true,action:()=>del(i)}]}/></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {receiveItem&&(
-        <Modal title={`Receive — ${receiveItem.name}`} onClose={()=>setReceiveItem(null)} width="520px">
-          <form onSubmit={doReceive}>
-            <div className="form-grid">
-              <div className="form-group full">
-                <label>Link to Purchased Item (optional)</label>
-                <select value={rf.purchased_item_id} onChange={e=>{
-                  const pi=purchasedItems.find(p=>p.item_id===e.target.value);
-                  setRf(r=>({...r,purchased_item_id:e.target.value,unit_cost:pi?pi.unit_cost:r.unit_cost,qty_received:pi?pi.qty_remaining:r.qty_received}));
-                }}>
-                  <option value="">— none —</option>
-                  {purchasedItems.map(p=><option key={p.item_id} value={p.item_id}>{p.item_id} — {p.item_name} (rem: {p.qty_remaining})</option>)}
-                </select>
-              </div>
-              <div className="form-group"><label>Qty Received *</label><input type="number" value={rf.qty_received} onChange={e=>setRf(r=>({...r,qty_received:e.target.value}))} min="1" required/></div>
-              <div className="form-group"><label>Unit Cost</label><input type="number" value={rf.unit_cost} onChange={e=>setRf(r=>({...r,unit_cost:e.target.value}))} step="0.01" min="0"/></div>
-            </div>
-            <div style={{display:'flex',gap:8,marginTop:16}}>
-              <button type="submit" className="primary">Receive</button>
-              <button type="button" onClick={()=>setReceiveItem(null)}>Cancel</button>
-            </div>
-          </form>
-        </Modal>
-      )}
-    </>
-  );
-}
-
-// ── Builds ────────────────────────────────
-function BuildsTab({tiers}){
-  const [builds,setBuilds]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [modal,setModal]=useState(null);
-  const [usageModal,setUsageModal]=useState(null);
-
-  const load=async()=>{setLoading(true);setBuilds(await api('/api/builds'));setLoading(false);};
-  useEffect(()=>{load();},[]);
-
-  const save=async f=>{
-    if(modal==='add')await api('/api/builds',{method:'POST',body:f});
-    else await api(`/api/builds/${modal.build_id}`,{method:'PUT',body:f});
-    setModal(null);load();
-  };
-  const del=async b=>{if(!confirm(`Delete build ${b.build_id}?`))return;await api(`/api/builds/${b.build_id}`,{method:'DELETE'});load();};
-  const totalProfit=builds.reduce((s,b)=>s+Number(b.profit||0),0);
-  const sold=builds.filter(b=>b.status==='Sold').length;
-
-  return(
-    <>
-      <div className="stats-row">
-        <div className="stat"><div className="stat-label">Builds</div><div className="stat-value">{builds.length}</div></div>
-        <div className="stat"><div className="stat-label">Sold</div><div className="stat-value">{sold}</div></div>
-        <div className="stat"><div className="stat-label">Total Profit</div><div className="stat-value" style={{color:totalProfit>=0?'var(--success)':'var(--danger)'}}>{fmt$(totalProfit)}</div></div>
-      </div>
-      <div className="toolbar"><button className="primary" onClick={()=>setModal('add')}>+ New Build</button></div>
-      <div className="overflow-x">
-        {loading?<div className="empty">Loading…</div>:builds.length===0?<div className="empty">No builds yet.</div>:(
-          <table>
-            <thead><tr><th>ID</th><th>Hilt</th><th>Customer</th><th>Tier</th><th>Parts</th><th>Labor</th><th>Total</th><th>Sold</th><th>Profit</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              {builds.map(b=>(
-                <tr key={b.build_id}>
-                  <td style={{fontFamily:'monospace',fontSize:12}}>{b.build_id}</td>
-                  <td style={{fontFamily:'monospace',fontSize:11}}>{b.hilt_item_id||'—'}</td>
-                  <td>{b.customer||'—'}</td><td>{b.tier_name||'—'}</td>
-                  <td>{fmt$(b.parts_cost)}</td><td>{fmt$(b.labor_value)}</td>
-                  <td>{fmt$(b.total_build_cost)}</td><td>{fmt$(b.sold_price)}</td>
-                  <td style={{color:Number(b.profit)>=0?'var(--success)':'var(--danger)',fontWeight:500}}>{fmt$(b.profit)}</td>
-                  <td><span className="badge" style={{background:'#1e2a1e',color:'var(--accent2)'}}>{b.status}</span></td>
-                  <td><Kebab items={[{label:'Parts Used',action:()=>setUsageModal(b)},{label:'Edit',action:()=>setModal(b)},{label:'Delete',danger:true,action:()=>del(b)}]}/></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-      {modal&&<Modal title={modal==='add'?'New Build':`Edit ${modal.build_id}`} onClose={()=>setModal(null)}><BuildForm initial={modal==='add'?{}:modal} tiers={tiers} onSave={save} onClose={()=>setModal(null)}/></Modal>}
-      {usageModal&&<Modal title={`Parts — ${usageModal.build_id}`} onClose={()=>setUsageModal(null)}><UsagePanel buildId={usageModal.build_id}/></Modal>}
-    </>
-  );
-}
-
-function BuildForm({initial={},tiers,onSave,onClose}){
-  const [f,setF]=useState({hilt_item_id:'',customer:'',tier_id:'',parts_cost:'',labor_value:'',target_price:'',listed_price:'',sold_price:'',date_sold:'',status:'In Progress',notes:'',...initial,tier_id:initial.tier_id??''});
-  const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
-  const totalCost=(Number(f.parts_cost)||0)+(Number(f.labor_value)||0);
-  const profit=(Number(f.sold_price)||0)-totalCost;
-  return(
-    <form onSubmit={e=>{e.preventDefault();onSave(f);}}>
-      <div className="form-grid">
-        <div className="form-group"><label>Hilt Item ID</label><input name="hilt_item_id" value={f.hilt_item_id} onChange={handle} placeholder="HB-001"/></div>
-        <div className="form-group"><label>Customer</label><input name="customer" value={f.customer} onChange={handle}/></div>
-        <div className="form-group"><label>Build Tier</label><select name="tier_id" value={f.tier_id} onChange={handle}><option value="">— select —</option>{tiers.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-        <div className="form-group"><label>Status</label><select name="status" value={f.status} onChange={handle}>{['In Progress','Complete','Sold','On Hold'].map(s=><option key={s}>{s}</option>)}</select></div>
-        <div className="form-group"><label>Parts Cost</label><input type="number" name="parts_cost" value={f.parts_cost} onChange={handle} step="0.01" min="0"/></div>
-        <div className="form-group"><label>Labor Value</label><input type="number" name="labor_value" value={f.labor_value} onChange={handle} step="0.01" min="0"/></div>
-        <div className="form-group"><label>Target Price</label><input type="number" name="target_price" value={f.target_price} onChange={handle} step="0.01" min="0"/></div>
-        <div className="form-group"><label>Listed Price</label><input type="number" name="listed_price" value={f.listed_price} onChange={handle} step="0.01" min="0"/></div>
-        <div className="form-group"><label>Sold Price</label><input type="number" name="sold_price" value={f.sold_price} onChange={handle} step="0.01" min="0"/></div>
-        <div className="form-group"><label>Date Sold</label><input type="date" name="date_sold" value={f.date_sold} onChange={handle}/></div>
-        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes} onChange={handle} rows={2}/></div>
-      </div>
-      <div style={{background:'var(--surface)',borderRadius:'var(--radius)',padding:'10px 14px',marginTop:12,fontSize:13,display:'flex',gap:24}}>
-        <span>Total Cost: <strong>{fmt$(totalCost)}</strong></span>
-        <span>Profit: <strong style={{color:profit>=0?'var(--success)':'var(--danger)'}}>{fmt$(profit)}</strong></span>
-      </div>
-      <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
-        <button type="button" onClick={onClose}>Cancel</button>
-        <button type="submit" className="primary">Save</button>
-      </div>
-    </form>
-  );
-}
-
-function UsagePanel({buildId}){
-  const [usage,setUsage]=useState([]);
-  const [stock,setStock]=useState([]);
-  const [f,setF]=useState({stock_item_id:'',qty_used:1,unit_cost:''});
-  const load=async()=>{const [u,s]=await Promise.all([api(`/api/usage?build_id=${buildId}`),api('/api/stock')]);setUsage(u);setStock(s);};
-  useEffect(()=>{load();},[buildId]);
-  const pickStock=id=>{const s=stock.find(s=>s.id==id);setF(p=>({...p,stock_item_id:id,unit_cost:s?s.unit_cost||'':''}));};
-  const add=async e=>{e.preventDefault();await api('/api/usage',{method:'POST',body:{...f,build_id:buildId}});setF({stock_item_id:'',qty_used:1,unit_cost:''});load();};
-  const del=async id=>{await api(`/api/usage?id=${id}`,{method:'DELETE'});load();};
-  const total=usage.reduce((s,u)=>s+Number(u.total_cost||0),0);
-  return(
-    <div>
-      <table style={{marginBottom:16}}>
-        <thead><tr><th>SKU</th><th>Name</th><th>Qty</th><th>Unit Cost</th><th>Total</th><th></th></tr></thead>
-        <tbody>
-          {usage.map(u=><tr key={u.id}><td style={{fontFamily:'monospace',fontSize:11}}>{u.sku}</td><td>{u.name}</td><td>{u.qty_used}</td><td>{fmt$(u.unit_cost)}</td><td>{fmt$(u.total_cost)}</td><td><button className="sm danger" onClick={()=>del(u.id)}>✕</button></td></tr>)}
-          {usage.length===0&&<tr><td colSpan={6} style={{color:'var(--muted)',textAlign:'center',padding:16}}>No parts linked.</td></tr>}
-        </tbody>
-      </table>
-      <div style={{textAlign:'right',marginBottom:16,fontWeight:500}}>Total: {fmt$(total)}</div>
-      <form onSubmit={add} style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr auto',gap:8,alignItems:'end'}}>
-        <div><label style={{fontSize:11,color:'var(--muted)'}}>Stock Item</label><select value={f.stock_item_id} onChange={e=>pickStock(e.target.value)} required><option value="">— select —</option>{stock.map(s=><option key={s.id} value={s.id}>{s.sku} — {s.name} (qty: {s.qty_on_hand})</option>)}</select></div>
-        <div><label style={{fontSize:11,color:'var(--muted)'}}>Qty</label><input type="number" value={f.qty_used} onChange={e=>setF(p=>({...p,qty_used:e.target.value}))} min="1" required/></div>
-        <div><label style={{fontSize:11,color:'var(--muted)'}}>Unit Cost</label><input type="number" value={f.unit_cost} onChange={e=>setF(p=>({...p,unit_cost:e.target.value}))} step="0.01"/></div>
-        <button type="submit" className="primary">Add</button>
-      </form>
-    </div>
-  );
-}
-
-// ── Tiers Tab ─────────────────────────────
-function TiersTab({tiers,onRefresh}){
-  const [name,setName]=useState('');
-  const add=async e=>{e.preventDefault();await api('/api/tiers',{method:'POST',body:{name}});setName('');onRefresh();};
-  const del=async id=>{if(!confirm('Delete this tier?'))return;await api(`/api/tiers?id=${id}`,{method:'DELETE'});onRefresh();};
-  return(
-    <div style={{maxWidth:400}}>
-      <h2>Build Tiers</h2>
-      {tiers.map(t=>(
-        <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',border:'1px solid var(--border)',borderRadius:'var(--radius)',marginBottom:6}}>
-          <span>{t.name}</span><button className="sm danger" onClick={()=>del(t.id)}>Delete</button>
-        </div>
-      ))}
-      <form onSubmit={add} style={{display:'flex',gap:8,marginTop:16}}>
-        <input placeholder="New tier name" value={name} onChange={e=>setName(e.target.value)} required/>
-        <button type="submit" className="primary">Add</button>
-      </form>
-    </div>
-  );
-}
-
-// ── Import Tab ────────────────────────────
-function ImportTab(){
-  const [invCSV,setInvCSV]=useState('');
-  const [ordCSV,setOrdCSV]=useState('');
-  const [invResult,setInvResult]=useState(null);
-  const [ordResult,setOrdResult]=useState(null);
-  const [invLoading,setInvLoading]=useState(false);
-  const [ordLoading,setOrdLoading]=useState(false);
-  const invRef=useRef();const ordRef=useRef();
-  const readFile=(e,setter)=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>setter(ev.target.result);r.readAsText(file);};
-  const runInv=async()=>{setInvLoading(true);setInvResult(null);try{const d=await api('/api/import',{method:'POST',body:{mode:'inventory',csv:invCSV}});setInvResult(d);setInvCSV('');if(invRef.current)invRef.current.value='';}catch(e){setInvResult({error:e.message});}setInvLoading(false);};
-  const runOrd=async()=>{setOrdLoading(true);setOrdResult(null);try{const d=await api('/api/import',{method:'POST',body:{mode:'orders',csv:ordCSV}});setOrdResult(d);setOrdCSV('');if(ordRef.current)ordRef.current.value='';}catch(e){setOrdResult({error:e.message});}setOrdLoading(false);};
-  const Result=({r})=>!r?null:r.error?<div className="result-err">{r.error}</div>:<div className="result-ok">{r.inserted??r.insertedItems} inserted, {r.skipped??0} skipped{r.errors?.length>0&&<div style={{marginTop:6,fontSize:12,color:'var(--warn)'}}>{r.errors.map((e,i)=><div key={i}>{e}</div>)}</div>}</div>;
-  return(
-    <div style={{maxWidth:600}}>
-      <h2>Bulk Import</h2>
-      <p style={{color:'var(--muted)',marginBottom:24,fontSize:13}}>Run purchased items CSV first, then orders CSV.</p>
-      {[
-        {label:'1. Purchased Items CSV',ref:invRef,csv:invCSV,set:setInvCSV,run:runInv,loading:invLoading,result:invResult,hint:'Required: item_name, source_type, qty_purchased, unit_cost'},
-        {label:'2. Orders CSV',ref:ordRef,csv:ordCSV,set:setOrdCSV,run:runOrd,loading:ordLoading,result:ordResult,hint:'Required: order_number, shipping_total, tax_total'}
-      ].map(s=>(
-        <div key={s.label} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:20,marginBottom:16}}>
-          <h2 style={{marginBottom:6}}>{s.label}</h2>
-          <p style={{fontSize:12,color:'var(--muted)',marginBottom:12}}>{s.hint}</p>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <input ref={s.ref} type="file" accept=".csv" onChange={e=>readFile(e,s.set)} style={{flex:1}}/>
-            <button className="primary" onClick={s.run} disabled={!s.csv||s.loading}>{s.loading?'Importing…':'Import'}</button>
-          </div>
-          {s.csv&&<div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>{s.csv.trim().split('\n').length-1} rows</div>}
-          <Result r={s.result}/>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── App ───────────────────────────────────
-function App(){
-  const [tab,setTab]=useState('stock');
-  const [tiers,setTiers]=useState([]);
-  const [orderModal,setOrderModal]=useState(null); // for cross-tab order link
-
-  const loadTiers=async()=>setTiers(await api('/api/tiers'));
-  useEffect(()=>{loadTiers();},[]);
-
-  // Opens order modal from any tab without navigating away
-  const openOrderModal=useCallback(async(orderNum)=>{
-    const orders=await api('/api/orders');
-    const o=orders.find(x=>x.order_number===orderNum);
-    if(o)setOrderModal(o);
-  },[]);
-
-  const tabs=[
-    {id:'stock',     label:'Stock'},
-    {id:'orders',    label:'Orders'},
-    {id:'purchased', label:'Purchased Items'},
-    {id:'builds',    label:'Builds'},
-    {id:'tiers',     label:'Build Tiers'},
-    {id:'import',    label:'Import'},
-  ];
-
-  return(
-    <>
-      <div className="header">
-        <h1>⚔ Saber Tracker</h1>
-        <span style={{fontSize:12,color:'var(--muted)'}}>Jedi Master Tech</span>
-      </div>
-      <div className="content">
-        <div className="tab-bar">
-          {tabs.map(t=><button key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
-        </div>
-        {tab==='stock'     && <StockTab/>}
-        {tab==='orders'    && <OrdersTab/>}
-        {tab==='purchased' && <PurchasedItemsTab onOpenOrder={openOrderModal}/>}
-        {tab==='builds'    && <BuildsTab tiers={tiers}/>}
-        {tab==='tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers}/>}
-        {tab==='import'    && <ImportTab/>}
-      </div>
-      {orderModal&&<OrderDetailModal order={orderModal} onClose={()=>setOrderModal(null)} onOpenOrder={setOrderModal}/>}
-    </>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-</script>
-</body>
-</html>
+              <div className="form-group full"><label>Canonical Name *</label><input name="name" value={f.name} onChange={handle} required placeholder="e.g. Keeppower 18650 
