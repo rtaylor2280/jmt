@@ -579,7 +579,10 @@ function TiersTab({ tiers, onRefresh }) {
 
 // ── Orders Tab ────────────────────────────
 function OrdersTab() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders]       = useState([]);
+  const [detail, setDetail]       = useState(null);   // selected order
+  const [detailItems, setDetailItems] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [f, setF] = useState({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -593,11 +596,30 @@ function OrdersTab() {
     load();
   };
 
+  const openDetail = async order => {
+    setDetail(order);
+    setDetailLoading(true);
+    const items = await apiFetch(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
+    setDetailItems(items);
+    setDetailLoading(false);
+  };
+
+  const totalShipping = orders.reduce((s, o) => s + Number(o.shipping_total || 0), 0);
+  const totalTax      = orders.reduce((s, o) => s + Number(o.tax_total || 0), 0);
+  const totalSpend    = orders.reduce((s, o) => s + Number(o.order_total || 0), 0);
+
   return (
     <div>
-      <h2>Order Allocations</h2>
+      <div className="stats-row" style={{ marginBottom:24 }}>
+        <div className="stat"><div className="stat-label">Orders</div><div className="stat-value">{orders.length}</div></div>
+        <div className="stat"><div className="stat-label">Total Spend</div><div className="stat-value">{fmt$(totalSpend)}</div></div>
+        <div className="stat"><div className="stat-label">Total Shipping</div><div className="stat-value">{fmt$(totalShipping)}</div></div>
+        <div className="stat"><div className="stat-label">Total Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
+      </div>
+
+      <h2>Add / Update Order</h2>
       <p style={{ color:'var(--muted)', marginBottom:16, fontSize:13 }}>
-        Enter order-level shipping & tax. The app will proportionally split costs across all inventory items with that order number.
+        Enter order-level shipping & tax to proportionally allocate across all inventory items on that order.
       </p>
       <form onSubmit={save}>
         <div className="form-grid" style={{ maxWidth:640 }}>
@@ -630,25 +652,70 @@ function OrdersTab() {
       </form>
 
       {orders.length > 0 && (
-        <div style={{ marginTop:24 }}>
-          <h2>Past Orders</h2>
+        <div style={{ marginTop:28 }}>
+          <h2>All Orders</h2>
           <div className="overflow-x">
             <table>
-              <thead><tr><th>Order #</th><th>Vendor</th><th>Date</th><th>Shipping</th><th>Tax</th></tr></thead>
+              <thead><tr>
+                <th>Order #</th><th>Vendor</th><th>Date</th><th>Items</th>
+                <th>Parts Total</th><th>Shipping</th><th>Tax</th><th>Order Total</th><th></th>
+              </tr></thead>
               <tbody>
                 {orders.map(o => (
                   <tr key={o.id}>
-                    <td style={{ fontFamily:'monospace' }}>{o.order_number}</td>
+                    <td style={{ fontFamily:'monospace', fontSize:12 }}>{o.order_number}</td>
                     <td>{o.vendor || '—'}</td>
                     <td>{o.order_date || '—'}</td>
+                    <td style={{ textAlign:'center' }}>{o.item_count}</td>
+                    <td>{fmt$(o.parts_total)}</td>
                     <td>{fmt$(o.shipping_total)}</td>
                     <td>{fmt$(o.tax_total)}</td>
+                    <td style={{ fontWeight:500 }}>{fmt$(o.order_total)}</td>
+                    <td>
+                      <button className="sm" onClick={() => openDetail(o)}>View</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+
+      {detail && (
+        <Modal title={`Order ${detail.order_number} — ${detail.vendor || ''}`} onClose={() => setDetail(null)}>
+          <div style={{ marginBottom:16, display:'flex', gap:24, fontSize:13 }}>
+            <span>Date: <strong>{detail.order_date || '—'}</strong></span>
+            <span>Items: <strong>{detail.item_count}</strong></span>
+            <span>Shipping: <strong>{fmt$(detail.shipping_total)}</strong></span>
+            <span>Tax: <strong>{fmt$(detail.tax_total)}</strong></span>
+            <span>Total: <strong>{fmt$(detail.order_total)}</strong></span>
+          </div>
+          {detailLoading ? <div className="empty">Loading…</div> : (
+            <div className="overflow-x">
+              <table>
+                <thead><tr>
+                  <th>ID</th><th>Name</th><th>Type</th><th>Qty</th>
+                  <th>Unit Cost</th><th>Ship Alloc</th><th>Tax Alloc</th><th>Line Total</th>
+                </tr></thead>
+                <tbody>
+                  {detailItems.map(i => (
+                    <tr key={i.item_id}>
+                      <td style={{ fontFamily:'monospace', fontSize:11 }}>{i.item_id}</td>
+                      <td><div style={{ fontWeight:500 }}>{i.item_name}</div>{i.variant && <div style={{ fontSize:11, color:'var(--muted)' }}>{i.variant}</div>}</td>
+                      <td>{srcBadge(i.source_type)}</td>
+                      <td>{i.qty_purchased}</td>
+                      <td>{fmt$(i.unit_cost)}</td>
+                      <td>{fmt$(i.shipping_allocated)}</td>
+                      <td>{fmt$(i.tax_allocated)}</td>
+                      <td style={{ fontWeight:500 }}>{fmt$(i.total_line_cost)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Modal>
       )}
     </div>
   );
