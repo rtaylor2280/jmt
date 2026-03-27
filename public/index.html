@@ -10,87 +10,86 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0f0f10; --surface: #1a1a1e; --card: #222228;
-    --border: #2e2e36; --text: #e8e8f0; --muted: #888899;
-    --accent: #6c63ff; --accent2: #00c896; --warn: #e0a020;
-    --danger: #e04040; --success: #30c870;
-    --radius: 8px; --radius-lg: 12px;
+    --bg:#0f0f10; --surface:#1a1a1e; --card:#222228;
+    --border:#2e2e36; --text:#e8e8f0; --muted:#888899;
+    --accent:#6c63ff; --accent2:#00c896; --warn:#e0a020;
+    --danger:#e04040; --success:#30c870;
+    --radius:8px; --radius-lg:12px;
   }
-  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
-  input, select, textarea {
-    background: var(--surface); border: 1px solid var(--border); color: var(--text);
-    border-radius: var(--radius); padding: 6px 10px; font-size: 13px; width: 100%;
-    outline: none; transition: border-color .15s;
+  body { background:var(--bg); color:var(--text); font-family:system-ui,sans-serif; font-size:14px; line-height:1.5; }
+  input,select,textarea {
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius); padding:6px 10px; font-size:13px; width:100%;
+    outline:none; transition:border-color .15s;
   }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  input:focus,select:focus,textarea:focus { border-color:var(--accent); }
   button {
-    cursor: pointer; border-radius: var(--radius); padding: 6px 14px; font-size: 13px;
-    border: 1px solid var(--border); background: var(--card); color: var(--text);
-    transition: background .15s; white-space: nowrap;
+    cursor:pointer; border-radius:var(--radius); padding:6px 14px; font-size:13px;
+    border:1px solid var(--border); background:var(--card); color:var(--text);
+    transition:background .15s; white-space:nowrap;
   }
-  button:hover { background: var(--border); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button.primary:hover { background: #574ed6; }
-  button.success { background: var(--success); border-color: var(--success); color: #000; }
-  button.danger  { background: var(--danger);  border-color: var(--danger);  color: #fff; }
-  button.ghost   { background: none; border-color: transparent; color: var(--muted); }
-  button.ghost:hover { color: var(--text); background: none; }
-  button.sm { padding: 3px 10px; font-size: 12px; }
-  button:disabled { opacity: .4; cursor: not-allowed; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; white-space: nowrap; }
-  td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  tr:hover td { background: rgba(255,255,255,.02); }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-  .badge-hilt        { background: #2d2a4a; color: #a09af0; }
-  .badge-parts       { background: #1e3030; color: #40c8a0; }
-  .badge-electronics { background: #1e2a40; color: #60a0e0; }
-  .badge-blade       { background: #3a2020; color: #e08060; }
-  .badge-saber       { background: #2a2010; color: #d0a040; }
-  .badge-ok          { background: #102010; color: var(--success); }
-  .badge-low         { background: #2a1a00; color: var(--warn); }
-  .badge-out         { background: #2a1010; color: var(--danger); }
-  .stat { background: var(--card); border-radius: var(--radius); padding: 14px 18px; }
-  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-  .stat-value { font-size: 22px; font-weight: 600; }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: flex-start; justify-content: center; z-index: 100; padding: 32px 16px; overflow-y: auto; }
-  .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; width: 780px; max-width: 96vw; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-grid .full { grid-column: 1 / -1; }
-  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; }
-  .tab { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 16px; color: var(--muted); cursor: pointer; }
-  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
-  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
-  .toolbar input { max-width: 220px; }
-  .toolbar select { max-width: 160px; }
-  h1 { font-size: 18px; font-weight: 600; }
-  h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-  h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
-  .header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); }
-  .content { padding: 24px; }
-  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .overflow-x { overflow-x: auto; }
-  .empty { text-align: center; color: var(--muted); padding: 32px; font-size: 13px; }
-  .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 16px; }
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .toggle-link { font-size: 12px; color: var(--accent); cursor: pointer; background: none; border: none; padding: 0; }
-  .toggle-link:hover { text-decoration: underline; background: none; }
-  .alloc-match   { color: var(--success); font-weight: 600; }
-  .alloc-nomatch { color: var(--danger);  font-weight: 600; }
-  .kebab-wrap { position: relative; display: inline-block; }
-  .kebab-btn { background: none; border: none; padding: 2px 8px; font-size: 18px; color: var(--muted); line-height: 1; cursor: pointer; }
-  .kebab-btn:hover { color: var(--text); background: none; }
-  .kebab-menu { position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); min-width: 140px; z-index: 50; }
-  .kebab-menu button { display: block; width: 100%; text-align: left; background: none; border: none; border-radius: 0; padding: 8px 14px; font-size: 13px; }
-  .kebab-menu button:hover { background: var(--border); }
-  .kebab-menu .danger-item { color: var(--danger); }
-  .order-link { color: var(--accent); cursor: pointer; font-family: monospace; font-size: 12px; }
-  .order-link:hover { text-decoration: underline; }
-  .result-ok  { background: #102010; border: 1px solid var(--success); border-radius: var(--radius); padding: 10px 14px; color: var(--success); margin-top: 10px; font-size: 13px; }
-  .result-err { background: #2a1010; border: 1px solid var(--danger);  border-radius: var(--radius); padding: 10px 14px; color: var(--danger);  margin-top: 10px; font-size: 13px; }
-  .warn-box   { background: #2a1a00; border: 1px solid var(--warn); border-radius: var(--radius); padding: 6px 12px; color: var(--warn); font-size: 12px; }
-  .alloc-table input { padding: 4px 6px; font-size: 12px; }
+  button:hover { background:var(--border); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.primary:hover { background:#574ed6; }
+  button.danger  { background:var(--danger); border-color:var(--danger); color:#fff; }
+  button.ghost   { background:none; border-color:transparent; color:var(--muted); }
+  button.ghost:hover { color:var(--text); background:none; }
+  button.sm { padding:3px 10px; font-size:12px; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:500; white-space:nowrap; }
+  td { padding:6px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tr:hover td { background:rgba(255,255,255,.02); }
+  tfoot td { border-top:2px solid var(--border); border-bottom:none; padding-top:10px; font-weight:500; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; }
+  .badge-hilt        { background:#2d2a4a; color:#a09af0; }
+  .badge-parts       { background:#1e3030; color:#40c8a0; }
+  .badge-electronics { background:#1e2a40; color:#60a0e0; }
+  .badge-blade       { background:#3a2020; color:#e08060; }
+  .badge-saber       { background:#2a2010; color:#d0a040; }
+  .badge-ok  { background:#102010; color:var(--success); }
+  .badge-low { background:#2a1a00; color:var(--warn); }
+  .badge-out { background:#2a1010; color:var(--danger); }
+  .stat { background:var(--card); border-radius:var(--radius); padding:14px 18px; }
+  .stat-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .stat-value { font-size:22px; font-weight:600; }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:flex; align-items:flex-start; justify-content:center; z-index:100; padding:24px 16px; overflow-y:auto; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; width:900px; max-width:96vw; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-grid .full { grid-column:1/-1; }
+  .form-group label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .tab-bar { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:20px; flex-wrap:wrap; }
+  .tab { background:none; border:none; border-bottom:2px solid transparent; border-radius:0; padding:8px 16px; color:var(--muted); cursor:pointer; }
+  .tab.active { color:var(--text); border-bottom-color:var(--accent); }
+  .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .toolbar input { max-width:220px; }
+  .toolbar select { max-width:160px; }
+  h1 { font-size:18px; font-weight:600; }
+  h2 { font-size:15px; font-weight:600; margin-bottom:12px; }
+  h3 { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid var(--border); }
+  .content { padding:24px; }
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:24px; }
+  .overflow-x { overflow-x:auto; }
+  .empty { text-align:center; color:var(--muted); padding:32px; font-size:13px; }
+  .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:14px; }
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .kebab-wrap { position:relative; display:inline-block; }
+  .kebab-btn { background:none; border:none; padding:2px 8px; font-size:18px; color:var(--muted); line-height:1; cursor:pointer; }
+  .kebab-btn:hover { color:var(--text); background:none; }
+  .kebab-menu { position:absolute; right:0; top:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); min-width:140px; z-index:50; }
+  .kebab-menu button { display:block; width:100%; text-align:left; background:none; border:none; border-radius:0; padding:8px 14px; font-size:13px; }
+  .kebab-menu button:hover { background:var(--border); }
+  .kebab-menu .danger-item { color:var(--danger); }
+  .order-link { color:var(--accent); cursor:pointer; font-family:monospace; font-size:12px; }
+  .order-link:hover { text-decoration:underline; }
+  .result-ok  { background:#102010; border:1px solid var(--success); border-radius:var(--radius); padding:10px 14px; color:var(--success); margin-top:10px; font-size:13px; }
+  .result-err { background:#2a1010; border:1px solid var(--danger);  border-radius:var(--radius); padding:10px 14px; color:var(--danger);  margin-top:10px; font-size:13px; }
+  .alloc-match   { color:var(--success); font-weight:600; }
+  .alloc-nomatch { color:var(--danger);  font-weight:600; }
+  .alloc-input { padding:3px 6px !important; font-size:12px !important; width:80px !important; }
+  .toggle-link { font-size:12px; color:var(--accent); cursor:pointer; background:none; border:none; padding:0; }
+  .toggle-link:hover { text-decoration:underline; background:none; }
 </style>
 </head>
 <body>
@@ -99,66 +98,56 @@
 const { useState, useEffect, useCallback, useRef } = React;
 const API = '';
 
-const fmt$ = v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
-const round2 = v => Math.round(Number(v) * 100) / 100;
-const fmtDate = v => { if (!v) return '—'; const s = String(v); return s.includes('T') ? s.split('T')[0] : s; };
+const fmt$ = v => v==null?'—':'$'+Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const round2 = v => Math.round(Number(v)*100)/100;
+const fmtDate = v => { if(!v)return'—'; const s=String(v); return s.includes('T')?s.split('T')[0]:s; };
 const SOURCE_TYPES = ['Hilt','Parts','Electronics','Blade','Saber'];
 const CONDITIONS   = ['New','Used','Refurbished','Damaged'];
 
 const srcBadge = s => {
-  const map = { Hilt:'badge-hilt', Parts:'badge-parts', Electronics:'badge-electronics', Blade:'badge-blade', Saber:'badge-saber' };
+  const map={Hilt:'badge-hilt',Parts:'badge-parts',Electronics:'badge-electronics',Blade:'badge-blade',Saber:'badge-saber'};
   return <span className={`badge ${map[s]||'badge-parts'}`}>{s}</span>;
 };
 
-async function api(path, opts={}) {
-  const r = await fetch(API + path, {
-    headers:{'Content-Type':'application/json'}, ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
-  if (r.status === 204) return null;
-  const d = await r.json();
-  if (!r.ok) throw new Error(d.error || r.statusText);
+async function api(path,opts={}) {
+  const r=await fetch(API+path,{headers:{'Content-Type':'application/json'},...opts,body:opts.body?JSON.stringify(opts.body):undefined});
+  if(r.status===204)return null;
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error||r.statusText);
   return d;
 }
 
 function parseCSVText(text) {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
-  return lines.slice(1).map(line => {
-    const vals=[]; let cur='', inQ=false;
-    for (const ch of line) {
-      if (ch==='"'){inQ=!inQ;continue;}
-      if (ch===','&&!inQ){vals.push(cur.trim());cur='';continue;}
-      cur+=ch;
-    }
+  const lines=text.trim().split('\n').filter(l=>l.trim());
+  if(lines.length<2)return[];
+  const headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line=>{
+    const vals=[];let cur='',inQ=false;
+    for(const ch of line){if(ch==='"'){inQ=!inQ;continue;}if(ch===','&&!inQ){vals.push(cur.trim());cur='';continue;}cur+=ch;}
     vals.push(cur.trim());
     return Object.fromEntries(headers.map((h,i)=>[h,vals[i]??'']));
   });
 }
 
-// ── Distribute helper ─────────────────────
-function distributeAllocations(items, shippingTotal, taxTotal) {
-  const ship = round2(Number(shippingTotal)||0);
-  const tax  = round2(Number(taxTotal)||0);
-  const total = items.reduce((s,i) => s + round2(Number(i.unit_cost||0)*Number(i.qty_purchased||1)), 0);
-  const rows = items.map(i => {
-    const weight = total > 0 ? round2(Number(i.unit_cost||0)*Number(i.qty_purchased||1))/total : 1/items.length;
-    return { ...i, shipping_alloc: round2(ship * weight), tax_alloc: round2(tax * weight) };
+function distribute(items, shipTotal, taxTotal) {
+  const ship=round2(Number(shipTotal)||0), tax=round2(Number(taxTotal)||0);
+  const total=items.reduce((s,i)=>s+round2(Number(i.unit_cost||0)*Number(i.qty_purchased||1)),0);
+  const rows=items.map(i=>{
+    const w=total>0?round2(Number(i.unit_cost||0)*Number(i.qty_purchased||1))/total:1/items.length;
+    return{...i,ship_alloc:round2(ship*w),tax_alloc:round2(tax*w)};
   });
-  // Fix rounding residuals on last row
-  if (rows.length) {
-    const shipDiff = round2(ship - rows.reduce((s,r)=>s+r.shipping_alloc,0));
-    const taxDiff  = round2(tax  - rows.reduce((s,r)=>s+r.tax_alloc,0));
-    rows[rows.length-1].shipping_alloc = round2(rows[rows.length-1].shipping_alloc + shipDiff);
-    rows[rows.length-1].tax_alloc      = round2(rows[rows.length-1].tax_alloc      + taxDiff);
+  if(rows.length){
+    const sd=round2(ship-rows.reduce((s,r)=>s+r.ship_alloc,0));
+    const td=round2(tax -rows.reduce((s,r)=>s+r.tax_alloc,0));
+    rows[rows.length-1].ship_alloc=round2(rows[rows.length-1].ship_alloc+sd);
+    rows[rows.length-1].tax_alloc =round2(rows[rows.length-1].tax_alloc +td);
   }
   return rows;
 }
 
 // ── Modal ─────────────────────────────────
-function Modal({ title, onClose, width='780px', children }) {
-  return (
+function Modal({title,onClose,width='900px',children}){
+  return(
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{width}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
@@ -172,24 +161,94 @@ function Modal({ title, onClose, width='780px', children }) {
 }
 
 // ── Kebab ─────────────────────────────────
-function Kebab({ items }) {
+function Kebab({items}){
   const [open,setOpen]=useState(false);
   const ref=useRef();
   useEffect(()=>{
     const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
-    document.addEventListener('mousedown',h);
-    return ()=>document.removeEventListener('mousedown',h);
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
   },[]);
-  return (
+  return(
     <div className="kebab-wrap" ref={ref}>
       <button className="kebab-btn" onClick={()=>setOpen(o=>!o)}>⋮</button>
-      {open&&(
-        <div className="kebab-menu">
-          {items.map((item,i)=>(
-            <button key={i} className={item.danger?'danger-item':''} onClick={()=>{setOpen(false);item.action();}}>
-              {item.label}
-            </button>
-          ))}
+      {open&&<div className="kebab-menu">
+        {items.map((item,i)=>(
+          <button key={i} className={item.danger?'danger-item':''} onClick={()=>{setOpen(false);item.action();}}>{item.label}</button>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+// ── Unified Line Items Table ──────────────
+// Used in both NewOrderModal and OrderDetailModal
+// rows: array with ship_alloc, tax_alloc fields
+// onAllocChange(idx, field, value) — for inline editing
+// onDelete(row) — optional
+// shipTarget, taxTarget — for footer validation
+// saving — disables save alloc button
+// onSaveAlloc — optional, only in detail modal
+// onRedistribute — resets proportional
+function LineItemsTable({rows,shipTarget,taxTarget,onAllocChange,onDelete,onSaveAlloc,onRedistribute,saving}){
+  const shipSum=round2(rows.reduce((s,r)=>s+Number(r.ship_alloc||0),0));
+  const taxSum =round2(rows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
+  const hasAlloc=(shipTarget>0||taxTarget>0);
+  const balanced=(!hasAlloc)||(shipSum===shipTarget&&taxSum===taxTarget);
+
+  return(
+    <div>
+      <div className="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              {rows[0]?.item_id&&<th>ID</th>}
+              <th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th>
+              {hasAlloc&&<><th>Ship Alloc</th><th>Tax Alloc</th></>}
+              <th>Line Total</th>
+              {(onDelete||onSaveAlloc)&&<th></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r,i)=>{
+              const lineTotal=round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1)+Number(r.ship_alloc||0)+Number(r.tax_alloc||0));
+              return(
+                <tr key={r.item_id||r._key||i}>
+                  {r.item_id&&<td style={{fontFamily:'monospace',fontSize:11}}>{r.item_id}</td>}
+                  <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
+                  <td>{srcBadge(r.source_type)}</td>
+                  <td>{r.qty_purchased}</td>
+                  <td>{fmt$(r.unit_cost)}</td>
+                  {hasAlloc&&<>
+                    <td><input className="alloc-input" type="number" value={r.ship_alloc??0} step="0.01"
+                      onChange={e=>onAllocChange(i,'ship_alloc',round2(parseFloat(e.target.value)||0))} /></td>
+                    <td><input className="alloc-input" type="number" value={r.tax_alloc??0} step="0.01"
+                      onChange={e=>onAllocChange(i,'tax_alloc',round2(parseFloat(e.target.value)||0))} /></td>
+                  </>}
+                  <td style={{fontWeight:500}}>{fmt$(lineTotal)}</td>
+                  {(onDelete||onSaveAlloc)&&<td>{onDelete&&<button className="sm danger" onClick={()=>onDelete(r)}>✕</button>}</td>}
+                </tr>
+              );
+            })}
+          </tbody>
+          {hasAlloc&&rows.length>0&&(
+            <tfoot>
+              <tr>
+                {rows[0]?.item_id&&<td/>}
+                <td colSpan={4} style={{color:'var(--muted)',fontSize:12}}>Totals</td>
+                <td><span className={shipSum===shipTarget?'alloc-match':'alloc-nomatch'}>{fmt$(shipSum)}<span style={{color:'var(--muted)',fontWeight:400}}> / {fmt$(shipTarget)}</span></span></td>
+                <td><span className={taxSum===taxTarget?'alloc-match':'alloc-nomatch'}>{fmt$(taxSum)}<span style={{color:'var(--muted)',fontWeight:400}}> / {fmt$(taxTarget)}</span></span></td>
+                <td/>
+                {(onDelete||onSaveAlloc)&&<td/>}
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+      {hasAlloc&&(
+        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:10,justifyContent:'flex-end'}}>
+          <button className="sm" onClick={onRedistribute}>Redistribute</button>
+          {onSaveAlloc&&<button className="primary sm" onClick={onSaveAlloc} disabled={!balanced||saving}>{saving?'Saving…':'Save Allocation'}</button>}
+          <span className={balanced?'alloc-match':'alloc-nomatch'} style={{fontSize:12}}>{balanced?'✓ Balanced':'✗ Unbalanced'}</span>
         </div>
       )}
     </div>
@@ -197,168 +256,128 @@ function Kebab({ items }) {
 }
 
 // ── New Order Modal ───────────────────────
-function NewOrderModal({ onClose, onSaved }) {
-  const [pasteMode, setPasteMode] = useState(false);
-  const [pasteText, setPasteText] = useState('');
-  const [header, setHeader] = useState({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
-  const [items, setItems] = useState([]);
-  const [showAddItem, setShowAddItem] = useState(false);
-  const [pasteItems, setPasteItems] = useState(false);
-  const [pasteItemText, setPasteItemText] = useState('');
-  const [itemPreview, setItemPreview] = useState(null);
-  const [allocRows, setAllocRows] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState('');
-  const [addF, setAddF] = useState({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
+function NewOrderModal({onClose,onSaved}){
+  const [pasteHeader,setPasteHeader]=useState(false);
+  const [pasteText,setPasteText]=useState('');
+  const [header,setHeader]=useState({order_number:'',vendor:'',order_date:'',shipping_total:'',tax_total:'',notes:''});
+  const [rows,setRows]=useState([]); // items with ship_alloc/tax_alloc
+  const [showAdd,setShowAdd]=useState(false);
+  const [pasteItems,setPasteItems]=useState(false);
+  const [pasteItemText,setPasteItemText]=useState('');
+  const [preview,setPreview]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState('');
+  const [addF,setAddF]=useState({item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:''});
 
-  const handleHeader = e => setHeader(p=>({...p,[e.target.name]:e.target.value}));
+  const shipTarget=round2(Number(header.shipping_total)||0);
+  const taxTarget =round2(Number(header.tax_total)||0);
+  const hasAlloc=shipTarget>0||taxTarget>0;
+  const shipSum=round2(rows.reduce((s,r)=>s+Number(r.ship_alloc||0),0));
+  const taxSum =round2(rows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
+  const balanced=(!hasAlloc)||(shipSum===shipTarget&&taxSum===taxTarget);
+  const canSave=header.order_number&&rows.length>0&&balanced;
 
-  // Parse order header paste
-  const parseHeaderPaste = () => {
-    const rows = parseCSVText(pasteText);
-    if (!rows.length) return;
-    const r = rows[0];
-    setHeader(p=>({
-      ...p,
-      order_number:   r.order_number   || p.order_number,
-      vendor:         r.vendor         || p.vendor,
-      order_date:     r.order_date     || p.order_date,
-      shipping_total: r.shipping_total || p.shipping_total,
-      tax_total:      r.tax_total      || p.tax_total,
-    }));
-    setPasteMode(false); setPasteText('');
+  const reDistribute=(items,ship,tax)=>{
+    if(!items.length)return items;
+    return distribute(items,ship,tax);
   };
 
-  // Auto-distribute whenever items or header shipping/tax changes
-  const autoDistribute = (itms, ship, tax) => {
-    if (!itms.length) { setAllocRows([]); return; }
-    setAllocRows(distributeAllocations(itms, ship, tax));
+  const handleHeader=e=>setHeader(p=>({...p,[e.target.name]:e.target.value}));
+  const handleShipTax=e=>{
+    const upd={...header,[e.target.name]:e.target.value};
+    setHeader(upd);
+    setRows(r=>distribute(r,upd.shipping_total,upd.tax_total));
   };
 
-  const updateItems = (newItems) => {
-    setItems(newItems);
-    autoDistribute(newItems, header.shipping_total, header.tax_total);
+  const parseHeaderPaste=()=>{
+    const r=parseCSVText(pasteText)[0];if(!r)return;
+    const upd={...header,
+      order_number:r.order_number||header.order_number,
+      vendor:r.vendor||header.vendor,
+      order_date:r.order_date||header.order_date,
+      shipping_total:r.shipping_total||header.shipping_total,
+      tax_total:r.tax_total||header.tax_total,
+    };
+    setHeader(upd);
+    setRows(rv=>distribute(rv,upd.shipping_total,upd.tax_total));
+    setPasteHeader(false);setPasteText('');
   };
 
-  const handleHeaderShipTax = e => {
-    const updated = {...header, [e.target.name]: e.target.value};
-    setHeader(updated);
-    autoDistribute(items, updated.shipping_total, updated.tax_total);
-  };
-
-  // Add item manually
-  const addItem = e => {
+  const addItem=e=>{
     e.preventDefault();
-    const newItem = { ...addF, qty_purchased: parseInt(addF.qty_purchased)||1, unit_cost: parseFloat(addF.unit_cost)||0, _key: Date.now() };
-    updateItems([...items, newItem]);
-    setAddF({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
-    setShowAddItem(false);
+    const item={...addF,qty_purchased:parseInt(addF.qty_purchased)||1,unit_cost:parseFloat(addF.unit_cost)||0,ship_alloc:0,tax_alloc:0,_key:Date.now()};
+    const newRows=distribute([...rows,item],header.shipping_total,header.tax_total);
+    setRows(newRows);
+    setAddF({item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:''});
+    setShowAdd(false);
   };
 
-  const removeItem = key => updateItems(items.filter(i=>i._key!==key));
+  const removeItem=row=>setRows(r=>distribute(r.filter(x=>(x._key||x.item_id)!==(row._key||row.item_id)),header.shipping_total,header.tax_total));
 
-  // Parse paste preview
-  const parsePasteItems = () => {
-    const rows = parseCSVText(pasteItemText);
-    if (!rows.length) return;
-    const valid = ['Hilt','Parts','Electronics','Blade','Saber'];
-    setItemPreview(rows.map((r,i) => ({
-      ...r,
-      item_name: r.item_name||'?',
-      source_type: valid.includes(r.source_type)?r.source_type:'Parts',
-      qty_purchased: parseInt(r.qty_purchased)||1,
-      unit_cost: parseFloat(r.unit_cost)||0,
-      condition: r.condition||'New',
-      _key: Date.now()+i,
+  const parsePasteItems=()=>{
+    const valid=['Hilt','Parts','Electronics','Blade','Saber'];
+    setPreview(parseCSVText(pasteItemText).map((r,i)=>({
+      item_name:r.item_name||'?',variant:r.variant||'',category:r.category||'',
+      source_type:valid.includes(r.source_type)?r.source_type:'Parts',
+      qty_purchased:parseInt(r.qty_purchased)||1,unit_cost:parseFloat(r.unit_cost)||0,
+      condition:r.condition||'New',notes:r.notes||'',ship_alloc:0,tax_alloc:0,_key:Date.now()+i,
     })));
   };
 
-  const confirmPasteItems = () => {
-    updateItems([...items, ...itemPreview]);
-    setItemPreview(null); setPasteItemText(''); setPasteItems(false);
+  const confirmPaste=()=>{
+    const newRows=distribute([...rows,...preview],header.shipping_total,header.tax_total);
+    setRows(newRows);setPreview(null);setPasteItemText('');setPasteItems(false);
   };
 
-  // Redistribute
-  const redistribute = () => autoDistribute(items, header.shipping_total, header.tax_total);
+  const allocChange=(i,field,val)=>setRows(r=>r.map((x,j)=>j===i?{...x,[field]:val}:x));
 
-  // Validation
-  const shipTarget = round2(Number(header.shipping_total)||0);
-  const taxTarget  = round2(Number(header.tax_total)||0);
-  const allocShipSum = round2(allocRows.reduce((s,r)=>s+Number(r.shipping_alloc||0),0));
-  const allocTaxSum  = round2(allocRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
-  const allocValid = allocShipSum===shipTarget && allocTaxSum===taxTarget;
-  const canSave = header.order_number && items.length > 0 && allocValid;
-
-  // Final save — writes everything atomically
-  const save = async () => {
-    if (!canSave) return;
-    setSaving(true); setErr('');
-    try {
-      // Upsert order header
-      await api('/api/orders', { method:'POST', body: {
-        order_number: header.order_number,
-        vendor: header.vendor||null,
-        order_date: header.order_date||null,
-        shipping_total: shipTarget,
-        tax_total: taxTarget,
-        notes: header.notes||null,
+  const save=async()=>{
+    if(!canSave)return;
+    setSaving(true);setErr('');
+    try{
+      await api('/api/orders',{method:'POST',body:{
+        order_number:header.order_number,vendor:header.vendor||null,
+        order_date:header.order_date||null,shipping_total:shipTarget,tax_total:taxTarget,notes:header.notes||null,
       }});
-      // Insert all items with their allocations
-      for (let i=0; i<items.length; i++) {
-        const item = items[i];
-        const alloc = allocRows[i] || {};
-        await api('/api/purchased-items', { method:'POST', body: {
-          order_number: header.order_number,
-          item_name: item.item_name,
-          variant: item.variant||null,
-          category: item.category||null,
-          vendor: header.vendor||null,
-          date_purchased: header.order_date||null,
-          qty_purchased: item.qty_purchased,
-          unit_cost: item.unit_cost,
-          condition: item.condition||'New',
-          source_type: item.source_type,
-          notes: item.notes||null,
-          shipping_allocated: alloc.shipping_alloc||0,
-          tax_allocated: alloc.tax_alloc||0,
+      for(const row of rows){
+        await api('/api/purchased-items',{method:'POST',body:{
+          order_number:header.order_number,item_name:row.item_name,variant:row.variant||null,
+          category:row.category||null,vendor:header.vendor||null,date_purchased:header.order_date||null,
+          qty_purchased:row.qty_purchased,unit_cost:row.unit_cost,condition:row.condition||'New',
+          source_type:row.source_type,notes:row.notes||null,
+          shipping_allocated:row.ship_alloc||0,tax_allocated:row.tax_alloc||0,
         }});
       }
       onSaved();
-    } catch(e) { setErr(e.message); }
+    }catch(e){setErr(e.message);}
     setSaving(false);
   };
 
-  return (
-    <Modal title="New Order" onClose={onClose} width="820px">
-
-      {/* Order Header */}
+  return(
+    <Modal title="New Order" onClose={onClose} width="860px">
+      {/* Header */}
       <div className="section">
         <div className="section-header">
-          <h3 style={{margin:0}}>Order Header</h3>
-          <button className="toggle-link" onClick={()=>setPasteMode(p=>!p)}>{pasteMode?'Enter manually':'Paste instead'}</button>
+          <h3>Order Header</h3>
+          <button className="toggle-link" onClick={()=>setPasteHeader(p=>!p)}>{pasteHeader?'Enter manually':'Paste instead'}</button>
         </div>
-
-        {pasteMode ? (
+        {pasteHeader?(
           <div>
-            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>
-              Paste your order footer CSV:<br/>
-              <code style={{fontSize:11}}>order_number,vendor,order_date,shipping_total,tax_total</code>
-            </p>
-            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={3}
-              style={{fontFamily:'monospace',fontSize:12,marginBottom:8}} />
+            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>Paste order footer CSV row:<br/><code style={{fontSize:11}}>order_number,vendor,order_date,shipping_total,tax_total</code></p>
+            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={3} style={{fontFamily:'monospace',fontSize:12,marginBottom:8}}/>
             <div style={{display:'flex',gap:8}}>
               <button className="primary sm" onClick={parseHeaderPaste} disabled={!pasteText.trim()}>Parse & Fill</button>
-              <button className="sm" onClick={()=>{setPasteMode(false);setPasteText('');}}>Cancel</button>
+              <button className="sm" onClick={()=>{setPasteHeader(false);setPasteText('');}}>Cancel</button>
             </div>
           </div>
-        ) : (
+        ):(
           <div className="form-grid">
-            <div className="form-group"><label>Order # *</label><input name="order_number" value={header.order_number} onChange={handleHeader} /></div>
-            <div className="form-group"><label>Vendor</label><input name="vendor" value={header.vendor} onChange={handleHeader} /></div>
-            <div className="form-group"><label>Order Date</label><input type="date" name="order_date" value={header.order_date} onChange={handleHeader} /></div>
-            <div className="form-group"><label>Shipping Total</label><input type="number" name="shipping_total" value={header.shipping_total} onChange={handleHeaderShipTax} step="0.01" min="0" /></div>
-            <div className="form-group"><label>Tax Total</label><input type="number" name="tax_total" value={header.tax_total} onChange={handleHeaderShipTax} step="0.01" min="0" /></div>
-            <div className="form-group full"><label>Notes</label><input name="notes" value={header.notes} onChange={handleHeader} /></div>
+            <div className="form-group"><label>Order # *</label><input name="order_number" value={header.order_number} onChange={handleHeader}/></div>
+            <div className="form-group"><label>Vendor</label><input name="vendor" value={header.vendor} onChange={handleHeader}/></div>
+            <div className="form-group"><label>Order Date</label><input type="date" name="order_date" value={header.order_date} onChange={handleHeader}/></div>
+            <div className="form-group"><label>Shipping Total</label><input type="number" name="shipping_total" value={header.shipping_total} onChange={handleShipTax} step="0.01" min="0"/></div>
+            <div className="form-group"><label>Tax Total</label><input type="number" name="tax_total" value={header.tax_total} onChange={handleShipTax} step="0.01" min="0"/></div>
+            <div className="form-group full"><label>Notes</label><input name="notes" value={header.notes} onChange={handleHeader}/></div>
           </div>
         )}
       </div>
@@ -366,46 +385,39 @@ function NewOrderModal({ onClose, onSaved }) {
       {/* Line Items */}
       <div className="section">
         <div className="section-header">
-          <h3 style={{margin:0}}>Line Items ({items.length})</h3>
+          <h3>Line Items ({rows.length})</h3>
           <div style={{display:'flex',gap:8}}>
-            <button className="sm" onClick={()=>{setShowAddItem(a=>!a);setPasteItems(false);}}>+ Add Item</button>
-            <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAddItem(false);setItemPreview(null);}}>Paste Items</button>
+            {hasAlloc&&rows.length>0&&<button className="sm" onClick={()=>setRows(distribute(rows,header.shipping_total,header.tax_total))}>Redistribute</button>}
+            <button className="sm" onClick={()=>{setShowAdd(a=>!a);setPasteItems(false);}}>+ Add Item</button>
+            <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAdd(false);setPreview(null);}}>Paste Items</button>
           </div>
         </div>
 
-        {showAddItem && (
+        {showAdd&&(
           <form onSubmit={addItem} style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
             <div className="form-grid">
-              <div className="form-group full"><label>Item Name *</label><input value={addF.item_name} onChange={e=>setAddF(p=>({...p,item_name:e.target.value}))} required /></div>
-              <div className="form-group"><label>Source Type</label>
-                <select value={addF.source_type} onChange={e=>setAddF(p=>({...p,source_type:e.target.value}))}>
-                  {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="form-group"><label>Category</label><input value={addF.category} onChange={e=>setAddF(p=>({...p,category:e.target.value}))} /></div>
-              <div className="form-group"><label>Variant</label><input value={addF.variant} onChange={e=>setAddF(p=>({...p,variant:e.target.value}))} /></div>
-              <div className="form-group"><label>Condition</label>
-                <select value={addF.condition} onChange={e=>setAddF(p=>({...p,condition:e.target.value}))}>
-                  {CONDITIONS.map(c=><option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="form-group"><label>Qty</label><input type="number" value={addF.qty_purchased} onChange={e=>setAddF(p=>({...p,qty_purchased:e.target.value}))} min="1" /></div>
-              <div className="form-group"><label>Unit Cost</label><input type="number" value={addF.unit_cost} onChange={e=>setAddF(p=>({...p,unit_cost:e.target.value}))} step="0.01" min="0" /></div>
-              <div className="form-group full"><label>Notes</label><input value={addF.notes} onChange={e=>setAddF(p=>({...p,notes:e.target.value}))} /></div>
+              <div className="form-group full"><label>Item Name *</label><input value={addF.item_name} onChange={e=>setAddF(p=>({...p,item_name:e.target.value}))} required/></div>
+              <div className="form-group"><label>Source Type</label><select value={addF.source_type} onChange={e=>setAddF(p=>({...p,source_type:e.target.value}))}>{SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
+              <div className="form-group"><label>Category</label><input value={addF.category} onChange={e=>setAddF(p=>({...p,category:e.target.value}))}/></div>
+              <div className="form-group"><label>Variant</label><input value={addF.variant} onChange={e=>setAddF(p=>({...p,variant:e.target.value}))}/></div>
+              <div className="form-group"><label>Condition</label><select value={addF.condition} onChange={e=>setAddF(p=>({...p,condition:e.target.value}))}>{CONDITIONS.map(c=><option key={c}>{c}</option>)}</select></div>
+              <div className="form-group"><label>Qty</label><input type="number" value={addF.qty_purchased} onChange={e=>setAddF(p=>({...p,qty_purchased:e.target.value}))} min="1"/></div>
+              <div className="form-group"><label>Unit Cost</label><input type="number" value={addF.unit_cost} onChange={e=>setAddF(p=>({...p,unit_cost:e.target.value}))} step="0.01" min="0"/></div>
+              <div className="form-group full"><label>Notes</label><input value={addF.notes} onChange={e=>setAddF(p=>({...p,notes:e.target.value}))}/></div>
             </div>
             <div style={{display:'flex',gap:8,marginTop:10}}>
               <button type="submit" className="primary sm">Add</button>
-              <button type="button" className="sm" onClick={()=>setShowAddItem(false)}>Cancel</button>
+              <button type="button" className="sm" onClick={()=>setShowAdd(false)}>Cancel</button>
             </div>
           </form>
         )}
 
-        {pasteItems && !itemPreview && (
+        {pasteItems&&!preview&&(
           <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
             <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>Paste items CSV with header row:</p>
             <textarea value={pasteItemText} onChange={e=>setPasteItemText(e.target.value)} rows={7}
               style={{fontFamily:'monospace',fontSize:12,marginBottom:8}}
-              placeholder={'item_name,variant,category,vendor,order_number,date_purchased,qty_purchased,unit_cost,source_type,condition,notes'} />
+              placeholder="item_name,variant,category,vendor,order_number,date_purchased,qty_purchased,unit_cost,source_type,condition,notes"/>
             <div style={{display:'flex',gap:8}}>
               <button className="primary sm" onClick={parsePasteItems} disabled={!pasteItemText.trim()}>Preview</button>
               <button className="sm" onClick={()=>{setPasteItems(false);setPasteItemText('');}}>Cancel</button>
@@ -413,126 +425,40 @@ function NewOrderModal({ onClose, onSaved }) {
           </div>
         )}
 
-        {itemPreview && (
+        {preview&&(
           <div style={{marginBottom:14}}>
-            <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{itemPreview.length} items parsed — confirm to add:</div>
+            <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{preview.length} items parsed — confirm to add:</div>
             <div className="overflow-x" style={{marginBottom:10}}>
               <table>
                 <thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Variant</th></tr></thead>
-                <tbody>
-                  {itemPreview.map((r,i)=>(
-                    <tr key={i}>
-                      <td>{r.item_name}</td><td>{srcBadge(r.source_type)}</td>
-                      <td>{r.qty_purchased}</td><td>{fmt$(r.unit_cost)}</td>
-                      <td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
+                <tbody>{preview.map((r,i)=><tr key={i}><td>{r.item_name}</td><td>{srcBadge(r.source_type)}</td><td>{r.qty_purchased}</td><td>{fmt$(r.unit_cost)}</td><td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td></tr>)}</tbody>
               </table>
             </div>
             <div style={{display:'flex',gap:8}}>
-              <button className="primary sm" onClick={confirmPasteItems}>Confirm</button>
-              <button className="sm" onClick={()=>{setItemPreview(null);setPasteItemText('');}}>Back</button>
+              <button className="primary sm" onClick={confirmPaste}>Confirm & Distribute</button>
+              <button className="sm" onClick={()=>{setPreview(null);setPasteItemText('');}}>Back</button>
             </div>
           </div>
         )}
 
-        {items.length === 0
-          ? <div className="empty" style={{padding:20}}>No items yet. Add items above.</div>
-          : (
-          <div className="overflow-x">
-            <table>
-              <thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Line</th><th></th></tr></thead>
-              <tbody>
-                {items.map(i=>(
-                  <tr key={i._key}>
-                    <td><div style={{fontWeight:500}}>{i.item_name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
-                    <td>{srcBadge(i.source_type)}</td>
-                    <td>{i.qty_purchased}</td>
-                    <td>{fmt$(i.unit_cost)}</td>
-                    <td>{fmt$(round2(i.unit_cost*i.qty_purchased))}</td>
-                    <td><button className="sm danger" onClick={()=>removeItem(i._key)}>✕</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {rows.length===0
+          ?<div className="empty" style={{padding:20}}>No items yet.</div>
+          :<LineItemsTable
+            rows={rows} shipTarget={shipTarget} taxTarget={taxTarget}
+            onAllocChange={allocChange}
+            onDelete={removeItem}
+            onRedistribute={()=>setRows(distribute(rows,header.shipping_total,header.tax_total))}
+          />
+        }
       </div>
 
-      {/* Shipping & Tax Distribution — always visible when items exist */}
-      {items.length > 0 && (
-        <div className="section">
-          <div className="section-header">
-            <h3 style={{margin:0}}>Shipping & Tax Distribution</h3>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              {(shipTarget>0||taxTarget>0) && (
-                <button className="sm" onClick={redistribute}>Redistribute</button>
-              )}
-              <span className={allocValid ? 'alloc-match' : 'alloc-nomatch'} style={{fontSize:12}}>
-                {allocValid ? '✓ Balanced' : '✗ Totals do not match'}
-              </span>
-            </div>
-          </div>
-
-          {(shipTarget===0 && taxTarget===0) ? (
-            <div style={{fontSize:13,color:'var(--muted)'}}>No shipping or tax on this order — nothing to distribute.</div>
-          ) : (
-            <>
-              <p style={{fontSize:12,color:'var(--muted)',marginBottom:10}}>
-                Shipping must total {fmt$(shipTarget)} · Tax must total {fmt$(taxTarget)}
-              </p>
-              <div className="overflow-x alloc-table">
-                <table>
-                  <thead><tr><th>Item</th><th>Qty × Cost</th><th>Shipping Alloc</th><th>Tax Alloc</th><th>Line Total</th></tr></thead>
-                  <tbody>
-                    {allocRows.map((r,i)=>{
-                      const lineTotal = round2(r.unit_cost*r.qty_purchased + Number(r.shipping_alloc||0) + Number(r.tax_alloc||0));
-                      return (
-                        <tr key={r._key||i}>
-                          <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
-                          <td style={{fontSize:12}}>{r.qty_purchased} × {fmt$(r.unit_cost)}</td>
-                          <td style={{width:120}}>
-                            <input type="number" value={r.shipping_alloc} step="0.01"
-                              onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,shipping_alloc:v}:x));}} />
-                          </td>
-                          <td style={{width:120}}>
-                            <input type="number" value={r.tax_alloc} step="0.01"
-                              onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,tax_alloc:v}:x));}} />
-                          </td>
-                          <td style={{fontWeight:500}}>{fmt$(lineTotal)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={2} style={{fontSize:12,color:'var(--muted)',paddingTop:8}}>Totals</td>
-                      <td style={{paddingTop:8}}>
-                        <span className={round2(allocShipSum)===shipTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocShipSum)} / {fmt$(shipTarget)}</span>
-                      </td>
-                      <td style={{paddingTop:8}}>
-                        <span className={round2(allocTaxSum)===taxTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocTaxSum)} / {fmt$(taxTarget)}</span>
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {err && <div className="result-err" style={{marginBottom:12}}>{err}</div>}
-      {items.length>0 && !allocValid && (shipTarget>0||taxTarget>0) && (
-        <div className="warn-box" style={{marginBottom:12}}>Shipping and tax allocations must balance before saving.</div>
-      )}
+      {err&&<div className="result-err" style={{marginBottom:12}}>{err}</div>}
+      {!balanced&&hasAlloc&&<div style={{background:'#2a1a00',border:'1px solid var(--warn)',borderRadius:'var(--radius)',padding:'8px 14px',color:'var(--warn)',fontSize:12,marginBottom:12}}>Shipping and tax allocations must balance before saving.</div>}
 
       <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
         <button onClick={onClose}>Cancel</button>
         <button className="primary" onClick={save} disabled={!canSave||saving}>
-          {saving ? 'Saving…' : `Save Order (${items.length} item${items.length!==1?'s':''})`}
+          {saving?'Saving…':`Save Order (${rows.length} item${rows.length!==1?'s':''})`}
         </button>
       </div>
     </Modal>
@@ -540,110 +466,88 @@ function NewOrderModal({ onClose, onSaved }) {
 }
 
 // ── Order Detail Modal ────────────────────
-function OrderDetailModal({ order, onClose, onViewItem }) {
-  const [items, setItems]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [pasteItems, setPasteItems] = useState(false);
-  const [pasteText, setPasteText]   = useState('');
-  const [preview, setPreview]       = useState(null);
-  const [saving, setSaving]         = useState(false);
-  const [allocRows, setAllocRows]   = useState([]);
-  const [addF, setAddF] = useState({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
+function OrderDetailModal({order,onClose,onViewItem}){
+  const [items,setItems]=useState([]);
+  const [allocRows,setAllocRows]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showAdd,setShowAdd]=useState(false);
+  const [pasteItems,setPasteItems]=useState(false);
+  const [pasteText,setPasteText]=useState('');
+  const [preview,setPreview]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const [addF,setAddF]=useState({item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:''});
 
-  const shipTarget = round2(Number(order.shipping_total)||0);
-  const taxTarget  = round2(Number(order.tax_total)||0);
-  const allocShipSum = round2(allocRows.reduce((s,r)=>s+Number(r.shipping_alloc||0),0));
-  const allocTaxSum  = round2(allocRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
-  const allocValid = allocShipSum===shipTarget && allocTaxSum===taxTarget;
+  const shipTarget=round2(Number(order.shipping_total)||0);
+  const taxTarget =round2(Number(order.tax_total)||0);
+  const hasAlloc=shipTarget>0||taxTarget>0;
+  const shipSum=round2(allocRows.reduce((s,r)=>s+Number(r.ship_alloc||0),0));
+  const taxSum =round2(allocRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
+  const balanced=(!hasAlloc)||(shipSum===shipTarget&&taxSum===taxTarget);
 
-  const load = async () => {
+  const loadAndDistribute=async()=>{
     setLoading(true);
-    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
+    const rows=await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
     setItems(rows);
-    // Auto-distribute on load
-    setAllocRows(distributeAllocations(rows, order.shipping_total, order.tax_total));
+    setAllocRows(distribute(rows.map(r=>({...r,ship_alloc:Number(r.shipping_allocated||0),tax_alloc:Number(r.tax_allocated||0)})),order.shipping_total,order.tax_total));
     setLoading(false);
   };
+  useEffect(()=>{loadAndDistribute();},[order.order_number]);
 
-  useEffect(()=>{ load(); },[order.order_number]);
-
-  const refreshAndDistribute = (newItems) => {
-    setItems(newItems);
-    setAllocRows(distributeAllocations(newItems, order.shipping_total, order.tax_total));
+  const afterMutation=async()=>{
+    const rows=await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
+    setItems(rows);
+    setAllocRows(distribute(rows.map(r=>({...r,ship_alloc:Number(r.shipping_allocated||0),tax_alloc:Number(r.tax_allocated||0)})),order.shipping_total,order.tax_total));
   };
 
-  const addItem = async e => {
+  const addItem=async e=>{
     e.preventDefault();
-    await api('/api/purchased-items', { method:'POST', body:{
-      ...addF, order_number:order.order_number,
-      vendor:order.vendor, date_purchased:order.order_date
-    }});
-    setAddF({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
-    setShowAdd(false);
-    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    refreshAndDistribute(rows);
+    await api('/api/purchased-items',{method:'POST',body:{...addF,order_number:order.order_number,vendor:order.vendor,date_purchased:order.order_date}});
+    setAddF({item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:''});
+    setShowAdd(false);await afterMutation();
   };
 
-  const delItem = async item => {
-    if (!confirm(`Delete ${item.item_id}?`)) return;
-    await api(`/api/purchased-items/${item.item_id}`, { method:'DELETE' });
-    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    refreshAndDistribute(rows);
+  const delItem=async item=>{
+    if(!confirm(`Delete ${item.item_id}?`))return;
+    await api(`/api/purchased-items/${item.item_id}`,{method:'DELETE'});
+    await afterMutation();
   };
 
-  const parsePaste = () => {
-    const rows = parseCSVText(pasteText);
-    if (!rows.length) return;
-    const valid = ['Hilt','Parts','Electronics','Blade','Saber'];
-    setPreview(rows.map(r=>({
-      item_name: r.item_name||'?',
-      variant: r.variant||'',
-      category: r.category||'',
-      source_type: valid.includes(r.source_type)?r.source_type:'Parts',
-      qty_purchased: parseInt(r.qty_purchased)||1,
-      unit_cost: parseFloat(r.unit_cost)||0,
-      condition: r.condition||'New',
-      notes: r.notes||'',
+  const parsePaste=()=>{
+    const valid=['Hilt','Parts','Electronics','Blade','Saber'];
+    setPreview(parseCSVText(pasteText).map(r=>({
+      item_name:r.item_name||'?',variant:r.variant||'',category:r.category||'',
+      source_type:valid.includes(r.source_type)?r.source_type:'Parts',
+      qty_purchased:parseInt(r.qty_purchased)||1,unit_cost:parseFloat(r.unit_cost)||0,
+      condition:r.condition||'New',notes:r.notes||'',
     })));
   };
 
-  const confirmPaste = async () => {
+  const confirmPaste=async()=>{
     setSaving(true);
-    for (const row of preview) {
-      await api('/api/purchased-items', { method:'POST', body:{
-        ...row, order_number:order.order_number,
-        vendor:order.vendor, date_purchased:order.order_date
-      }});
+    for(const row of preview){
+      await api('/api/purchased-items',{method:'POST',body:{...row,order_number:order.order_number,vendor:order.vendor,date_purchased:order.order_date}});
     }
-    setPreview(null); setPasteText(''); setPasteItems(false);
-    setSaving(false);
-    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    refreshAndDistribute(rows);
+    setPreview(null);setPasteText('');setPasteItems(false);
+    await afterMutation();setSaving(false);
   };
 
-  const redistribute = () => setAllocRows(distributeAllocations(items, order.shipping_total, order.tax_total));
+  const allocChange=(i,field,val)=>setAllocRows(r=>r.map((x,j)=>j===i?{...x,[field]:val}:x));
 
-  const saveAllocation = async () => {
+  const saveAlloc=async()=>{
     setSaving(true);
-    for (let i=0; i<items.length; i++) {
-      const alloc = allocRows.find(r=>r.item_id===items[i].item_id) || allocRows[i] || {};
-      await api(`/api/purchased-items/${items[i].item_id}`, { method:'PUT', body:{
-        _partial:true,
-        shipping_allocated: alloc.shipping_alloc||0,
-        tax_allocated: alloc.tax_alloc||0,
-      }});
+    for(let i=0;i<allocRows.length;i++){
+      const r=allocRows[i];
+      await api(`/api/purchased-items/${r.item_id}`,{method:'PUT',body:{_partial:true,shipping_allocated:r.ship_alloc||0,tax_allocated:r.tax_alloc||0}});
     }
-    setSaving(false);
-    load();
+    setSaving(false);await afterMutation();
   };
 
-  const subtotal = items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
+  const subtotal=items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
 
-  return (
+  return(
     <Modal title={`Order ${order.order_number}`} onClose={onClose}>
-      {/* Summary bar */}
-      <div style={{display:'flex',gap:20,fontSize:13,marginBottom:16,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)'}}>
+      {/* Summary */}
+      <div style={{display:'flex',gap:20,fontSize:13,marginBottom:14,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)'}}>
         <span><span style={{color:'var(--muted)'}}>Vendor:</span> <strong>{order.vendor||'—'}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Date:</span> <strong>{fmtDate(order.order_date)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Shipping:</span> <strong>{fmt$(order.shipping_total)}</strong></span>
@@ -654,32 +558,25 @@ function OrderDetailModal({ order, onClose, onViewItem }) {
       {/* Line Items */}
       <div className="section">
         <div className="section-header">
-          <h3 style={{margin:0}}>Line Items ({items.length})</h3>
+          <h3>Line Items ({items.length})</h3>
           <div style={{display:'flex',gap:8}}>
+            {hasAlloc&&allocRows.length>0&&<button className="sm" onClick={()=>setAllocRows(distribute(allocRows,order.shipping_total,order.tax_total))}>Redistribute</button>}
             <button className="sm" onClick={()=>{setShowAdd(a=>!a);setPasteItems(false);}}>+ Add Item</button>
             <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAdd(false);setPreview(null);}}>Paste Items</button>
           </div>
         </div>
 
-        {showAdd && (
+        {showAdd&&(
           <form onSubmit={addItem} style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
             <div className="form-grid">
-              <div className="form-group full"><label>Item Name *</label><input value={addF.item_name} onChange={e=>setAddF(p=>({...p,item_name:e.target.value}))} required /></div>
-              <div className="form-group"><label>Source Type</label>
-                <select value={addF.source_type} onChange={e=>setAddF(p=>({...p,source_type:e.target.value}))}>
-                  {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="form-group"><label>Category</label><input value={addF.category} onChange={e=>setAddF(p=>({...p,category:e.target.value}))} /></div>
-              <div className="form-group"><label>Variant</label><input value={addF.variant} onChange={e=>setAddF(p=>({...p,variant:e.target.value}))} /></div>
-              <div className="form-group"><label>Condition</label>
-                <select value={addF.condition} onChange={e=>setAddF(p=>({...p,condition:e.target.value}))}>
-                  {CONDITIONS.map(c=><option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="form-group"><label>Qty</label><input type="number" value={addF.qty_purchased} onChange={e=>setAddF(p=>({...p,qty_purchased:e.target.value}))} min="1" /></div>
-              <div className="form-group"><label>Unit Cost</label><input type="number" value={addF.unit_cost} onChange={e=>setAddF(p=>({...p,unit_cost:e.target.value}))} step="0.01" min="0" /></div>
-              <div className="form-group full"><label>Notes</label><input value={addF.notes} onChange={e=>setAddF(p=>({...p,notes:e.target.value}))} /></div>
+              <div className="form-group full"><label>Item Name *</label><input value={addF.item_name} onChange={e=>setAddF(p=>({...p,item_name:e.target.value}))} required/></div>
+              <div className="form-group"><label>Source Type</label><select value={addF.source_type} onChange={e=>setAddF(p=>({...p,source_type:e.target.value}))}>{SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
+              <div className="form-group"><label>Category</label><input value={addF.category} onChange={e=>setAddF(p=>({...p,category:e.target.value}))}/></div>
+              <div className="form-group"><label>Variant</label><input value={addF.variant} onChange={e=>setAddF(p=>({...p,variant:e.target.value}))}/></div>
+              <div className="form-group"><label>Condition</label><select value={addF.condition} onChange={e=>setAddF(p=>({...p,condition:e.target.value}))}>{CONDITIONS.map(c=><option key={c}>{c}</option>)}</select></div>
+              <div className="form-group"><label>Qty</label><input type="number" value={addF.qty_purchased} onChange={e=>setAddF(p=>({...p,qty_purchased:e.target.value}))} min="1"/></div>
+              <div className="form-group"><label>Unit Cost</label><input type="number" value={addF.unit_cost} onChange={e=>setAddF(p=>({...p,unit_cost:e.target.value}))} step="0.01" min="0"/></div>
+              <div className="form-group full"><label>Notes</label><input value={addF.notes} onChange={e=>setAddF(p=>({...p,notes:e.target.value}))}/></div>
             </div>
             <div style={{display:'flex',gap:8,marginTop:10}}>
               <button type="submit" className="primary sm">Add</button>
@@ -688,11 +585,11 @@ function OrderDetailModal({ order, onClose, onViewItem }) {
           </form>
         )}
 
-        {pasteItems && !preview && (
+        {pasteItems&&!preview&&(
           <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
-            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={7}
+            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={6}
               style={{fontFamily:'monospace',fontSize:12,marginBottom:8}}
-              placeholder="item_name,variant,category,..." />
+              placeholder="item_name,variant,category,..."/>
             <div style={{display:'flex',gap:8}}>
               <button className="primary sm" onClick={parsePaste} disabled={!pasteText.trim()}>Preview</button>
               <button className="sm" onClick={()=>{setPasteItems(false);setPasteText('');}}>Cancel</button>
@@ -700,20 +597,13 @@ function OrderDetailModal({ order, onClose, onViewItem }) {
           </div>
         )}
 
-        {preview && (
+        {preview&&(
           <div style={{marginBottom:14}}>
             <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{preview.length} items parsed:</div>
             <div className="overflow-x" style={{marginBottom:10}}>
               <table>
                 <thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Variant</th></tr></thead>
-                <tbody>
-                  {preview.map((r,i)=>(
-                    <tr key={i}><td>{r.item_name}</td><td>{srcBadge(r.source_type)}</td>
-                      <td>{r.qty_purchased}</td><td>{fmt$(r.unit_cost)}</td>
-                      <td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
+                <tbody>{preview.map((r,i)=><tr key={i}><td>{r.item_name}</td><td>{srcBadge(r.source_type)}</td><td>{r.qty_purchased}</td><td>{fmt$(r.unit_cost)}</td><td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td></tr>)}</tbody>
               </table>
             </div>
             <div style={{display:'flex',gap:8}}>
@@ -723,127 +613,53 @@ function OrderDetailModal({ order, onClose, onViewItem }) {
           </div>
         )}
 
-        {loading ? <div className="empty">Loading…</div> : items.length===0 ? <div className="empty">No items on this order.</div> : (
-          <div className="overflow-x">
-            <table>
-              <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Ship Alloc</th><th>Tax Alloc</th><th>Line Total</th><th></th></tr></thead>
-              <tbody>
-                {items.map(i=>(
-                  <tr key={i.item_id}>
-                    <td style={{fontFamily:'monospace',fontSize:11}}>{i.item_id}</td>
-                    <td><div style={{fontWeight:500}}>{i.item_name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
-                    <td>{srcBadge(i.source_type)}</td>
-                    <td>{i.qty_purchased}</td>
-                    <td>{fmt$(i.unit_cost)}</td>
-                    <td style={{fontSize:12}}>{fmt$(i.shipping_allocated)}</td>
-                    <td style={{fontSize:12}}>{fmt$(i.tax_allocated)}</td>
-                    <td style={{fontWeight:500}}>{fmt$(i.total_line_cost)}</td>
-                    <td><Kebab items={[
-                      {label:'View', action:()=>onViewItem(i)},
-                      {label:'Delete', danger:true, action:()=>delItem(i)}
-                    ]} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {loading?<div className="empty">Loading…</div>:allocRows.length===0?<div className="empty">No items on this order.</div>:(
+          <LineItemsTable
+            rows={allocRows} shipTarget={shipTarget} taxTarget={taxTarget}
+            onAllocChange={allocChange}
+            onDelete={delItem}
+            onSaveAlloc={hasAlloc?saveAlloc:undefined}
+            onRedistribute={()=>setAllocRows(distribute(allocRows,order.shipping_total,order.tax_total))}
+            saving={saving}
+          />
         )}
       </div>
-
-      {/* Distribution — always visible when items exist */}
-      {items.length>0 && (
-        <div className="section">
-          <div className="section-header">
-            <h3 style={{margin:0}}>Shipping & Tax Distribution</h3>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              {(shipTarget>0||taxTarget>0) && <button className="sm" onClick={redistribute}>Redistribute</button>}
-              {(shipTarget>0||taxTarget>0) && (
-                <button className="primary sm" onClick={saveAllocation} disabled={!allocValid||saving}>
-                  {saving?'Saving…':'Save Allocation'}
-                </button>
-              )}
-              <span className={(shipTarget>0||taxTarget>0) ? (allocValid?'alloc-match':'alloc-nomatch') : 'alloc-match'} style={{fontSize:12}}>
-                {(shipTarget===0&&taxTarget===0) ? '✓ No shipping/tax' : allocValid ? '✓ Balanced' : '✗ Unbalanced'}
-              </span>
-            </div>
-          </div>
-
-          {(shipTarget===0&&taxTarget===0) ? (
-            <div style={{fontSize:13,color:'var(--muted)'}}>No shipping or tax on this order.</div>
-          ) : (
-            <div className="overflow-x alloc-table">
-              <table>
-                <thead><tr><th>Item</th><th>Qty × Cost</th><th>Shipping Alloc</th><th>Tax Alloc</th><th>Line Total</th></tr></thead>
-                <tbody>
-                  {allocRows.map((r,i)=>{
-                    const lineTotal = round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1) + Number(r.shipping_alloc||0) + Number(r.tax_alloc||0));
-                    return (
-                      <tr key={r.item_id||i}>
-                        <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
-                        <td style={{fontSize:12}}>{r.qty_purchased} × {fmt$(r.unit_cost)}</td>
-                        <td style={{width:120}}>
-                          <input type="number" value={r.shipping_alloc} step="0.01"
-                            onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,shipping_alloc:v}:x));}} />
-                        </td>
-                        <td style={{width:120}}>
-                          <input type="number" value={r.tax_alloc} step="0.01"
-                            onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,tax_alloc:v}:x));}} />
-                        </td>
-                        <td style={{fontWeight:500}}>{fmt$(lineTotal)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={2} style={{fontSize:12,color:'var(--muted)',paddingTop:8}}>Totals</td>
-                    <td style={{paddingTop:8}}><span className={round2(allocShipSum)===shipTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocShipSum)} / {fmt$(shipTarget)}</span></td>
-                    <td style={{paddingTop:8}}><span className={round2(allocTaxSum)===taxTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocTaxSum)} / {fmt$(taxTarget)}</span></td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
     </Modal>
   );
 }
 
 // ── Orders Tab ────────────────────────────
-function OrdersTab({ onViewItem }) {
-  const [orders, setOrders]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [detail, setDetail]   = useState(null);
-  const [showNew, setShowNew] = useState(false);
+function OrdersTab({onViewItem}){
+  const [orders,setOrders]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [detail,setDetail]=useState(null);
+  const [showNew,setShowNew]=useState(false);
 
-  const load = async () => { setLoading(true); setOrders(await api('/api/orders')); setLoading(false); };
-  useEffect(()=>{ load(); },[]);
+  const load=async()=>{setLoading(true);setOrders(await api('/api/orders'));setLoading(false);};
+  useEffect(()=>{load();},[]);
 
-  const del = async o => {
-    if (!confirm(`Delete order ${o.order_number}? Line items will NOT be deleted.`)) return;
-    await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`, { method:'DELETE' });
-    load();
+  const del=async o=>{
+    if(!confirm(`Delete order ${o.order_number}?`))return;
+    await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});load();
   };
 
-  const totalSpend    = orders.reduce((s,o)=>s+Number(o.order_total||0),0);
-  const totalShipping = orders.reduce((s,o)=>s+Number(o.shipping_total||0),0);
-  const totalTax      = orders.reduce((s,o)=>s+Number(o.tax_total||0),0);
+  const totalSpend=orders.reduce((s,o)=>s+Number(o.order_total||0),0);
+  const totalShip =orders.reduce((s,o)=>s+Number(o.shipping_total||0),0);
+  const totalTax  =orders.reduce((s,o)=>s+Number(o.tax_total||0),0);
 
-  return (
+  return(
     <>
       <div className="stats-row">
         <div className="stat"><div className="stat-label">Orders</div><div className="stat-value">{orders.length}</div></div>
         <div className="stat"><div className="stat-label">Total Spend</div><div className="stat-value">{fmt$(totalSpend)}</div></div>
-        <div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShipping)}</div></div>
+        <div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShip)}</div></div>
         <div className="stat"><div className="stat-label">Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
       </div>
       <div className="toolbar">
         <button className="primary" onClick={()=>setShowNew(true)}>+ New Order</button>
       </div>
       <div className="overflow-x">
-        {loading ? <div className="empty">Loading…</div> : orders.length===0 ? <div className="empty">No orders yet.</div> : (
+        {loading?<div className="empty">Loading…</div>:orders.length===0?<div className="empty">No orders yet.</div>:(
           <table>
             <thead><tr><th>Order #</th><th>Vendor</th><th>Date</th><th>Items</th><th>Parts</th><th>Shipping</th><th>Tax</th><th>Total</th><th></th></tr></thead>
             <tbody>
@@ -857,57 +673,54 @@ function OrdersTab({ onViewItem }) {
                   <td>{fmt$(o.shipping_total)}</td>
                   <td>{fmt$(o.tax_total)}</td>
                   <td style={{fontWeight:500}}>{fmt$(o.order_total)}</td>
-                  <td><Kebab items={[
-                    {label:'Open Order',  action:()=>setDetail(o)},
-                    {label:'Delete', danger:true, action:()=>del(o)}
-                  ]} /></td>
+                  <td><Kebab items={[{label:'Open Order',action:()=>setDetail(o)},{label:'Delete',danger:true,action:()=>del(o)}]}/></td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-      {showNew && <NewOrderModal onClose={()=>setShowNew(false)} onSaved={()=>{ setShowNew(false); load(); }} />}
-      {detail && <OrderDetailModal order={detail} onClose={()=>{ setDetail(null); load(); }} onViewItem={item=>{ setDetail(null); onViewItem(item); }} />}
+      {showNew&&<NewOrderModal onClose={()=>setShowNew(false)} onSaved={()=>{setShowNew(false);load();}}/>}
+      {detail&&<OrderDetailModal order={detail} onClose={()=>{setDetail(null);load();}} onViewItem={item=>{setDetail(null);onViewItem(item);}}/>}
     </>
   );
 }
 
 // ── Purchased Items Tab ───────────────────
-function PurchasedItemsTab({ onViewOrder }) {
-  const [items, setItems]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState('');
-  const [filterSrc, setFilterSrc] = useState('');
-  const [viewItem, setViewItem]   = useState(null);
-  const [editItem, setEditItem]   = useState(null);
+function PurchasedItemsTab({onViewOrder}){
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState('');
+  const [filterSrc,setFilterSrc]=useState('');
+  const [viewItem,setViewItem]=useState(null);
+  const [editItem,setEditItem]=useState(null);
 
-  const load = useCallback(async () => {
+  const load=useCallback(async()=>{
     setLoading(true);
-    const p = new URLSearchParams();
-    if (search) p.set('search', search);
-    if (filterSrc) p.set('source_type', filterSrc);
-    setItems(await api('/api/purchased-items?' + p));
+    const p=new URLSearchParams();
+    if(search)p.set('search',search);
+    if(filterSrc)p.set('source_type',filterSrc);
+    setItems(await api('/api/purchased-items?'+p));
     setLoading(false);
-  }, [search, filterSrc]);
+  },[search,filterSrc]);
 
-  useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{load();},[load]);
 
-  const saveEdit = async f => {
-    await api(`/api/purchased-items/${editItem.item_id}`, { method:'PUT', body: f });
-    setEditItem(null); setViewItem(null); load();
+  const saveEdit=async f=>{
+    await api(`/api/purchased-items/${editItem.item_id}`,{method:'PUT',body:f});
+    setEditItem(null);setViewItem(null);load();
   };
 
-  const del = async item => {
-    if (!confirm(`Delete ${item.item_id}?`)) return;
-    await api(`/api/purchased-items/${item.item_id}`, { method:'DELETE' });
-    setViewItem(null); load();
+  const del=async item=>{
+    if(!confirm(`Delete ${item.item_id}?`))return;
+    await api(`/api/purchased-items/${item.item_id}`,{method:'DELETE'});
+    setViewItem(null);load();
   };
 
-  const totalCost = items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
-  const remaining = items.reduce((s,i)=>s+Number(i.unit_cost||0)*Number(i.qty_remaining||0),0);
+  const totalCost=items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
+  const remaining=items.reduce((s,i)=>s+Number(i.unit_cost||0)*Number(i.qty_remaining||0),0);
 
-  return (
+  return(
     <>
       <div className="stats-row">
         <div className="stat"><div className="stat-label">Line Items</div><div className="stat-value">{items.length}</div></div>
@@ -916,16 +729,16 @@ function PurchasedItemsTab({ onViewOrder }) {
       </div>
       <p style={{fontSize:12,color:'var(--muted)',marginBottom:14}}>Ledger view. Add items through Orders. Click ⋮ to view or edit.</p>
       <div className="toolbar">
-        <input placeholder="Search name, ID, vendor…" value={search} onChange={e=>setSearch(e.target.value)} />
+        <input placeholder="Search name, ID, vendor…" value={search} onChange={e=>setSearch(e.target.value)}/>
         <select value={filterSrc} onChange={e=>setFilterSrc(e.target.value)}>
           <option value="">All types</option>
           {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
         </select>
       </div>
       <div className="overflow-x">
-        {loading ? <div className="empty">Loading…</div> : items.length===0 ? <div className="empty">No items.</div> : (
+        {loading?<div className="empty">Loading…</div>:items.length===0?<div className="empty">No items.</div>:(
           <table>
-            <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Vendor</th><th>Order #</th><th>Qty Rem.</th><th>Unit Cost</th><th>Line Total</th><th></th></tr></thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Vendor</th><th>Order #</th><th>Qty Rem.</th><th>Unit Cost</th><th>Ship Alloc</th><th>Tax Alloc</th><th>Line Total</th><th></th></tr></thead>
             <tbody>
               {items.map(i=>(
                 <tr key={i.item_id}>
@@ -936,12 +749,14 @@ function PurchasedItemsTab({ onViewOrder }) {
                   <td>{i.order_number?<span className="order-link" onClick={()=>onViewOrder(i.order_number)}>{i.order_number}</span>:'—'}</td>
                   <td style={{fontWeight:500,color:i.qty_remaining===0?'var(--danger)':'inherit'}}>{i.qty_remaining}</td>
                   <td>{fmt$(i.unit_cost)}</td>
-                  <td>{fmt$(i.total_line_cost)}</td>
+                  <td style={{fontSize:12}}>{fmt$(i.shipping_allocated)}</td>
+                  <td style={{fontSize:12}}>{fmt$(i.tax_allocated)}</td>
+                  <td style={{fontWeight:500}}>{fmt$(i.total_line_cost)}</td>
                   <td><Kebab items={[
-                    {label:'View',   action:()=>setViewItem(i)},
-                    {label:'Edit',   action:()=>{setViewItem(null);setEditItem(i);}},
-                    {label:'Delete', danger:true, action:()=>del(i)}
-                  ]} /></td>
+                    {label:'View',action:()=>setViewItem(i)},
+                    {label:'Edit',action:()=>{setViewItem(null);setEditItem(i);}},
+                    {label:'Delete',danger:true,action:()=>del(i)}
+                  ]}/></td>
                 </tr>
               ))}
             </tbody>
@@ -949,16 +764,14 @@ function PurchasedItemsTab({ onViewOrder }) {
         )}
       </div>
 
-      {viewItem && !editItem && (
+      {viewItem&&!editItem&&(
         <Modal title={`${viewItem.item_id} — ${viewItem.item_name}`} onClose={()=>setViewItem(null)} width="560px">
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 24px',fontSize:13,marginBottom:20}}>
             {[
               ['Item ID',viewItem.item_id],['Source Type',viewItem.source_type],
               ['Variant',viewItem.variant||'—'],['Category',viewItem.category||'—'],
               ['Vendor',viewItem.vendor||'—'],
-              ['Order #', viewItem.order_number
-                ? <span className="order-link" onClick={()=>{setViewItem(null);onViewOrder(viewItem.order_number);}}>{viewItem.order_number}</span>
-                : '—'],
+              ['Order #',viewItem.order_number?<span className="order-link" onClick={()=>{setViewItem(null);onViewOrder(viewItem.order_number);}}>{viewItem.order_number}</span>:'—'],
               ['Date',fmtDate(viewItem.date_purchased)],['Condition',viewItem.condition||'—'],
               ['Qty Purchased',viewItem.qty_purchased],['Qty Remaining',viewItem.qty_remaining],
               ['Unit Cost',fmt$(viewItem.unit_cost)],['Shipping Alloc',fmt$(viewItem.shipping_allocated)],
@@ -975,45 +788,37 @@ function PurchasedItemsTab({ onViewOrder }) {
         </Modal>
       )}
 
-      {editItem && (
+      {editItem&&(
         <Modal title={`Edit ${editItem.item_id}`} onClose={()=>setEditItem(null)} width="640px">
-          <PurchasedItemForm initial={editItem} onSave={saveEdit} onClose={()=>setEditItem(null)} />
+          <PurchasedItemForm initial={editItem} onSave={saveEdit} onClose={()=>setEditItem(null)}/>
         </Modal>
       )}
     </>
   );
 }
 
-function PurchasedItemForm({ initial={}, onSave, onClose }) {
+function PurchasedItemForm({initial={},onSave,onClose}){
   const [f,setF]=useState({
     item_name:'',variant:'',category:'',vendor:'',date_purchased:'',
     qty_purchased:1,qty_remaining:1,unit_cost:'',condition:'New',
     source_type:'Electronics',location:'',notes:'',...initial
   });
   const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
-  return (
+  return(
     <form onSubmit={e=>{e.preventDefault();onSave(f);}}>
       <div className="form-grid">
-        <div className="form-group full"><label>Item Name *</label><input name="item_name" value={f.item_name} onChange={handle} required /></div>
-        <div className="form-group"><label>Source Type *</label>
-          <select name="source_type" value={f.source_type} onChange={handle}>
-            {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="form-group"><label>Category</label><input name="category" value={f.category} onChange={handle} /></div>
-        <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor} onChange={handle} /></div>
-        <div className="form-group"><label>Date Purchased</label><input type="date" name="date_purchased" value={f.date_purchased ? fmtDate(f.date_purchased) : ''} onChange={handle} /></div>
-        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant||''} onChange={handle} /></div>
-        <div className="form-group"><label>Condition</label>
-          <select name="condition" value={f.condition} onChange={handle}>
-            {CONDITIONS.map(c=><option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
-        <div className="form-group"><label>Qty Remaining</label><input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0" /></div>
-        <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Location</label><input name="location" value={f.location||''} onChange={handle} /></div>
-        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes||''} onChange={handle} rows={2} /></div>
+        <div className="form-group full"><label>Item Name *</label><input name="item_name" value={f.item_name} onChange={handle} required/></div>
+        <div className="form-group"><label>Source Type *</label><select name="source_type" value={f.source_type} onChange={handle}>{SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
+        <div className="form-group"><label>Category</label><input name="category" value={f.category||''} onChange={handle}/></div>
+        <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor||''} onChange={handle}/></div>
+        <div className="form-group"><label>Date Purchased</label><input type="date" name="date_purchased" value={f.date_purchased?fmtDate(f.date_purchased):''} onChange={handle}/></div>
+        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant||''} onChange={handle}/></div>
+        <div className="form-group"><label>Condition</label><select name="condition" value={f.condition} onChange={handle}>{CONDITIONS.map(c=><option key={c}>{c}</option>)}</select></div>
+        <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1"/></div>
+        <div className="form-group"><label>Qty Remaining</label><input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0"/></div>
+        <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0"/></div>
+        <div className="form-group"><label>Location</label><input name="location" value={f.location||''} onChange={handle}/></div>
+        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes||''} onChange={handle} rows={2}/></div>
       </div>
       <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
         <button type="button" onClick={onClose}>Cancel</button>
@@ -1024,7 +829,7 @@ function PurchasedItemForm({ initial={}, onSave, onClose }) {
 }
 
 // ── Stock Tab ─────────────────────────────
-function StockTab() {
+function StockTab(){
   const [items,setItems]=useState([]);
   const [loading,setLoading]=useState(true);
   const [search,setSearch]=useState('');
@@ -1075,7 +880,7 @@ function StockTab() {
   const outStock=items.filter(i=>i.qty_on_hand===0).length;
   const totalQty=items.reduce((s,i)=>s+Number(i.qty_on_hand||0),0);
 
-  return (
+  return(
     <>
       <div className="stats-row">
         <div className="stat"><div className="stat-label">Stock Items</div><div className="stat-value">{items.length}</div></div>
@@ -1084,7 +889,7 @@ function StockTab() {
         <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{color:'var(--danger)'}}>{outStock}</div></div>
       </div>
       <div className="toolbar">
-        <input placeholder="Search name, SKU…" value={search} onChange={e=>setSearch(e.target.value)} />
+        <input placeholder="Search name, SKU…" value={search} onChange={e=>setSearch(e.target.value)}/>
         <select value={filterSrc} onChange={e=>setFilterSrc(e.target.value)}>
           <option value="">All types</option>
           {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
@@ -1097,16 +902,12 @@ function StockTab() {
           <h2>New Stock Item</h2>
           <form onSubmit={addStock}>
             <div className="form-grid">
-              <div className="form-group full"><label>Canonical Name *</label><input name="name" value={f.name} onChange={handle} required placeholder="e.g. Keeppower 18650 3500mAh" /></div>
-              <div className="form-group"><label>Variant</label><input name="variant" value={f.variant} onChange={handle} /></div>
-              <div className="form-group"><label>Category</label><input name="category" value={f.category} onChange={handle} /></div>
-              <div className="form-group"><label>Source Type *</label>
-                <select name="source_type" value={f.source_type} onChange={handle}>
-                  {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="form-group"><label>Location</label><input name="location" value={f.location} onChange={handle} /></div>
-              <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes} onChange={handle} /></div>
+              <div className="form-group full"><label>Canonical Name *</label><input name="name" value={f.name} onChange={handle} required placeholder="e.g. Keeppower 18650 3500mAh"/></div>
+              <div className="form-group"><label>Variant</label><input name="variant" value={f.variant} onChange={handle}/></div>
+              <div className="form-group"><label>Category</label><input name="category" value={f.category} onChange={handle}/></div>
+              <div className="form-group"><label>Source Type *</label><select name="source_type" value={f.source_type} onChange={handle}>{SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
+              <div className="form-group"><label>Location</label><input name="location" value={f.location} onChange={handle}/></div>
+              <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes} onChange={handle}/></div>
             </div>
             <div style={{display:'flex',gap:8,marginTop:12}}>
               <button type="submit" className="primary">Create</button>
@@ -1134,10 +935,7 @@ function StockTab() {
                     <td><span className={`badge ${sc}`}>{i.qty_on_hand}</span></td>
                     <td>{fmt$(i.unit_cost)}</td>
                     <td style={{fontSize:12}}>{i.location||'—'}</td>
-                    <td><Kebab items={[
-                      {label:'Receive to Stock',action:()=>openReceive(i)},
-                      {label:'Delete',danger:true,action:()=>del(i)}
-                    ]} /></td>
+                    <td><Kebab items={[{label:'Receive to Stock',action:()=>openReceive(i)},{label:'Delete',danger:true,action:()=>del(i)}]}/></td>
                   </tr>
                 );
               })}
@@ -1160,8 +958,8 @@ function StockTab() {
                   {purchasedItems.map(p=><option key={p.item_id} value={p.item_id}>{p.item_id} — {p.item_name} (rem: {p.qty_remaining})</option>)}
                 </select>
               </div>
-              <div className="form-group"><label>Qty Received *</label><input type="number" value={rf.qty_received} onChange={e=>setRf(r=>({...r,qty_received:e.target.value}))} min="1" required /></div>
-              <div className="form-group"><label>Unit Cost</label><input type="number" value={rf.unit_cost} onChange={e=>setRf(r=>({...r,unit_cost:e.target.value}))} step="0.01" min="0" /></div>
+              <div className="form-group"><label>Qty Received *</label><input type="number" value={rf.qty_received} onChange={e=>setRf(r=>({...r,qty_received:e.target.value}))} min="1" required/></div>
+              <div className="form-group"><label>Unit Cost</label><input type="number" value={rf.unit_cost} onChange={e=>setRf(r=>({...r,unit_cost:e.target.value}))} step="0.01" min="0"/></div>
             </div>
             <div style={{display:'flex',gap:8,marginTop:16}}>
               <button type="submit" className="primary">Receive</button>
@@ -1174,8 +972,8 @@ function StockTab() {
   );
 }
 
-// ── Builds Tab ────────────────────────────
-function BuildsTab({ tiers }) {
+// ── Builds ────────────────────────────────
+function BuildsTab({tiers}){
   const [builds,setBuilds]=useState([]);
   const [loading,setLoading]=useState(true);
   const [modal,setModal]=useState(null);
@@ -1189,25 +987,18 @@ function BuildsTab({ tiers }) {
     else await api(`/api/builds/${modal.build_id}`,{method:'PUT',body:f});
     setModal(null);load();
   };
-
-  const del=async b=>{
-    if(!confirm(`Delete build ${b.build_id}?`))return;
-    await api(`/api/builds/${b.build_id}`,{method:'DELETE'});load();
-  };
-
+  const del=async b=>{if(!confirm(`Delete build ${b.build_id}?`))return;await api(`/api/builds/${b.build_id}`,{method:'DELETE'});load();};
   const totalProfit=builds.reduce((s,b)=>s+Number(b.profit||0),0);
   const sold=builds.filter(b=>b.status==='Sold').length;
 
-  return (
+  return(
     <>
       <div className="stats-row">
         <div className="stat"><div className="stat-label">Builds</div><div className="stat-value">{builds.length}</div></div>
         <div className="stat"><div className="stat-label">Sold</div><div className="stat-value">{sold}</div></div>
         <div className="stat"><div className="stat-label">Total Profit</div><div className="stat-value" style={{color:totalProfit>=0?'var(--success)':'var(--danger)'}}>{fmt$(totalProfit)}</div></div>
       </div>
-      <div className="toolbar">
-        <button className="primary" onClick={()=>setModal('add')}>+ New Build</button>
-      </div>
+      <div className="toolbar"><button className="primary" onClick={()=>setModal('add')}>+ New Build</button></div>
       <div className="overflow-x">
         {loading?<div className="empty">Loading…</div>:builds.length===0?<div className="empty">No builds yet.</div>:(
           <table>
@@ -1222,63 +1013,38 @@ function BuildsTab({ tiers }) {
                   <td>{fmt$(b.total_build_cost)}</td><td>{fmt$(b.sold_price)}</td>
                   <td style={{color:Number(b.profit)>=0?'var(--success)':'var(--danger)',fontWeight:500}}>{fmt$(b.profit)}</td>
                   <td><span className="badge" style={{background:'#1e2a1e',color:'var(--accent2)'}}>{b.status}</span></td>
-                  <td><Kebab items={[
-                    {label:'Parts Used',action:()=>setUsageModal(b)},
-                    {label:'Edit',action:()=>setModal(b)},
-                    {label:'Delete',danger:true,action:()=>del(b)}
-                  ]} /></td>
+                  <td><Kebab items={[{label:'Parts Used',action:()=>setUsageModal(b)},{label:'Edit',action:()=>setModal(b)},{label:'Delete',danger:true,action:()=>del(b)}]}/></td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-      {modal&&(
-        <Modal title={modal==='add'?'New Build':`Edit ${modal.build_id}`} onClose={()=>setModal(null)}>
-          <BuildForm initial={modal==='add'?{}:modal} tiers={tiers} onSave={save} onClose={()=>setModal(null)} />
-        </Modal>
-      )}
-      {usageModal&&(
-        <Modal title={`Parts — ${usageModal.build_id}`} onClose={()=>setUsageModal(null)}>
-          <UsagePanel buildId={usageModal.build_id} />
-        </Modal>
-      )}
+      {modal&&<Modal title={modal==='add'?'New Build':`Edit ${modal.build_id}`} onClose={()=>setModal(null)}><BuildForm initial={modal==='add'?{}:modal} tiers={tiers} onSave={save} onClose={()=>setModal(null)}/></Modal>}
+      {usageModal&&<Modal title={`Parts — ${usageModal.build_id}`} onClose={()=>setUsageModal(null)}><UsagePanel buildId={usageModal.build_id}/></Modal>}
     </>
   );
 }
 
-function BuildForm({ initial={}, tiers, onSave, onClose }) {
-  const [f,setF]=useState({
-    hilt_item_id:'',customer:'',tier_id:'',parts_cost:'',labor_value:'',
-    target_price:'',listed_price:'',sold_price:'',date_sold:'',
-    status:'In Progress',notes:'',...initial,tier_id:initial.tier_id??''
-  });
+function BuildForm({initial={},tiers,onSave,onClose}){
+  const [f,setF]=useState({hilt_item_id:'',customer:'',tier_id:'',parts_cost:'',labor_value:'',target_price:'',listed_price:'',sold_price:'',date_sold:'',status:'In Progress',notes:'',...initial,tier_id:initial.tier_id??''});
   const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
   const totalCost=(Number(f.parts_cost)||0)+(Number(f.labor_value)||0);
   const profit=(Number(f.sold_price)||0)-totalCost;
-  return (
+  return(
     <form onSubmit={e=>{e.preventDefault();onSave(f);}}>
       <div className="form-grid">
-        <div className="form-group"><label>Hilt Item ID</label><input name="hilt_item_id" value={f.hilt_item_id} onChange={handle} placeholder="HB-001" /></div>
-        <div className="form-group"><label>Customer</label><input name="customer" value={f.customer} onChange={handle} /></div>
-        <div className="form-group"><label>Build Tier</label>
-          <select name="tier_id" value={f.tier_id} onChange={handle}>
-            <option value="">— select —</option>
-            {tiers.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
-        <div className="form-group"><label>Status</label>
-          <select name="status" value={f.status} onChange={handle}>
-            {['In Progress','Complete','Sold','On Hold'].map(s=><option key={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="form-group"><label>Parts Cost</label><input type="number" name="parts_cost" value={f.parts_cost} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Labor Value</label><input type="number" name="labor_value" value={f.labor_value} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Target Price</label><input type="number" name="target_price" value={f.target_price} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Listed Price</label><input type="number" name="listed_price" value={f.listed_price} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Sold Price</label><input type="number" name="sold_price" value={f.sold_price} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Date Sold</label><input type="date" name="date_sold" value={f.date_sold} onChange={handle} /></div>
-        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes} onChange={handle} rows={2} /></div>
+        <div className="form-group"><label>Hilt Item ID</label><input name="hilt_item_id" value={f.hilt_item_id} onChange={handle} placeholder="HB-001"/></div>
+        <div className="form-group"><label>Customer</label><input name="customer" value={f.customer} onChange={handle}/></div>
+        <div className="form-group"><label>Build Tier</label><select name="tier_id" value={f.tier_id} onChange={handle}><option value="">— select —</option>{tiers.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+        <div className="form-group"><label>Status</label><select name="status" value={f.status} onChange={handle}>{['In Progress','Complete','Sold','On Hold'].map(s=><option key={s}>{s}</option>)}</select></div>
+        <div className="form-group"><label>Parts Cost</label><input type="number" name="parts_cost" value={f.parts_cost} onChange={handle} step="0.01" min="0"/></div>
+        <div className="form-group"><label>Labor Value</label><input type="number" name="labor_value" value={f.labor_value} onChange={handle} step="0.01" min="0"/></div>
+        <div className="form-group"><label>Target Price</label><input type="number" name="target_price" value={f.target_price} onChange={handle} step="0.01" min="0"/></div>
+        <div className="form-group"><label>Listed Price</label><input type="number" name="listed_price" value={f.listed_price} onChange={handle} step="0.01" min="0"/></div>
+        <div className="form-group"><label>Sold Price</label><input type="number" name="sold_price" value={f.sold_price} onChange={handle} step="0.01" min="0"/></div>
+        <div className="form-group"><label>Date Sold</label><input type="date" name="date_sold" value={f.date_sold} onChange={handle}/></div>
+        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes} onChange={handle} rows={2}/></div>
       </div>
       <div style={{background:'var(--surface)',borderRadius:'var(--radius)',padding:'10px 14px',marginTop:12,fontSize:13,display:'flex',gap:24}}>
         <span>Total Cost: <strong>{fmt$(totalCost)}</strong></span>
@@ -1292,7 +1058,7 @@ function BuildForm({ initial={}, tiers, onSave, onClose }) {
   );
 }
 
-function UsagePanel({ buildId }) {
+function UsagePanel({buildId}){
   const [usage,setUsage]=useState([]);
   const [stock,setStock]=useState([]);
   const [f,setF]=useState({stock_item_id:'',qty_used:1,unit_cost:''});
@@ -1303,20 +1069,12 @@ function UsagePanel({ buildId }) {
   };
   useEffect(()=>{load();},[buildId]);
 
-  const pickStock=id=>{
-    const s=stock.find(s=>s.id==id);
-    setF(p=>({...p,stock_item_id:id,unit_cost:s?s.unit_cost||'':''}));
-  };
-  const add=async e=>{
-    e.preventDefault();
-    await api('/api/usage',{method:'POST',body:{...f,build_id:buildId}});
-    setF({stock_item_id:'',qty_used:1,unit_cost:''});load();
-  };
-  const del=async id=>{
-    await api(`/api/usage?id=${id}`,{method:'DELETE'});load();
-  };
+  const pickStock=id=>{const s=stock.find(s=>s.id==id);setF(p=>({...p,stock_item_id:id,unit_cost:s?s.unit_cost||'':''}));};
+  const add=async e=>{e.preventDefault();await api('/api/usage',{method:'POST',body:{...f,build_id:buildId}});setF({stock_item_id:'',qty_used:1,unit_cost:''});load();};
+  const del=async id=>{await api(`/api/usage?id=${id}`,{method:'DELETE'});load();};
   const total=usage.reduce((s,u)=>s+Number(u.total_cost||0),0);
-  return (
+
+  return(
     <div>
       <table style={{marginBottom:16}}>
         <thead><tr><th>SKU</th><th>Name</th><th>Qty</th><th>Unit Cost</th><th>Total</th><th></th></tr></thead>
@@ -1324,8 +1082,7 @@ function UsagePanel({ buildId }) {
           {usage.map(u=>(
             <tr key={u.id}>
               <td style={{fontFamily:'monospace',fontSize:11}}>{u.sku}</td>
-              <td>{u.name}</td><td>{u.qty_used}</td>
-              <td>{fmt$(u.unit_cost)}</td><td>{fmt$(u.total_cost)}</td>
+              <td>{u.name}</td><td>{u.qty_used}</td><td>{fmt$(u.unit_cost)}</td><td>{fmt$(u.total_cost)}</td>
               <td><button className="sm danger" onClick={()=>del(u.id)}>✕</button></td>
             </tr>
           ))}
@@ -1340,8 +1097,8 @@ function UsagePanel({ buildId }) {
             {stock.map(s=><option key={s.id} value={s.id}>{s.sku} — {s.name} (qty: {s.qty_on_hand})</option>)}
           </select>
         </div>
-        <div><label style={{fontSize:11,color:'var(--muted)'}}>Qty</label><input type="number" value={f.qty_used} onChange={e=>setF(p=>({...p,qty_used:e.target.value}))} min="1" required /></div>
-        <div><label style={{fontSize:11,color:'var(--muted)'}}>Unit Cost</label><input type="number" value={f.unit_cost} onChange={e=>setF(p=>({...p,unit_cost:e.target.value}))} step="0.01" /></div>
+        <div><label style={{fontSize:11,color:'var(--muted)'}}>Qty</label><input type="number" value={f.qty_used} onChange={e=>setF(p=>({...p,qty_used:e.target.value}))} min="1" required/></div>
+        <div><label style={{fontSize:11,color:'var(--muted)'}}>Unit Cost</label><input type="number" value={f.unit_cost} onChange={e=>setF(p=>({...p,unit_cost:e.target.value}))} step="0.01"/></div>
         <button type="submit" className="primary">Add</button>
       </form>
     </div>
@@ -1349,29 +1106,21 @@ function UsagePanel({ buildId }) {
 }
 
 // ── Tiers Tab ─────────────────────────────
-function TiersTab({ tiers, onRefresh }) {
+function TiersTab({tiers,onRefresh}){
   const [name,setName]=useState('');
-  const add=async e=>{
-    e.preventDefault();
-    await api('/api/tiers',{method:'POST',body:{name}});
-    setName('');onRefresh();
-  };
-  const del=async id=>{
-    if(!confirm('Delete this tier?'))return;
-    await api(`/api/tiers?id=${id}`,{method:'DELETE'});onRefresh();
-  };
-  return (
+  const add=async e=>{e.preventDefault();await api('/api/tiers',{method:'POST',body:{name}});setName('');onRefresh();};
+  const del=async id=>{if(!confirm('Delete this tier?'))return;await api(`/api/tiers?id=${id}`,{method:'DELETE'});onRefresh();};
+  return(
     <div style={{maxWidth:400}}>
       <h2>Build Tiers</h2>
       {tiers.map(t=>(
-        <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
-          padding:'8px 12px',border:'1px solid var(--border)',borderRadius:'var(--radius)',marginBottom:6}}>
+        <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',border:'1px solid var(--border)',borderRadius:'var(--radius)',marginBottom:6}}>
           <span>{t.name}</span>
           <button className="sm danger" onClick={()=>del(t.id)}>Delete</button>
         </div>
       ))}
       <form onSubmit={add} style={{display:'flex',gap:8,marginTop:16}}>
-        <input placeholder="New tier name" value={name} onChange={e=>setName(e.target.value)} required />
+        <input placeholder="New tier name" value={name} onChange={e=>setName(e.target.value)} required/>
         <button type="submit" className="primary">Add</button>
       </form>
     </div>
@@ -1379,7 +1128,7 @@ function TiersTab({ tiers, onRefresh }) {
 }
 
 // ── Import Tab ────────────────────────────
-function ImportTab() {
+function ImportTab(){
   const [invCSV,setInvCSV]=useState('');
   const [ordCSV,setOrdCSV]=useState('');
   const [invResult,setInvResult]=useState(null);
@@ -1388,30 +1137,12 @@ function ImportTab() {
   const [ordLoading,setOrdLoading]=useState(false);
   const invRef=useRef();const ordRef=useRef();
 
-  const readFile=(e,setter)=>{
-    const file=e.target.files[0];if(!file)return;
-    const r=new FileReader();r.onload=ev=>setter(ev.target.result);r.readAsText(file);
-  };
-  const runInv=async()=>{
-    setInvLoading(true);setInvResult(null);
-    try{const d=await api('/api/import',{method:'POST',body:{mode:'inventory',csv:invCSV}});setInvResult(d);setInvCSV('');if(invRef.current)invRef.current.value='';}
-    catch(e){setInvResult({error:e.message});}
-    setInvLoading(false);
-  };
-  const runOrd=async()=>{
-    setOrdLoading(true);setOrdResult(null);
-    try{const d=await api('/api/import',{method:'POST',body:{mode:'orders',csv:ordCSV}});setOrdResult(d);setOrdCSV('');if(ordRef.current)ordRef.current.value='';}
-    catch(e){setOrdResult({error:e.message});}
-    setOrdLoading(false);
-  };
-  const Result=({r})=>!r?null:r.error
-    ?<div className="result-err">{r.error}</div>
-    :<div className="result-ok">
-      {r.inserted??r.insertedItems} inserted, {r.skipped??0} skipped
-      {r.errors?.length>0&&<div style={{marginTop:6,fontSize:12,color:'var(--warn)'}}>{r.errors.map((e,i)=><div key={i}>{e}</div>)}</div>}
-    </div>;
+  const readFile=(e,setter)=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>setter(ev.target.result);r.readAsText(file);};
+  const runInv=async()=>{setInvLoading(true);setInvResult(null);try{const d=await api('/api/import',{method:'POST',body:{mode:'inventory',csv:invCSV}});setInvResult(d);setInvCSV('');if(invRef.current)invRef.current.value='';}catch(e){setInvResult({error:e.message});}setInvLoading(false);};
+  const runOrd=async()=>{setOrdLoading(true);setOrdResult(null);try{const d=await api('/api/import',{method:'POST',body:{mode:'orders',csv:ordCSV}});setOrdResult(d);setOrdCSV('');if(ordRef.current)ordRef.current.value='';}catch(e){setOrdResult({error:e.message});}setOrdLoading(false);};
+  const Result=({r})=>!r?null:r.error?<div className="result-err">{r.error}</div>:<div className="result-ok">{r.inserted??r.insertedItems} inserted, {r.skipped??0} skipped{r.errors?.length>0&&<div style={{marginTop:6,fontSize:12,color:'var(--warn)'}}>{r.errors.map((e,i)=><div key={i}>{e}</div>)}</div>}</div>;
 
-  return (
+  return(
     <div style={{maxWidth:600}}>
       <h2>Bulk Import</h2>
       <p style={{color:'var(--muted)',marginBottom:24,fontSize:13}}>Run purchased items CSV first, then orders CSV.</p>
@@ -1423,11 +1154,11 @@ function ImportTab() {
           <h2 style={{marginBottom:6}}>{s.label}</h2>
           <p style={{fontSize:12,color:'var(--muted)',marginBottom:12}}>{s.hint}</p>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <input ref={s.ref} type="file" accept=".csv" onChange={e=>readFile(e,s.set)} style={{flex:1}} />
+            <input ref={s.ref} type="file" accept=".csv" onChange={e=>readFile(e,s.set)} style={{flex:1}}/>
             <button className="primary" onClick={s.run} disabled={!s.csv||s.loading}>{s.loading?'Importing…':'Import'}</button>
           </div>
           {s.csv&&<div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>{s.csv.trim().split('\n').length-1} rows</div>}
-          <Result r={s.result} />
+          <Result r={s.result}/>
         </div>
       ))}
     </div>
@@ -1435,14 +1166,11 @@ function ImportTab() {
 }
 
 // ── App ───────────────────────────────────
-function App() {
+function App(){
   const [tab,setTab]=useState('orders');
   const [tiers,setTiers]=useState([]);
-
   const loadTiers=async()=>setTiers(await api('/api/tiers'));
   useEffect(()=>{loadTiers();},[]);
-
-  const goToOrder=orderNum=>setTab('orders');
 
   const tabs=[
     {id:'orders',    label:'Orders'},
@@ -1453,7 +1181,7 @@ function App() {
     {id:'import',    label:'Import'},
   ];
 
-  return (
+  return(
     <>
       <div className="header">
         <h1>⚔ Saber Tracker</h1>
@@ -1463,18 +1191,18 @@ function App() {
         <div className="tab-bar">
           {tabs.map(t=><button key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
         </div>
-        {tab==='orders'    && <OrdersTab onViewItem={()=>setTab('purchased')} />}
-        {tab==='purchased' && <PurchasedItemsTab onViewOrder={goToOrder} />}
-        {tab==='stock'     && <StockTab />}
-        {tab==='builds'    && <BuildsTab tiers={tiers} />}
-        {tab==='tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers} />}
-        {tab==='import'    && <ImportTab />}
+        {tab==='orders'    && <OrdersTab onViewItem={()=>setTab('purchased')}/>}
+        {tab==='purchased' && <PurchasedItemsTab onViewOrder={()=>setTab('orders')}/>}
+        {tab==='stock'     && <StockTab/>}
+        {tab==='builds'    && <BuildsTab tiers={tiers}/>}
+        {tab==='tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers}/>}
+        {tab==='import'    && <ImportTab/>}
       </div>
     </>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
