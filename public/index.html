@@ -170,7 +170,7 @@ function Modal({title,onClose,width='900px',children}){
 // ── Kebab ─────────────────────────────────
 function Kebab({items}){
   const [open,setOpen]=useState(false);
-  const [openUp,setOpenUp]=useState(false);
+  const [menuPos,setMenuPos]=useState({top:0,left:0});
   const ref=useRef();
   const btnRef=useRef();
 
@@ -183,19 +183,30 @@ function Kebab({items}){
     if(!open&&btnRef.current){
       const rect=btnRef.current.getBoundingClientRect();
       const spaceBelow=window.innerHeight-rect.bottom;
-      setOpenUp(spaceBelow<160);
+      const menuH=items.length*38;
+      const top=spaceBelow<menuH?rect.top-menuH:rect.bottom;
+      setMenuPos({top:top+window.scrollY,left:rect.right-140});
     }
     setOpen(o=>!o);
   };
 
+  const menu=open&&ReactDOM.createPortal(
+    <div style={{position:'absolute',top:menuPos.top,left:menuPos.left,background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--radius)',minWidth:140,zIndex:1000}}>
+      {items.map((item,i)=>(
+        <button key={i} style={{display:'block',width:'100%',textAlign:'left',background:'none',border:'none',borderRadius:0,padding:'8px 14px',fontSize:13,cursor:'pointer',color:item.danger?'var(--danger)':'var(--text)'}}
+          onClick={()=>{setOpen(false);item.action();}}
+          onMouseEnter={e=>e.currentTarget.style.background='var(--border)'}
+          onMouseLeave={e=>e.currentTarget.style.background='none'}
+        >{item.label}</button>
+      ))}
+    </div>,
+    document.body
+  );
+
   return(
     <div className="kebab-wrap" ref={ref}>
       <button className="kebab-btn" ref={btnRef} onClick={toggle}>⋮</button>
-      {open&&<div className="kebab-menu" style={openUp?{top:'auto',bottom:'100%'}:{}}>
-        {items.map((item,i)=>(
-          <button key={i} className={item.danger?'danger-item':''} onClick={()=>{setOpen(false);item.action();}}>{item.label}</button>
-        ))}
-      </div>}
+      {menu}
     </div>
   );
 }
