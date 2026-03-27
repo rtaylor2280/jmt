@@ -567,153 +567,75 @@ function NewOrderModal({onClose,onSaved,editOrder}){
 }
 
 // ── Order Detail Modal ────────────────────
-
-function OrderDetailModal({order,onClose,onOpenOrder}){
+function OrderDetailModal({order,onClose,onEdit,onDelete}){
   const [items,setItems]=useState([]);
-  const [allocRows,setAllocRows]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [showAdd,setShowAdd]=useState(false);
-  const [editItemIdx,setEditItemIdx]=useState(null);
-  const [pasteItems,setPasteItems]=useState(false);
-  const [pasteText,setPasteText]=useState('');
-  const [preview,setPreview]=useState(null);
-  const [saving,setSaving]=useState(false);
+
+  const loadItems=async()=>{
+    setLoading(true);
+    setItems(await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`));
+    setLoading(false);
+  };
+  useEffect(()=>{loadItems();},[order.order_number]);
 
   const shipTarget=round2(Number(order.shipping_total)||0);
   const taxTarget =round2(Number(order.tax_total)||0);
   const hasAlloc=shipTarget>0||taxTarget>0;
-  const shipSum=round2(allocRows.reduce((s,r)=>s+Number(r.ship_alloc||0),0));
-  const taxSum =round2(allocRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
-  const balanced=(!hasAlloc)||(shipSum===shipTarget&&taxSum===taxTarget);
-
-  const loadAndDistribute=async()=>{
-    setLoading(true);
-    const rows=await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    setItems(rows);
-    setAllocRows(distribute(rows.map(r=>({...r,ship_alloc:Number(r.shipping_allocated||0),tax_alloc:Number(r.tax_allocated||0)})),order.shipping_total,order.tax_total));
-    setLoading(false);
-  };
-  useEffect(()=>{loadAndDistribute();},[order.order_number]);
-
-  const afterMutation=async()=>{
-    const rows=await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    setItems(rows);
-    setAllocRows(distribute(rows.map(r=>({...r,ship_alloc:Number(r.shipping_allocated||0),tax_alloc:Number(r.tax_allocated||0)})),order.shipping_total,order.tax_total));
-  };
-
-  const addItem=async f=>{
-    await api('/api/purchased-items',{method:'POST',body:{...f,order_number:order.order_number,vendor:order.vendor,date_purchased:order.order_date}});
-    setShowAdd(false);await afterMutation();
-  };
-
-  const saveEditItem=async(f,idx)=>{
-    const item=allocRows[idx];
-    await api(`/api/purchased-items/${item.item_id}`,{method:'PUT',body:{...f,qty_remaining:f.qty_purchased}});
-    setEditItemIdx(null);await afterMutation();
-  };
-
-  const delItem=async item=>{
-    if(!confirm(`Delete ${item.item_id}?`))return;
-    await api(`/api/purchased-items/${item.item_id}`,{method:'DELETE'});
-    await afterMutation();
-  };
-
-  const parsePaste=()=>{
-    const valid=['Hilt','Parts','Electronics','Blade','Saber'];
-    setPreview(parseCSVText(pasteText).map(r=>({
-      item_name:r.item_name||'?',variant:r.variant||'',category:r.category||'',
-      source_type:valid.includes(r.source_type)?r.source_type:'Parts',
-      qty_purchased:parseInt(r.qty_purchased)||1,unit_cost:parseFloat(r.unit_cost)||0,
-      condition:r.condition||'New',notes:r.notes||'',
-    })));
-  };
-
-  const confirmPaste=async()=>{
-    setSaving(true);
-    for(const row of preview) await api('/api/purchased-items',{method:'POST',body:{...row,order_number:order.order_number,vendor:order.vendor,date_purchased:order.order_date}});
-    setPreview(null);setPasteText('');setPasteItems(false);
-    await afterMutation();setSaving(false);
-  };
-
-  const allocChange=(i,field,val)=>setAllocRows(r=>r.map((x,j)=>j===i?{...x,[field]:val}:x));
-
-  const saveAlloc=async()=>{
-    setSaving(true);
-    for(let i=0;i<allocRows.length;i++){
-      const r=allocRows[i];
-      await api(`/api/purchased-items/${r.item_id}`,{method:'PUT',body:{_partial:true,shipping_allocated:r.ship_alloc||0,tax_allocated:r.tax_alloc||0}});
-    }
-    setSaving(false);await afterMutation();
-  };
-
   const subtotal=items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
 
   return(
     <Modal title={`Order ${order.order_number}`} onClose={onClose}>
-      {/* Summary bar — read only */}
+      {/* Summary bar */}
       <div style={{display:'flex',gap:16,fontSize:13,marginBottom:14,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)',alignItems:'center'}}>
         <span><span style={{color:'var(--muted)'}}>Vendor:</span> <strong>{order.vendor||'—'}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Date:</span> <strong>{fmtDate(order.order_date)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Shipping:</span> <strong>{fmt$(order.shipping_total)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Tax:</span> <strong>{fmt$(order.tax_total)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Total:</span> <strong style={{color:'var(--accent2)'}}>{fmt$(subtotal)}</strong></span>
+        <span style={{marginLeft:'auto'}}>
+          <Kebab items={[
+            {label:'Edit Order', action:()=>{onClose();onEdit(order);}},
+            {label:'Delete Order', danger:true, action:()=>{onClose();onDelete(order);}},
+          ]}/>
+        </span>
       </div>
 
       <div className="section">
         <div className="section-header">
           <h3>Line Items ({items.length})</h3>
-          <div style={{display:'flex',gap:8}}>
-            {hasAlloc&&allocRows.length>0&&<button className="sm" onClick={()=>setAllocRows(distribute(allocRows,order.shipping_total,order.tax_total))}>Redistribute</button>}
-            <button className="sm" onClick={()=>{setShowAdd(a=>!a);setPasteItems(false);setEditItemIdx(null);}}>+ Add Item</button>
-            <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAdd(false);setPreview(null);setEditItemIdx(null);}}>Paste Items</button>
-          </div>
         </div>
-
-        {showAdd&&<ItemForm onSave={addItem} onClose={()=>setShowAdd(false)}/>}
-        {editItemIdx!==null&&<ItemForm initial={allocRows[editItemIdx]} onSave={f=>saveEditItem(f,editItemIdx)} onClose={()=>setEditItemIdx(null)}/>}
-
-        {pasteItems&&!preview&&(
-          <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
-            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={6}
-              style={{fontFamily:'monospace',fontSize:12,marginBottom:8}} placeholder="item_name,variant,category,..."/>
-            <div style={{display:'flex',gap:8}}>
-              <button className="primary sm" onClick={parsePaste} disabled={!pasteText.trim()}>Preview</button>
-              <button className="sm" onClick={()=>{setPasteItems(false);setPasteText('');}}>Cancel</button>
-            </div>
-          </div>
-        )}
-
-        {preview&&(
-          <div style={{marginBottom:14}}>
-            <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{preview.length} items parsed:</div>
-            <div className="overflow-x" style={{marginBottom:10}}>
-              <table><thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Variant</th></tr></thead>
-                <tbody>{preview.map((r,i)=><tr key={i}><td>{r.item_name}</td><td>{srcBadge(r.source_type)}</td><td>{r.qty_purchased}</td><td>{fmt$(r.unit_cost)}</td><td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td></tr>)}</tbody>
-              </table>
-            </div>
-            <div style={{display:'flex',gap:8}}>
-              <button className="primary sm" onClick={confirmPaste} disabled={saving}>{saving?'Saving…':'Confirm'}</button>
-              <button className="sm" onClick={()=>{setPreview(null);setPasteText('');}}>Back</button>
-            </div>
-          </div>
-        )}
-
         {loading
           ? <div style={{display:'flex',alignItems:'center',gap:10,padding:24,color:'var(--muted)',fontSize:13}}>
               <div style={{width:18,height:18,border:'2px solid var(--border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
               <span>Loading items…</span>
             </div>
-          : allocRows.length===0
+          : items.length===0
             ? <div className="empty">No items on this order.</div>
-            : <LineItemsTable
-                rows={allocRows} shipTarget={shipTarget} taxTarget={taxTarget}
-                onAllocChange={allocChange}
-                onDelete={delItem}
-                onEdit={(_,idx)=>{setEditItemIdx(idx);setShowAdd(false);setPasteItems(false);}}
-                onSaveAlloc={hasAlloc?saveAlloc:undefined}
-                onRedistribute={()=>setAllocRows(distribute(allocRows,order.shipping_total,order.tax_total))}
-                saving={saving}
-              />
+            : <div className="overflow-x">
+                <table>
+                  <thead><tr>
+                    <th>ID</th><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th>
+                    {hasAlloc&&<><th>Ship Alloc</th><th>Tax Alloc</th></>}
+                    <th>Line Total</th>
+                  </tr></thead>
+                  <tbody>
+                    {items.map(r=>{
+                      const lt=round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1)+Number(r.shipping_allocated||0)+Number(r.tax_allocated||0));
+                      return(
+                        <tr key={r.item_id}>
+                          <td style={{fontFamily:'monospace',fontSize:11}}>{r.item_id}</td>
+                          <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
+                          <td>{srcBadge(r.source_type)}</td>
+                          <td>{r.qty_purchased}</td>
+                          <td>{fmt$(r.unit_cost)}</td>
+                          {hasAlloc&&<><td style={{fontSize:12}}>{fmt$(r.shipping_allocated)}</td><td style={{fontSize:12}}>{fmt$(r.tax_allocated)}</td></>}
+                          <td style={{fontWeight:500}}>{fmt$(lt)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
         }
       </div>
     </Modal>
@@ -800,7 +722,16 @@ function OrdersTab(){
         )}
       </div>
       {showNew&&<NewOrderModal onClose={()=>setShowNew(false)} onSaved={()=>{setShowNew(false);load();}}/>}
-      {detail&&<OrderDetailModal order={detail} onClose={()=>{setDetail(null);load();}} onOpenOrder={setDetail}/>}
+      {detail&&<OrderDetailModal
+		  order={detail}
+		  onClose={()=>setDetail(null)}
+		  onEdit={o=>{setEditOrder(o);}}
+		  onDelete={async o=>{
+			if(!confirm(`Delete order ${o.order_number}?`))return;
+			await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});
+			load();
+		  }}
+		/>}
 	  {editOrder&&<NewOrderModal editOrder={editOrder} onClose={()=>setEditOrder(null)} onSaved={()=>{setEditOrder(null);load();}}/>}
     </>
   );
