@@ -11,13 +11,28 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const { source_type, consumed, search } = req.query;
-      let q = `SELECT * FROM inventory WHERE 1=1`;
-      const params = [];
-      if (source_type) { params.push(source_type); q += ` AND source_type = $${params.length}`; }
-      if (consumed !== undefined) { params.push(consumed === 'true'); q += ` AND consumed = $${params.length}`; }
-      if (search) { params.push(`%${search}%`); q += ` AND (item_name ILIKE $${params.length} OR item_id ILIKE $${params.length} OR vendor ILIKE $${params.length})`; }
-      q += ` ORDER BY created_at DESC`;
-      const rows = await sql.unsafe(q, params);
+      let rows;
+      const s = search ? `%${search}%` : null;
+      const src = source_type || null;
+      const con = consumed === 'true' ? true : consumed === 'false' ? false : null;
+
+      if (src && con !== null && s) {
+        rows = await sql`SELECT * FROM inventory WHERE source_type=${src} AND consumed=${con} AND (item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s}) ORDER BY created_at DESC`;
+      } else if (src && con !== null) {
+        rows = await sql`SELECT * FROM inventory WHERE source_type=${src} AND consumed=${con} ORDER BY created_at DESC`;
+      } else if (src && s) {
+        rows = await sql`SELECT * FROM inventory WHERE source_type=${src} AND (item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s}) ORDER BY created_at DESC`;
+      } else if (con !== null && s) {
+        rows = await sql`SELECT * FROM inventory WHERE consumed=${con} AND (item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s}) ORDER BY created_at DESC`;
+      } else if (src) {
+        rows = await sql`SELECT * FROM inventory WHERE source_type=${src} ORDER BY created_at DESC`;
+      } else if (con !== null) {
+        rows = await sql`SELECT * FROM inventory WHERE consumed=${con} ORDER BY created_at DESC`;
+      } else if (s) {
+        rows = await sql`SELECT * FROM inventory WHERE item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s} ORDER BY created_at DESC`;
+      } else {
+        rows = await sql`SELECT * FROM inventory ORDER BY created_at DESC`;
+      }
       return res.json(rows);
     }
 
