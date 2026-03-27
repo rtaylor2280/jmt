@@ -96,6 +96,7 @@
   .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; padding:10px 14px; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); }
   .filter-bar label { font-size:11px; color:var(--muted); margin-right:4px; }
   .filter-group { display:flex; align-items:center; gap:4px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -271,6 +272,36 @@ function LineItemsTable({rows,shipTarget,taxTarget,onAllocChange,onDelete,onEdit
         </div>
       )}
     </div>
+  );
+}
+
+// ── OrderHeaderForm component ───────────────────────
+function OrderHeaderForm({initial={},onSave,onClose,title='Edit Order'}){
+  const [f,setF]=useState({order_number:'',vendor:'',order_date:'',shipping_total:'',tax_total:'',notes:'',...initial});
+  const [saving,setSaving]=useState(false);
+  const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
+  const save=async e=>{
+    e.preventDefault();setSaving(true);
+    await onSave(f);
+    setSaving(false);
+  };
+  return(
+    <Modal title={title} onClose={onClose} width="560px">
+      <form onSubmit={save}>
+        <div className="form-grid">
+          <div className="form-group"><label>Order # *</label><input name="order_number" value={f.order_number} onChange={handle} required/></div>
+          <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor||''} onChange={handle}/></div>
+          <div className="form-group"><label>Order Date</label><input type="date" name="order_date" value={f.order_date?fmtDate(f.order_date):''} onChange={handle}/></div>
+          <div className="form-group"><label>Shipping Total</label><input type="number" name="shipping_total" value={f.shipping_total||''} onChange={handle} step="0.01" min="0"/></div>
+          <div className="form-group"><label>Tax Total</label><input type="number" name="tax_total" value={f.tax_total||''} onChange={handle} step="0.01" min="0"/></div>
+          <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes||''} onChange={handle}/></div>
+        </div>
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="primary" disabled={saving}>{saving?'Saving…':'Save Order'}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -570,7 +601,12 @@ function OrderDetailModal({order,onClose,onOpenOrder}){
           </div>
         )}
 
-        {loading?<div className="empty">Loading…</div>:allocRows.length===0?<div className="empty">No items on this order.</div>:(
+        {loading
+			?<div style={{display:'flex',alignItems:'center',gap:10,padding:24,color:'var(--muted)',fontSize:13}}>
+				<div style={{width:18,height:18,border:'2px solid var(--border)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
+				<span>Loading items…</span>
+			</div>
+			:allocRows.length===0?<div className="empty">No items on this order.</div>:(
           editMode
             ? <LineItemsTable rows={allocRows} shipTarget={shipTarget} taxTarget={taxTarget}
                 onAllocChange={allocChange}
@@ -611,6 +647,7 @@ function OrdersTab(){
   const [orders,setOrders]=useState([]);
   const [loading,setLoading]=useState(true);
   const [detail,setDetail]=useState(null);
+  const [editOrder,setEditOrder]=useState(null);
   const [showNew,setShowNew]=useState(false);
   const [search,setSearch]=useState('');
   const [filterVendor,setFilterVendor]=useState('');
@@ -633,6 +670,11 @@ function OrdersTab(){
   const del=async o=>{
     if(!confirm(`Delete order ${o.order_number}?`))return;
     await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});load();
+  };
+  
+  const saveEditHeader=async f=>{
+	await api('/api/orders',{method:'POST',body:{order_number:f.order_number,vendor:f.vendor||null,order_date:f.order_date||null,shipping_total:parseFloat(f.shipping_total)||0,tax_total:parseFloat(f.tax_total)||0,notes:f.notes||null}});
+    setEditOrder(null);load();
   };
 
   const totalSpend=orders.reduce((s,o)=>s+Number(o.order_total||0),0);
@@ -676,7 +718,8 @@ function OrdersTab(){
                   <td>{fmt$(o.shipping_total)}</td>
                   <td>{fmt$(o.tax_total)}</td>
                   <td style={{fontWeight:500}}>{fmt$(o.order_total)}</td>
-                  <td><Kebab items={[{label:'Open Order',action:()=>setDetail(o)},{label:'Delete',danger:true,action:()=>del(o)}]}/></td>
+                  <td><Kebab items={[{label:'View',action:()=>setDetail(o)},{label:'Edit',action:()=>setEditOrder(o)},{label:'Delete',danger:true,action:()=>del(o)}]}/></td>
+				  
                 </tr>
               ))}
             </tbody>
@@ -685,6 +728,7 @@ function OrdersTab(){
       </div>
       {showNew&&<NewOrderModal onClose={()=>setShowNew(false)} onSaved={()=>{setShowNew(false);load();}}/>}
       {detail&&<OrderDetailModal order={detail} onClose={()=>{setDetail(null);load();}} onOpenOrder={setDetail}/>}
+	  {editOrder&&<OrderHeaderForm title={`Edit Order ${editOrder.order_number}`} initial={editOrder} onSave={saveEditHeader} onClose={()=>setEditOrder(null)}/>}
     </>
   );
 }
@@ -710,7 +754,8 @@ function PurchasedItemsTab({onOpenOrder}){
   useEffect(()=>{load();},[load]);
 
   const vendors=useMemo(()=>[...new Set(items.map(i=>i.vendor).filter(Boolean))].sort(),[items]);
-  const srcTypes=useMemo(()=>[...new Set(items.map(i=>i.source_type).filter(Boolean))].sort(),[items]);
+  const srcTypes=useMemo(()=>[...new Set(items.map(i=>i.source_type).filter(Boolean))].sort(),[items]);  
+  const conditions=useMemo(()=>[...new Set(items.map(i=>i.condition).filter(Boolean))].sort(),[items]);
 
   const filtered=useMemo(()=>items.filter(i=>{
     if(search&&!i.item_name.toLowerCase().includes(search.toLowerCase())&&!i.item_id.toLowerCase().includes(search.toLowerCase())&&!(i.vendor||'').toLowerCase().includes(search.toLowerCase()))return false;
@@ -761,7 +806,7 @@ function PurchasedItemsTab({onOpenOrder}){
         </div>
         <div className="filter-group"><label>Condition</label>
           <select value={filterCondition} onChange={e=>setFilterCondition(e.target.value)} style={{width:120}}>
-            <option value="">All</option>{CONDITIONS.map(c=><option key={c}>{c}</option>)}
+            <option value="">All</option>{conditions.map(c=><option key={c}>{c}</option>)}
           </select>
         </div>
         <div className="filter-group"><label>From</label><input type="date" value={filterDateFrom} onChange={e=>setFilterDateFrom(e.target.value)} style={{width:140}}/></div>
@@ -805,7 +850,7 @@ function PurchasedItemsTab({onOpenOrder}){
             {[['Item ID',viewItem.item_id],['Source Type',viewItem.source_type],['Variant',viewItem.variant||'—'],['Category',viewItem.category||'—'],['Vendor',viewItem.vendor||'—'],
               ['Order #',viewItem.order_number?<span className="order-link" onClick={()=>{setViewItem(null);onOpenOrder(viewItem.order_number);}}>{viewItem.order_number}</span>:'—'],
               ['Date',fmtDate(viewItem.date_purchased)],['Condition',viewItem.condition||'—'],
-              ['Qty Purchased',viewItem.qty_purchased],['Qty Remaining',viewItem.qty_remaining],
+              ['Qty Purchased',viewItem.qty_purchased],
               ['Unit Cost',fmt$(viewItem.unit_cost)],['Shipping Alloc',fmt$(viewItem.shipping_allocated)],
               ['Tax Alloc',fmt$(viewItem.tax_allocated)],['Line Total',fmt$(viewItem.total_line_cost)],
               ['Location',viewItem.location||'—'],['Notes',viewItem.notes||'—'],
