@@ -170,15 +170,28 @@ function Modal({title,onClose,width='900px',children}){
 // ── Kebab ─────────────────────────────────
 function Kebab({items}){
   const [open,setOpen]=useState(false);
+  const [openUp,setOpenUp]=useState(false);
   const ref=useRef();
+  const btnRef=useRef();
+
   useEffect(()=>{
     const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
     document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
   },[]);
+
+  const toggle=()=>{
+    if(!open&&btnRef.current){
+      const rect=btnRef.current.getBoundingClientRect();
+      const spaceBelow=window.innerHeight-rect.bottom;
+      setOpenUp(spaceBelow<160);
+    }
+    setOpen(o=>!o);
+  };
+
   return(
     <div className="kebab-wrap" ref={ref}>
-      <button className="kebab-btn" onClick={()=>setOpen(o=>!o)}>⋮</button>
-      {open&&<div className="kebab-menu">
+      <button className="kebab-btn" ref={btnRef} onClick={toggle}>⋮</button>
+      {open&&<div className="kebab-menu" style={openUp?{top:'auto',bottom:'100%'}:{}}>
         {items.map((item,i)=>(
           <button key={i} className={item.danger?'danger-item':''} onClick={()=>{setOpen(false);item.action();}}>{item.label}</button>
         ))}
@@ -862,10 +875,12 @@ function PurchasedItemsTab({onOpenOrder}){
               <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
             ))}
           </div>
-          <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-            <button className="danger sm" onClick={()=>del(viewItem)}>Delete</button>
-            <button className="primary sm" onClick={()=>setEditItem(viewItem)}>Edit</button>
-          </div>
+          <div style={{display:'flex',justifyContent:'flex-end'}}>
+			  <Kebab items={[
+				{label:'Edit',   action:()=>setEditItem(viewItem)},
+				{label:'Delete', danger:true, action:()=>del(viewItem)},
+			  ]}/>
+		  </div>
         </Modal>
       )}
 
