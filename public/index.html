@@ -776,13 +776,13 @@ function PurchasedItemsTab({onOpenOrder}){
             <tbody>
               {filtered.map(i=>(
                 <tr key={i.item_id}>
-                  <td style={{fontFamily:'monospace',fontSize:11}}>{i.item_id}</td>
+                  <td style={{fontFamily:'monospace',fontSize:11,cursor:'pointer',color:'var(--accent)'}} onClick={()=>setViewItem(i)}>{i.item_id}</td>
                   <td><div style={{fontWeight:500}}>{i.item_name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
                   <td>{srcBadge(i.source_type)}</td>
                   <td style={{fontSize:12}}>{i.vendor||'—'}</td>
                   <td>{i.order_number?<span className="order-link" onClick={()=>onOpenOrder(i.order_number)}>{i.order_number}</span>:'—'}</td>
                   <td style={{fontSize:12}}>{fmtDate(i.date_purchased)}</td>
-                  <td>{i.qty_remaining} / {i.qty_purchased}</td>
+                  <td>{i.qty_purchased}</td>
                   <td>{fmt$(i.unit_cost)}</td>
                   <td style={{fontSize:12}}>{fmt$(i.shipping_allocated)}</td>
                   <td style={{fontSize:12}}>{fmt$(i.tax_allocated)}</td>
