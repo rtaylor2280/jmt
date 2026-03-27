@@ -17,7 +17,6 @@
     --radius: 8px; --radius-lg: 12px;
   }
   body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
-  a { color: var(--accent); }
   input, select, textarea {
     background: var(--surface); border: 1px solid var(--border); color: var(--text);
     border-radius: var(--radius); padding: 6px 10px; font-size: 13px; width: 100%;
@@ -27,85 +26,123 @@
   button {
     cursor: pointer; border-radius: var(--radius); padding: 6px 14px; font-size: 13px;
     border: 1px solid var(--border); background: var(--card); color: var(--text);
-    transition: background .15s;
+    transition: background .15s; white-space: nowrap;
   }
   button:hover { background: var(--border); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button.primary:hover { background: #574ed6; }
-  button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  button.success { background: var(--success); border-color: var(--success); color: #000; }
+  button.danger  { background: var(--danger);  border-color: var(--danger);  color: #fff; }
+  button.ghost   { background: none; border-color: transparent; color: var(--muted); }
+  button.ghost:hover { color: var(--text); background: none; }
   button.sm { padding: 3px 10px; font-size: 12px; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; white-space: nowrap; }
   td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   tr:hover td { background: rgba(255,255,255,.02); }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-  .badge-hilt       { background: #2d2a4a; color: #a09af0; }
-  .badge-parts      { background: #1e3030; color: #40c8a0; }
-  .badge-electronics{ background: #1e2a40; color: #60a0e0; }
-  .badge-blade      { background: #3a2020; color: #e08060; }
-  .badge-saber      { background: #2a2010; color: #d0a040; }
-  .badge-consumed   { background: #2a1010; color: var(--danger); }
-  .badge-ok         { background: #102010; color: var(--success); }
+  .badge-hilt        { background: #2d2a4a; color: #a09af0; }
+  .badge-parts       { background: #1e3030; color: #40c8a0; }
+  .badge-electronics { background: #1e2a40; color: #60a0e0; }
+  .badge-blade       { background: #3a2020; color: #e08060; }
+  .badge-saber       { background: #2a2010; color: #d0a040; }
+  .badge-ok          { background: #102010; color: var(--success); }
+  .badge-low         { background: #2a1a00; color: var(--warn); }
+  .badge-out         { background: #2a1010; color: var(--danger); }
   .stat { background: var(--card); border-radius: var(--radius); padding: 14px 18px; }
   .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   .stat-value { font-size: 22px; font-weight: 600; }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
-  .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; width: 640px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: flex-start; justify-content: center; z-index: 100; padding: 32px 16px; overflow-y: auto; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; width: 780px; max-width: 96vw; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-grid .full { grid-column: 1 / -1; }
   .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
-  .tab { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
-         padding: 8px 16px; color: var(--muted); cursor: pointer; }
+  .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 16px; color: var(--muted); cursor: pointer; }
   .tab.active { color: var(--text); border-bottom-color: var(--accent); }
   .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
   .toolbar input { max-width: 220px; }
   .toolbar select { max-width: 160px; }
   h1 { font-size: 18px; font-weight: 600; }
   h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-  .header { display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 24px; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+  h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); }
   .content { padding: 24px; }
-  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
   .overflow-x { overflow-x: auto; }
-  .empty { text-align: center; color: var(--muted); padding: 40px; }
-  .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .empty { text-align: center; color: var(--muted); padding: 32px; font-size: 13px; }
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 16px; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .toggle-link { font-size: 12px; color: var(--accent); cursor: pointer; background: none; border: none; padding: 0; }
+  .toggle-link:hover { text-decoration: underline; background: none; }
+  .alloc-match  { color: var(--success); font-weight: 600; }
+  .alloc-nomatch { color: var(--danger);  font-weight: 600; }
+  .kebab-wrap { position: relative; display: inline-block; }
+  .kebab-btn { background: none; border: none; padding: 2px 8px; font-size: 18px; color: var(--muted); line-height: 1; cursor: pointer; }
+  .kebab-btn:hover { color: var(--text); background: none; }
+  .kebab-menu { position: absolute; right: 0; top: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); min-width: 140px; z-index: 50; }
+  .kebab-menu button { display: block; width: 100%; text-align: left; background: none; border: none; border-radius: 0; padding: 8px 14px; font-size: 13px; }
+  .kebab-menu button:hover { background: var(--border); }
+  .kebab-menu .danger-item { color: var(--danger); }
+  .order-link { color: var(--accent); cursor: pointer; font-family: monospace; font-size: 12px; }
+  .order-link:hover { text-decoration: underline; }
+  .result-ok  { background: #102010; border: 1px solid var(--success); border-radius: var(--radius); padding: 10px 14px; color: var(--success); margin-top: 10px; font-size: 13px; }
+  .result-err { background: #2a1010; border: 1px solid var(--danger);  border-radius: var(--radius); padding: 10px 14px; color: var(--danger);  margin-top: 10px; font-size: 13px; }
+  .warn-box   { background: #2a1a00; border: 1px solid var(--warn); border-radius: var(--radius); padding: 10px 14px; color: var(--warn); font-size: 13px; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useCallback } = React;
-const API = '';  // same-origin on Vercel
+const { useState, useEffect, useCallback, useRef } = React;
+const API = '';
 
-// ── helpers ──────────────────────────────
 const fmt$ = v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
-const fmtN = v => v == null ? '—' : Number(v).toLocaleString();
+const round2 = v => Math.round(Number(v) * 100) / 100;
+const SOURCE_TYPES = ['Hilt','Parts','Electronics','Blade','Saber'];
+const CONDITIONS   = ['New','Used','Refurbished','Damaged'];
+
 const srcBadge = s => {
   const map = { Hilt:'badge-hilt', Parts:'badge-parts', Electronics:'badge-electronics', Blade:'badge-blade', Saber:'badge-saber' };
-  return <span className={`badge ${map[s] || 'badge-parts'}`}>{s}</span>;
+  return <span className={`badge ${map[s]||'badge-parts'}`}>{s}</span>;
 };
 
-async function apiFetch(path, opts = {}) {
+async function api(path, opts={}) {
   const r = await fetch(API + path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
+    headers:{'Content-Type':'application/json'}, ...opts,
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
   if (r.status === 204) return null;
-  const data = await r.json();
-  if (!r.ok) throw new Error(data.error || r.statusText);
-  return data;
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || r.statusText);
+  return d;
 }
 
-// ── Modal wrapper ─────────────────────────
-function Modal({ title, onClose, children }) {
+function parseCSVText(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line => {
+    const vals=[]; let cur='', inQ=false;
+    for (const ch of line) {
+      if (ch==='"'){inQ=!inQ;continue;}
+      if (ch===','&&!inQ){vals.push(cur.trim());cur='';continue;}
+      cur+=ch;
+    }
+    vals.push(cur.trim());
+    return Object.fromEntries(headers.map((h,i)=>[h,vals[i]??'']));
+  });
+}
+
+// ── Modal ─────────────────────────────────
+function Modal({ title, onClose, width='780px', children }) {
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-          <h2 style={{ margin:0 }}>{title}</h2>
-          <button onClick={onClose} style={{ fontSize:18, lineHeight:1 }}>✕</button>
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal" style={{width}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <h2 style={{margin:0}}>{title}</h2>
+          <button onClick={onClose} className="ghost" style={{fontSize:20,lineHeight:1}}>✕</button>
         </div>
         {children}
       </div>
@@ -113,183 +150,482 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-// ── Inventory Form ────────────────────────
-const SOURCE_TYPES = ['Hilt','Parts','Electronics','Blade','Saber'];
-const CONDITIONS = ['New','Used','Refurbished','Damaged'];
-
-function InventoryForm({ initial = {}, onSave, onClose }) {
-  const [f, setF] = useState({
-    category:'', vendor:'', order_number:'', date_purchased:'', item_name:'',
-    variant:'', qty_purchased:1, qty_remaining:1, unit_cost:'', shipping_allocated:'',
-    tax_allocated:'', condition:'New', source_type:'Electronics', assigned_build:'',
-    consumed: false, location:'', notes:'', ...initial
-  });
-  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
-  const handle = e => set(e.target.name, e.target.type === 'checkbox' ? e.target.checked : e.target.value);
-
+// ── Kebab ─────────────────────────────────
+function Kebab({ items }) {
+  const [open,setOpen]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener('mousedown',h);
+    return ()=>document.removeEventListener('mousedown',h);
+  },[]);
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
-      <div className="form-grid">
-        <div className="form-group full">
-          <label>Item Name *</label>
-          <input name="item_name" value={f.item_name} onChange={handle} required />
+    <div className="kebab-wrap" ref={ref}>
+      <button className="kebab-btn" onClick={()=>setOpen(o=>!o)}>⋮</button>
+      {open&&(
+        <div className="kebab-menu">
+          {items.map((item,i)=>(
+            <button key={i} className={item.danger?'danger-item':''} onClick={()=>{setOpen(false);item.action();}}>
+              {item.label}
+            </button>
+          ))}
         </div>
-        <div className="form-group">
-          <label>Source Type *</label>
-          <select name="source_type" value={f.source_type} onChange={handle}>
-            {SOURCE_TYPES.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Category</label>
-          <input name="category" value={f.category} onChange={handle} placeholder="e.g. LED, Switch, Chassis" />
-        </div>
-        <div className="form-group">
-          <label>Vendor</label>
-          <input name="vendor" value={f.vendor} onChange={handle} />
-        </div>
-        <div className="form-group">
-          <label>Order #</label>
-          <input name="order_number" value={f.order_number} onChange={handle} />
-        </div>
-        <div className="form-group">
-          <label>Date Purchased</label>
-          <input type="date" name="date_purchased" value={f.date_purchased} onChange={handle} />
-        </div>
-        <div className="form-group">
-          <label>Variant / Description</label>
-          <input name="variant" value={f.variant} onChange={handle} />
-        </div>
-        <div className="form-group">
-          <label>Condition</label>
-          <select name="condition" value={f.condition} onChange={handle}>
-            {CONDITIONS.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Qty Purchased</label>
-          <input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" />
-        </div>
-        <div className="form-group">
-          <label>Qty Remaining</label>
-          <input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0" />
-        </div>
-        <div className="form-group">
-          <label>Unit Cost</label>
-          <input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" />
-        </div>
-        <div className="form-group">
-          <label>Location</label>
-          <input name="location" value={f.location} onChange={handle} placeholder="Bin A3, Shelf 2…" />
-        </div>
-        <div className="form-group">
-          <label>Assigned Build</label>
-          <input name="assigned_build" value={f.assigned_build} onChange={handle} placeholder="BLD-001" />
-        </div>
-        <div className="form-group" style={{ display:'flex', alignItems:'center', gap:8, paddingTop:18 }}>
-          <input type="checkbox" name="consumed" checked={f.consumed} onChange={handle} style={{ width:'auto' }} id="cb_consumed" />
-          <label htmlFor="cb_consumed" style={{ marginBottom:0, cursor:'pointer' }}>Consumed</label>
-        </div>
-        <div className="form-group full">
-          <label>Notes</label>
-          <textarea name="notes" value={f.notes} onChange={handle} rows={2} />
-        </div>
-      </div>
-      <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:20 }}>
-        <button type="button" onClick={onClose}>Cancel</button>
-        <button type="submit" className="primary">Save</button>
-      </div>
-    </form>
+      )}
+    </div>
   );
 }
 
-// ── Inventory Tab ─────────────────────────
-function InventoryTab() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterSrc, setFilterSrc] = useState('');
-  const [filterConsumed, setFilterConsumed] = useState('');
-  const [modal, setModal] = useState(null); // null | 'add' | item_object
+// ── PasteToggle ───────────────────────────
+// Renders a label row with a "Paste instead" / "Enter manually" toggle
+function PasteToggle({ label, show, onToggle, children }) {
+  return (
+    <div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+        <h3 style={{margin:0}}>{label}</h3>
+        <button className="toggle-link" onClick={onToggle}>{show ? 'Enter manually' : 'Paste instead'}</button>
+      </div>
+      {children}
+    </div>
+  );
+}
 
-  const load = useCallback(async () => {
+// ── Order Detail Modal ────────────────────
+function OrderDetailModal({ order: initOrder, onClose, onViewItem }) {
+  const [order, setOrder]         = useState(initOrder);
+  const [items, setItems]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [pasteItems, setPasteItems] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [preview, setPreview]     = useState(null);  // parsed rows awaiting confirm
+  const [pasteErr, setPasteErr]   = useState('');
+  const [saving, setSaving]       = useState(false);
+  // inline add form
+  const [showAdd, setShowAdd]     = useState(false);
+  const [addF, setAddF]           = useState({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
+  // distribution
+  const [showDistrib, setShowDistrib] = useState(false);
+  const [allocRows, setAllocRows] = useState([]);
+  const [distribSaved, setDistribSaved] = useState(false);
+
+  const load = async () => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (filterSrc) params.set('source_type', filterSrc);
-    if (filterConsumed !== '') params.set('consumed', filterConsumed);
-    const data = await apiFetch('/api/inventory?' + params);
-    setItems(data);
+    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
+    setItems(rows);
     setLoading(false);
-  }, [search, filterSrc, filterConsumed]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const save = async f => {
-    if (modal === 'add') await apiFetch('/api/inventory', { method:'POST', body: f });
-    else await apiFetch(`/api/inventory/${modal.item_id}`, { method:'PUT', body: f });
-    setModal(null); load();
   };
 
-  const del = async item => {
-    if (!confirm(`Delete ${item.item_id} — ${item.item_name}?`)) return;
-    await apiFetch(`/api/inventory/${item.item_id}`, { method:'DELETE' });
+  useEffect(()=>{ load(); },[order.order_number]);
+
+  // ── Parse paste preview ───────────────
+  const parsePaste = () => {
+    setPasteErr('');
+    const rows = parseCSVText(pasteText);
+    if (!rows.length) { setPasteErr('No rows parsed — check format.'); return; }
+    const valid = ['Hilt','Parts','Electronics','Blade','Saber'];
+    const cleaned = rows.map(r => ({
+      item_name:    r.item_name || '?',
+      variant:      r.variant   || '',
+      category:     r.category  || '',
+      source_type:  valid.includes(r.source_type) ? r.source_type : 'Parts',
+      qty_purchased: parseInt(r.qty_purchased)||1,
+      unit_cost:     parseFloat(r.unit_cost)||0,
+      condition:     r.condition||'New',
+      notes:         r.notes||'',
+      vendor:        r.vendor || order.vendor || '',
+      date_purchased: r.date_purchased || order.order_date || '',
+      order_number:  order.order_number,
+    }));
+    setPreview(cleaned);
+  };
+
+  const confirmPaste = async () => {
+    setSaving(true);
+    for (const row of preview) {
+      await api('/api/purchased-items', { method:'POST', body: row });
+    }
+    setPreview(null); setPasteText(''); setPasteItems(false);
+    setSaving(false); load();
+  };
+
+  // ── Inline add ────────────────────────
+  const addItem = async e => {
+    e.preventDefault();
+    await api('/api/purchased-items', { method:'POST', body: {
+      ...addF, order_number: order.order_number,
+      vendor: order.vendor, date_purchased: order.order_date
+    }});
+    setAddF({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
+    setShowAdd(false); load();
+  };
+
+  const delItem = async item => {
+    if (!confirm(`Delete ${item.item_id}?`)) return;
+    await api(`/api/purchased-items/${item.item_id}`, { method:'DELETE' });
     load();
   };
 
-  const totalValue = items.reduce((s, i) => s + Number(i.unit_cost || 0) * Number(i.qty_remaining || 0), 0);
-  const consumed = items.filter(i => i.consumed).length;
-  const lowStock = items.filter(i => !i.consumed && i.qty_remaining === 0).length;
+  // ── Distribution ──────────────────────
+  const openDistrib = () => {
+    const ship = Number(order.shipping_total)||0;
+    const tax  = Number(order.tax_total)||0;
+    const total = items.reduce((s,i) => s + Number(i.unit_cost||0)*Number(i.qty_purchased||0), 0);
+    const rows = items.map(i => {
+      const weight = total > 0 ? (Number(i.unit_cost||0)*Number(i.qty_purchased||0))/total : 1/items.length;
+      return {
+        item_id:   i.item_id,
+        item_name: i.item_name,
+        variant:   i.variant,
+        qty:       i.qty_purchased,
+        unit_cost: Number(i.unit_cost||0),
+        shipping:  round2(ship * weight),
+        tax:       round2(tax  * weight),
+      };
+    });
+    // fix rounding residuals on last row
+    const shipSum = rows.reduce((s,r)=>s+r.shipping,0);
+    const taxSum  = rows.reduce((s,r)=>s+r.tax,0);
+    if (rows.length) {
+      rows[rows.length-1].shipping = round2(rows[rows.length-1].shipping + (ship - shipSum));
+      rows[rows.length-1].tax      = round2(rows[rows.length-1].tax      + (tax  - taxSum));
+    }
+    setAllocRows(rows);
+    setShowDistrib(true);
+    setDistribSaved(false);
+  };
+
+  const allocShipTotal = allocRows.reduce((s,r)=>s+Number(r.shipping||0),0);
+  const allocTaxTotal  = allocRows.reduce((s,r)=>s+Number(r.tax||0),0);
+  const shipTarget     = round2(Number(order.shipping_total)||0);
+  const taxTarget      = round2(Number(order.tax_total)||0);
+  const allocMatch     = round2(allocShipTotal)===shipTarget && round2(allocTaxTotal)===taxTarget;
+
+  const saveDistrib = async () => {
+    setSaving(true);
+    for (const r of allocRows) {
+      await api(`/api/purchased-items/${r.item_id}`, { method:'PUT', body: {
+        shipping_allocated: r.shipping,
+        tax_allocated:      r.tax,
+        _partial:           true,
+      }});
+    }
+    setShowDistrib(false);
+    setDistribSaved(true);
+    setSaving(false);
+    load();
+  };
+
+  const unallocated = !distribSaved && (shipTarget > 0 || taxTarget > 0);
+  const subtotal = items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
+
+  return (
+    <Modal title={`Order ${order.order_number}`} onClose={() => {
+      if (unallocated && items.length > 0) {
+        if (!confirm('Shipping/tax has not been distributed. Close anyway?')) return;
+      }
+      onClose();
+    }}>
+
+      {/* Order summary bar */}
+      <div style={{display:'flex',gap:20,fontSize:13,marginBottom:18,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)'}}>
+        <span><span style={{color:'var(--muted)'}}>Vendor:</span> <strong>{order.vendor||'—'}</strong></span>
+        <span><span style={{color:'var(--muted)'}}>Date:</span> <strong>{order.order_date||'—'}</strong></span>
+        <span><span style={{color:'var(--muted)'}}>Shipping:</span> <strong>{fmt$(order.shipping_total)}</strong></span>
+        <span><span style={{color:'var(--muted)'}}>Tax:</span> <strong>{fmt$(order.tax_total)}</strong></span>
+        <span><span style={{color:'var(--muted)'}}>Order Total:</span> <strong style={{color:'var(--accent2)'}}>{fmt$(subtotal)}</strong></span>
+      </div>
+
+      {/* Items section */}
+      <div className="section">
+        <div className="section-header">
+          <h3 style={{margin:0}}>Line Items ({items.length})</h3>
+          <div style={{display:'flex',gap:8}}>
+            <button className="sm" onClick={()=>{setShowAdd(a=>!a);setPasteItems(false);}}>+ Add Item</button>
+            <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAdd(false);setPreview(null);}}>Paste Items</button>
+          </div>
+        </div>
+
+        {/* Inline add form */}
+        {showAdd && (
+          <form onSubmit={addItem} style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
+            <div className="form-grid">
+              <div className="form-group full"><label>Item Name *</label><input value={addF.item_name} onChange={e=>setAddF(p=>({...p,item_name:e.target.value}))} required /></div>
+              <div className="form-group"><label>Source Type</label>
+                <select value={addF.source_type} onChange={e=>setAddF(p=>({...p,source_type:e.target.value}))}>
+                  {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Category</label><input value={addF.category} onChange={e=>setAddF(p=>({...p,category:e.target.value}))} /></div>
+              <div className="form-group"><label>Variant</label><input value={addF.variant} onChange={e=>setAddF(p=>({...p,variant:e.target.value}))} /></div>
+              <div className="form-group"><label>Condition</label>
+                <select value={addF.condition} onChange={e=>setAddF(p=>({...p,condition:e.target.value}))}>
+                  {CONDITIONS.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Qty</label><input type="number" value={addF.qty_purchased} onChange={e=>setAddF(p=>({...p,qty_purchased:e.target.value}))} min="1" /></div>
+              <div className="form-group"><label>Unit Cost</label><input type="number" value={addF.unit_cost} onChange={e=>setAddF(p=>({...p,unit_cost:e.target.value}))} step="0.01" min="0" /></div>
+              <div className="form-group full"><label>Notes</label><input value={addF.notes} onChange={e=>setAddF(p=>({...p,notes:e.target.value}))} /></div>
+            </div>
+            <div style={{display:'flex',gap:8,marginTop:10}}>
+              <button type="submit" className="primary sm">Add</button>
+              <button type="button" className="sm" onClick={()=>setShowAdd(false)}>Cancel</button>
+            </div>
+          </form>
+        )}
+
+        {/* Paste items */}
+        {pasteItems && !preview && (
+          <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
+            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>Paste your items CSV (with header row). Order number, vendor, and date will be filled from this order.</p>
+            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={7}
+              style={{fontFamily:'monospace',fontSize:12,marginBottom:8}}
+              placeholder={'item_name,variant,category,vendor,order_number,date_purchased,qty_purchased,unit_cost,source_type,condition,notes\n...'} />
+            {pasteErr && <div className="result-err" style={{marginBottom:8}}>{pasteErr}</div>}
+            <div style={{display:'flex',gap:8}}>
+              <button className="primary sm" onClick={parsePaste} disabled={!pasteText.trim()}>Preview</button>
+              <button className="sm" onClick={()=>{setPasteItems(false);setPasteText('');setPasteErr('');}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* Paste preview */}
+        {preview && (
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{preview.length} items parsed — review before importing:</div>
+            <div className="overflow-x" style={{marginBottom:10}}>
+              <table>
+                <thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Variant</th></tr></thead>
+                <tbody>
+                  {preview.map((r,i)=>(
+                    <tr key={i}>
+                      <td>{r.item_name}</td>
+                      <td>{srcBadge(r.source_type)}</td>
+                      <td>{r.qty_purchased}</td>
+                      <td>{fmt$(r.unit_cost)}</td>
+                      <td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="primary sm" onClick={confirmPaste} disabled={saving}>{saving?'Saving…':'Confirm Import'}</button>
+              <button className="sm" onClick={()=>{setPreview(null);setPasteText('');}}>Back</button>
+            </div>
+          </div>
+        )}
+
+        {/* Items table */}
+        {loading ? <div className="empty">Loading…</div> : items.length===0 ? <div className="empty">No items yet.</div> : (
+          <div className="overflow-x">
+            <table>
+              <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Ship Alloc</th><th>Tax Alloc</th><th>Line Total</th><th></th></tr></thead>
+              <tbody>
+                {items.map(i=>(
+                  <tr key={i.item_id}>
+                    <td style={{fontFamily:'monospace',fontSize:11}}>{i.item_id}</td>
+                    <td><div style={{fontWeight:500}}>{i.item_name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
+                    <td>{srcBadge(i.source_type)}</td>
+                    <td>{i.qty_purchased}</td>
+                    <td>{fmt$(i.unit_cost)}</td>
+                    <td style={{fontSize:12,color: Number(i.shipping_allocated)>0?'var(--text)':'var(--muted)'}}>{fmt$(i.shipping_allocated)}</td>
+                    <td style={{fontSize:12,color: Number(i.tax_allocated)>0?'var(--text)':'var(--muted)'}}>{fmt$(i.tax_allocated)}</td>
+                    <td style={{fontWeight:500}}>{fmt$(i.total_line_cost)}</td>
+                    <td><Kebab items={[
+                      {label:'View',action:()=>onViewItem(i)},
+                      {label:'Delete',danger:true,action:()=>delItem(i)}
+                    ]} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Distribution section */}
+      {items.length > 0 && (shipTarget > 0 || taxTarget > 0) && (
+        <div className="section">
+          <div className="section-header">
+            <h3 style={{margin:0}}>Shipping & Tax Distribution</h3>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              {distribSaved && <span style={{fontSize:12,color:'var(--success)'}}>✓ Saved</span>}
+              {unallocated  && <span className="warn-box" style={{padding:'3px 10px',fontSize:12}}>Not yet distributed</span>}
+              <button className="sm primary" onClick={openDistrib}>Distribute</button>
+            </div>
+          </div>
+
+          {showDistrib && (
+            <>
+              <p style={{fontSize:12,color:'var(--muted)',marginBottom:10}}>
+                Adjust per-item allocations. Totals must match order shipping ({fmt$(shipTarget)}) and tax ({fmt$(taxTarget)}) to save.
+              </p>
+              <div className="overflow-x" style={{marginBottom:12}}>
+                <table>
+                  <thead><tr><th>Item</th><th>Qty × Cost</th><th>Shipping Alloc</th><th>Tax Alloc</th></tr></thead>
+                  <tbody>
+                    {allocRows.map((r,i)=>(
+                      <tr key={r.item_id}>
+                        <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
+                        <td style={{fontSize:12}}>{r.qty} × {fmt$(r.unit_cost)}</td>
+                        <td style={{width:130}}>
+                          <input type="number" value={r.shipping} step="0.01"
+                            onChange={e=>{const v=parseFloat(e.target.value)||0;setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,shipping:v}:x));}}
+                            style={{fontSize:12}} />
+                        </td>
+                        <td style={{width:130}}>
+                          <input type="number" value={r.tax} step="0.01"
+                            onChange={e=>{const v=parseFloat(e.target.value)||0;setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,tax:v}:x));}}
+                            style={{fontSize:12}} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={2} style={{fontSize:12,color:'var(--muted)',paddingTop:10}}>Totals</td>
+                      <td style={{paddingTop:10}}>
+                        <span className={allocMatch&&round2(allocShipTotal)===shipTarget?'alloc-match':'alloc-nomatch'}>
+                          {fmt$(allocShipTotal)} / {fmt$(shipTarget)}
+                        </span>
+                      </td>
+                      <td style={{paddingTop:10}}>
+                        <span className={allocMatch&&round2(allocTaxTotal)===taxTarget?'alloc-match':'alloc-nomatch'}>
+                          {fmt$(allocTaxTotal)} / {fmt$(taxTarget)}
+                        </span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button className="primary" onClick={saveDistrib} disabled={!allocMatch||saving}>{saving?'Saving…':'Save Distribution'}</button>
+                <button onClick={()=>setShowDistrib(false)}>Cancel</button>
+              </div>
+              {!allocMatch && <div className="result-err" style={{marginTop:8}}>Totals must match before saving.</div>}
+            </>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ── Orders Tab ────────────────────────────
+function OrdersTab({ onViewItem }) {
+  const [orders, setOrders]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [detail, setDetail]   = useState(null);
+  const [showNew, setShowNew] = useState(false);
+  const [pasteOrder, setPasteOrder] = useState(false);
+  const [pasteOrderText, setPasteOrderText] = useState('');
+  const [f, setF] = useState({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
+  const handle = e => setF(p=>({...p,[e.target.name]:e.target.value}));
+
+  const load = async () => { setLoading(true); setOrders(await api('/api/orders')); setLoading(false); };
+  useEffect(()=>{ load(); },[]);
+
+  // Parse order header paste
+  const parseOrderPaste = () => {
+    const rows = parseCSVText(pasteOrderText);
+    if (!rows.length) return;
+    const r = rows[0];
+    setF(prev => ({
+      ...prev,
+      order_number:   r.order_number   || prev.order_number,
+      vendor:         r.vendor         || prev.vendor,
+      order_date:     r.order_date     || prev.order_date,
+      shipping_total: r.shipping_total || prev.shipping_total,
+      tax_total:      r.tax_total      || prev.tax_total,
+    }));
+    setPasteOrder(false);
+    setPasteOrderText('');
+  };
+
+  const save = async e => {
+    e.preventDefault();
+    await api('/api/orders', { method:'POST', body: f });
+    setF({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
+    setShowNew(false); load();
+  };
+
+  const del = async o => {
+    if (!confirm(`Delete order ${o.order_number}? Line items will NOT be deleted.`)) return;
+    await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`, { method:'DELETE' });
+    load();
+  };
+
+  const totalSpend    = orders.reduce((s,o)=>s+Number(o.order_total||0),0);
+  const totalShipping = orders.reduce((s,o)=>s+Number(o.shipping_total||0),0);
+  const totalTax      = orders.reduce((s,o)=>s+Number(o.tax_total||0),0);
 
   return (
     <>
       <div className="stats-row">
-        <div className="stat"><div className="stat-label">Items</div><div className="stat-value">{items.length}</div></div>
-        <div className="stat"><div className="stat-label">Stock Value</div><div className="stat-value">{fmt$(totalValue)}</div></div>
-        <div className="stat"><div className="stat-label">Consumed</div><div className="stat-value" style={{ color:'var(--warn)' }}>{consumed}</div></div>
-        <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{ color:'var(--danger)' }}>{lowStock}</div></div>
+        <div className="stat"><div className="stat-label">Orders</div><div className="stat-value">{orders.length}</div></div>
+        <div className="stat"><div className="stat-label">Total Spend</div><div className="stat-value">{fmt$(totalSpend)}</div></div>
+        <div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShipping)}</div></div>
+        <div className="stat"><div className="stat-label">Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
       </div>
 
       <div className="toolbar">
-        <input placeholder="Search name, ID, vendor…" value={search} onChange={e => setSearch(e.target.value)} />
-        <select value={filterSrc} onChange={e => setFilterSrc(e.target.value)}>
-          <option value="">All types</option>
-          {SOURCE_TYPES.map(s => <option key={s}>{s}</option>)}
-        </select>
-        <select value={filterConsumed} onChange={e => setFilterConsumed(e.target.value)}>
-          <option value="">All</option>
-          <option value="false">In Stock</option>
-          <option value="true">Consumed</option>
-        </select>
-        <button className="primary" onClick={() => setModal('add')}>+ Add Item</button>
+        <button className="primary" onClick={()=>setShowNew(n=>!n)}>+ New Order</button>
       </div>
 
+      {showNew && (
+        <div className="section" style={{maxWidth:680,marginBottom:20}}>
+          <PasteToggle label="Order Header" show={pasteOrder} onToggle={()=>setPasteOrder(p=>!p)}>
+            {pasteOrder ? (
+              <div>
+                <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>
+                  Paste your order footer CSV (header + one data row):<br/>
+                  <code style={{fontSize:11}}>order_number,vendor,order_date,shipping_total,tax_total</code>
+                </p>
+                <textarea value={pasteOrderText} onChange={e=>setPasteOrderText(e.target.value)} rows={4}
+                  style={{fontFamily:'monospace',fontSize:12,marginBottom:8}} />
+                <div style={{display:'flex',gap:8}}>
+                  <button className="primary sm" onClick={parseOrderPaste} disabled={!pasteOrderText.trim()}>Parse & Fill Fields</button>
+                  <button className="sm" onClick={()=>{setPasteOrder(false);setPasteOrderText('');}}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={save}>
+                <div className="form-grid">
+                  <div className="form-group"><label>Order # *</label><input name="order_number" value={f.order_number} onChange={handle} required /></div>
+                  <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor} onChange={handle} /></div>
+                  <div className="form-group"><label>Order Date</label><input type="date" name="order_date" value={f.order_date} onChange={handle} /></div>
+                  <div className="form-group"><label>Shipping Total</label><input type="number" name="shipping_total" value={f.shipping_total} onChange={handle} step="0.01" min="0" /></div>
+                  <div className="form-group"><label>Tax Total</label><input type="number" name="tax_total" value={f.tax_total} onChange={handle} step="0.01" min="0" /></div>
+                  <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes} onChange={handle} /></div>
+                </div>
+                <div style={{display:'flex',gap:8,marginTop:14}}>
+                  <button type="submit" className="primary">Create & Open Order</button>
+                  <button type="button" onClick={()=>setShowNew(false)}>Cancel</button>
+                </div>
+              </form>
+            )}
+          </PasteToggle>
+        </div>
+      )}
+
       <div className="overflow-x">
-        {loading ? <div className="empty">Loading…</div> : items.length === 0 ? <div className="empty">No items found.</div> : (
+        {loading ? <div className="empty">Loading…</div> : orders.length===0 ? <div className="empty">No orders yet. Create one to get started.</div> : (
           <table>
-            <thead><tr>
-              <th>ID</th><th>Name</th><th>Type</th><th>Vendor</th><th>Qty Rem.</th>
-              <th>Unit Cost</th><th>Total Line</th><th>Location</th><th>Build</th><th>Status</th><th></th>
-            </tr></thead>
+            <thead><tr><th>Order #</th><th>Vendor</th><th>Date</th><th>Items</th><th>Parts</th><th>Shipping</th><th>Tax</th><th>Total</th><th></th></tr></thead>
             <tbody>
-              {items.map(i => (
-                <tr key={i.item_id}>
-                  <td style={{ fontFamily:'monospace', fontSize:12 }}>{i.item_id}</td>
-                  <td><div style={{ fontWeight:500 }}>{i.item_name}</div>{i.variant && <div style={{ fontSize:11, color:'var(--muted)' }}>{i.variant}</div>}</td>
-                  <td>{srcBadge(i.source_type)}</td>
-                  <td>{i.vendor || '—'}</td>
-                  <td style={{ fontWeight:500, color: i.qty_remaining === 0 ? 'var(--danger)' : 'inherit' }}>{i.qty_remaining}</td>
-                  <td>{fmt$(i.unit_cost)}</td>
-                  <td>{fmt$(i.total_line_cost)}</td>
-                  <td style={{ fontSize:12 }}>{i.location || '—'}</td>
-                  <td style={{ fontSize:12, fontFamily:'monospace' }}>{i.assigned_build || '—'}</td>
-                  <td><span className={`badge ${i.consumed ? 'badge-consumed' : 'badge-ok'}`}>{i.consumed ? 'Consumed' : 'In Stock'}</span></td>
-                  <td>
-                    <div style={{ display:'flex', gap:4 }}>
-                      <button className="sm" onClick={() => setModal(i)}>Edit</button>
-                      <button className="sm danger" onClick={() => del(i)}>Del</button>
-                    </div>
-                  </td>
+              {orders.map(o=>(
+                <tr key={o.id}>
+                  <td><span className="order-link" onClick={()=>setDetail(o)}>{o.order_number}</span></td>
+                  <td>{o.vendor||'—'}</td>
+                  <td style={{fontSize:12}}>{o.order_date||'—'}</td>
+                  <td style={{textAlign:'center'}}>{o.item_count}</td>
+                  <td>{fmt$(o.parts_total)}</td>
+                  <td>{fmt$(o.shipping_total)}</td>
+                  <td>{fmt$(o.tax_total)}</td>
+                  <td style={{fontWeight:500}}>{fmt$(o.order_total)}</td>
+                  <td><Kebab items={[
+                    {label:'Open Order',  action:()=>setDetail(o)},
+                    {label:'Delete',danger:true,action:()=>del(o)}
+                  ]} /></td>
                 </tr>
               ))}
             </tbody>
@@ -297,85 +633,162 @@ function InventoryTab() {
         )}
       </div>
 
-      {modal && (
-        <Modal title={modal === 'add' ? 'Add Item' : `Edit ${modal.item_id}`} onClose={() => setModal(null)}>
-          <InventoryForm initial={modal === 'add' ? {} : modal} onSave={save} onClose={() => setModal(null)} />
+      {detail && (
+        <OrderDetailModal
+          order={detail}
+          onClose={()=>{ setDetail(null); load(); }}
+          onViewItem={item=>{ setDetail(null); onViewItem(item); }}
+        />
+      )}
+    </>
+  );
+}
+
+// ── Purchased Items Tab ───────────────────
+function PurchasedItemsTab({ onViewOrder }) {
+  const [items, setItems]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState('');
+  const [filterSrc, setFilterSrc] = useState('');
+  const [viewItem, setViewItem]   = useState(null);
+  const [editItem, setEditItem]   = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const p = new URLSearchParams();
+    if (search) p.set('search', search);
+    if (filterSrc) p.set('source_type', filterSrc);
+    setItems(await api('/api/purchased-items?' + p));
+    setLoading(false);
+  }, [search, filterSrc]);
+
+  useEffect(()=>{ load(); },[load]);
+
+  const saveEdit = async f => {
+    await api(`/api/purchased-items/${editItem.item_id}`, { method:'PUT', body: f });
+    setEditItem(null); setViewItem(null); load();
+  };
+
+  const del = async item => {
+    if (!confirm(`Delete ${item.item_id}?`)) return;
+    await api(`/api/purchased-items/${item.item_id}`, { method:'DELETE' });
+    setViewItem(null); load();
+  };
+
+  const totalCost = items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
+  const remaining = items.reduce((s,i)=>s+Number(i.unit_cost||0)*Number(i.qty_remaining||0),0);
+
+  return (
+    <>
+      <div className="stats-row">
+        <div className="stat"><div className="stat-label">Line Items</div><div className="stat-value">{items.length}</div></div>
+        <div className="stat"><div className="stat-label">Total Cost</div><div className="stat-value">{fmt$(totalCost)}</div></div>
+        <div className="stat"><div className="stat-label">Remaining Value</div><div className="stat-value">{fmt$(remaining)}</div></div>
+      </div>
+      <p style={{fontSize:12,color:'var(--muted)',marginBottom:14}}>Ledger view. Add items through Orders. Click ⋮ to view or edit.</p>
+      <div className="toolbar">
+        <input placeholder="Search name, ID, vendor…" value={search} onChange={e=>setSearch(e.target.value)} />
+        <select value={filterSrc} onChange={e=>setFilterSrc(e.target.value)}>
+          <option value="">All types</option>
+          {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
+        </select>
+      </div>
+      <div className="overflow-x">
+        {loading ? <div className="empty">Loading…</div> : items.length===0 ? <div className="empty">No items.</div> : (
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Vendor</th><th>Order #</th><th>Qty Rem.</th><th>Unit Cost</th><th>Line Total</th><th></th></tr></thead>
+            <tbody>
+              {items.map(i=>(
+                <tr key={i.item_id}>
+                  <td style={{fontFamily:'monospace',fontSize:11}}>{i.item_id}</td>
+                  <td><div style={{fontWeight:500}}>{i.item_name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
+                  <td>{srcBadge(i.source_type)}</td>
+                  <td style={{fontSize:12}}>{i.vendor||'—'}</td>
+                  <td>{i.order_number ? <span className="order-link" onClick={()=>onViewOrder(i.order_number)}>{i.order_number}</span> : '—'}</td>
+                  <td style={{fontWeight:500,color:i.qty_remaining===0?'var(--danger)':'inherit'}}>{i.qty_remaining}</td>
+                  <td>{fmt$(i.unit_cost)}</td>
+                  <td>{fmt$(i.total_line_cost)}</td>
+                  <td><Kebab items={[
+                    {label:'View',   action:()=>setViewItem(i)},
+                    {label:'Edit',   action:()=>{setViewItem(null);setEditItem(i);}},
+                    {label:'Delete', danger:true, action:()=>del(i)}
+                  ]} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {viewItem && !editItem && (
+        <Modal title={`${viewItem.item_id} — ${viewItem.item_name}`} onClose={()=>setViewItem(null)} width="560px">
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 24px',fontSize:13,marginBottom:20}}>
+            {[
+              ['Item ID',viewItem.item_id],['Source Type',viewItem.source_type],
+              ['Variant',viewItem.variant||'—'],['Category',viewItem.category||'—'],
+              ['Vendor',viewItem.vendor||'—'],
+              ['Order #', viewItem.order_number
+                ? <span className="order-link" onClick={()=>{setViewItem(null);onViewOrder(viewItem.order_number);}}>{viewItem.order_number}</span>
+                : '—'],
+              ['Date',viewItem.date_purchased||'—'],['Condition',viewItem.condition||'—'],
+              ['Qty Purchased',viewItem.qty_purchased],['Qty Remaining',viewItem.qty_remaining],
+              ['Unit Cost',fmt$(viewItem.unit_cost)],['Shipping Alloc',fmt$(viewItem.shipping_allocated)],
+              ['Tax Alloc',fmt$(viewItem.tax_allocated)],['Line Total',fmt$(viewItem.total_line_cost)],
+              ['Location',viewItem.location||'—'],['Notes',viewItem.notes||'—'],
+            ].map(([k,v])=>(
+              <div key={k}><div style={{fontSize:11,color:'var(--muted)'}}>{k}</div><div style={{fontWeight:500}}>{v}</div></div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+            <button className="danger sm" onClick={()=>del(viewItem)}>Delete</button>
+            <button className="primary sm" onClick={()=>setEditItem(viewItem)}>Edit</button>
+          </div>
+        </Modal>
+      )}
+
+      {editItem && (
+        <Modal title={`Edit ${editItem.item_id}`} onClose={()=>setEditItem(null)} width="640px">
+          <PurchasedItemForm initial={editItem} onSave={saveEdit} onClose={()=>setEditItem(null)} />
         </Modal>
       )}
     </>
   );
 }
 
-// ── Build Form ────────────────────────────
-function BuildForm({ initial = {}, tiers, onSave, onClose }) {
+// ── Purchased Item Form ───────────────────
+function PurchasedItemForm({ initial={}, orderNumber, onSave, onClose }) {
   const [f, setF] = useState({
-    hilt_item_id:'', customer:'', tier_id:'', parts_cost:'', labor_value:'',
-    target_price:'', listed_price:'', sold_price:'', date_sold:'',
-    status:'In Progress', notes:'', ...initial,
-    tier_id: initial.tier_id ?? ''
+    item_name:'', variant:'', category:'', vendor:'', date_purchased:'',
+    qty_purchased:1, qty_remaining:1, unit_cost:'', condition:'New',
+    source_type:'Electronics', location:'', notes:'',
+    ...initial, order_number: orderNumber||initial.order_number||''
   });
-  const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
-  const totalCost = (Number(f.parts_cost) || 0) + (Number(f.labor_value) || 0);
-  const profit = (Number(f.sold_price) || 0) - totalCost;
-
+  const handle = e => setF(p=>({...p,[e.target.name]:e.target.value}));
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
+    <form onSubmit={e=>{e.preventDefault();onSave(f);}}>
       <div className="form-grid">
-        <div className="form-group">
-          <label>Hilt Item ID</label>
-          <input name="hilt_item_id" value={f.hilt_item_id} onChange={handle} placeholder="HB-001" />
-        </div>
-        <div className="form-group">
-          <label>Customer</label>
-          <input name="customer" value={f.customer} onChange={handle} />
-        </div>
-        <div className="form-group">
-          <label>Build Tier</label>
-          <select name="tier_id" value={f.tier_id} onChange={handle}>
-            <option value="">— select —</option>
-            {tiers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        <div className="form-group full"><label>Item Name *</label><input name="item_name" value={f.item_name} onChange={handle} required /></div>
+        <div className="form-group"><label>Source Type *</label>
+          <select name="source_type" value={f.source_type} onChange={handle}>
+            {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
           </select>
         </div>
-        <div className="form-group">
-          <label>Status</label>
-          <select name="status" value={f.status} onChange={handle}>
-            {['In Progress','Complete','Sold','On Hold'].map(s => <option key={s}>{s}</option>)}
+        <div className="form-group"><label>Category</label><input name="category" value={f.category} onChange={handle} /></div>
+        <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor} onChange={handle} /></div>
+        <div className="form-group"><label>Date Purchased</label><input type="date" name="date_purchased" value={f.date_purchased} onChange={handle} /></div>
+        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant} onChange={handle} /></div>
+        <div className="form-group"><label>Condition</label>
+          <select name="condition" value={f.condition} onChange={handle}>
+            {CONDITIONS.map(c=><option key={c}>{c}</option>)}
           </select>
         </div>
-        <div className="form-group">
-          <label>Parts Cost</label>
-          <input type="number" name="parts_cost" value={f.parts_cost} onChange={handle} step="0.01" min="0" />
-        </div>
-        <div className="form-group">
-          <label>Labor Value</label>
-          <input type="number" name="labor_value" value={f.labor_value} onChange={handle} step="0.01" min="0" />
-        </div>
-        <div className="form-group">
-          <label>Target Price</label>
-          <input type="number" name="target_price" value={f.target_price} onChange={handle} step="0.01" min="0" />
-        </div>
-        <div className="form-group">
-          <label>Listed Price</label>
-          <input type="number" name="listed_price" value={f.listed_price} onChange={handle} step="0.01" min="0" />
-        </div>
-        <div className="form-group">
-          <label>Sold Price</label>
-          <input type="number" name="sold_price" value={f.sold_price} onChange={handle} step="0.01" min="0" />
-        </div>
-        <div className="form-group">
-          <label>Date Sold</label>
-          <input type="date" name="date_sold" value={f.date_sold} onChange={handle} />
-        </div>
-        <div className="form-group full">
-          <label>Notes</label>
-          <textarea name="notes" value={f.notes} onChange={handle} rows={2} />
-        </div>
+        <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
+        <div className="form-group"><label>Qty Remaining</label><input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0" /></div>
+        <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group"><label>Location</label><input name="location" value={f.location} onChange={handle} /></div>
+        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes} onChange={handle} rows={2} /></div>
       </div>
-      <div style={{ background:'var(--surface)', borderRadius:'var(--radius)', padding:'10px 14px', marginTop:12, fontSize:13, display:'flex', gap:24 }}>
-        <span>Total Cost: <strong>{fmt$(totalCost)}</strong></span>
-        <span>Profit: <strong style={{ color: profit >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmt$(profit)}</strong></span>
-      </div>
-      <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:20 }}>
+      <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
         <button type="button" onClick={onClose}>Cancel</button>
         <button type="submit" className="primary">Save</button>
       </div>
@@ -383,89 +796,228 @@ function BuildForm({ initial = {}, tiers, onSave, onClose }) {
   );
 }
 
+// ── Stock Tab ─────────────────────────────
+function StockTab() {
+  const [items, setItems]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState('');
+  const [filterSrc, setFilterSrc] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [receiveItem, setReceiveItem] = useState(null);
+  const [purchasedItems, setPurchasedItems] = useState([]);
+  const [f, setF] = useState({ name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:'' });
+  const [rf, setRf] = useState({ stock_item_id:'',purchased_item_id:'',qty_received:1,unit_cost:'' });
+  const handle = e => setF(p=>({...p,[e.target.name]:e.target.value}));
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const p = new URLSearchParams();
+    if (search) p.set('search', search);
+    if (filterSrc) p.set('source_type', filterSrc);
+    setItems(await api('/api/stock?' + p));
+    setLoading(false);
+  }, [search, filterSrc]);
+
+  useEffect(()=>{ load(); },[load]);
+
+  const addStock = async e => {
+    e.preventDefault();
+    await api('/api/stock', { method:'POST', body: f });
+    setF({ name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:'' });
+    setShowAdd(false); load();
+  };
+
+  const openReceive = async item => {
+    setReceiveItem(item);
+    setRf({ stock_item_id:item.id, purchased_item_id:'', qty_received:1, unit_cost:item.unit_cost||'' });
+    setPurchasedItems(await api('/api/purchased-items'));
+  };
+
+  const doReceive = async e => {
+    e.preventDefault();
+    await api('/api/stock/receive', { method:'POST', body: rf });
+    setReceiveItem(null); load();
+  };
+
+  const del = async item => {
+    if (!confirm(`Delete stock item ${item.sku}?`)) return;
+    await api(`/api/stock/${item.id}`, { method:'DELETE' });
+    load();
+  };
+
+  const lowStock = items.filter(i=>i.qty_on_hand===1).length;
+  const outStock = items.filter(i=>i.qty_on_hand===0).length;
+  const totalQty = items.reduce((s,i)=>s+Number(i.qty_on_hand||0),0);
+
+  return (
+    <>
+      <div className="stats-row">
+        <div className="stat"><div className="stat-label">Stock Items</div><div className="stat-value">{items.length}</div></div>
+        <div className="stat"><div className="stat-label">Total Units</div><div className="stat-value">{totalQty}</div></div>
+        <div className="stat"><div className="stat-label">Low Stock</div><div className="stat-value" style={{color:'var(--warn)'}}>{lowStock}</div></div>
+        <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{color:'var(--danger)'}}>{outStock}</div></div>
+      </div>
+      <div className="toolbar">
+        <input placeholder="Search name, SKU…" value={search} onChange={e=>setSearch(e.target.value)} />
+        <select value={filterSrc} onChange={e=>setFilterSrc(e.target.value)}>
+          <option value="">All types</option>
+          {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
+        </select>
+        <button className="primary" onClick={()=>setShowAdd(a=>!a)}>+ New Stock Item</button>
+      </div>
+
+      {showAdd && (
+        <div className="section" style={{maxWidth:640,marginBottom:16}}>
+          <h2>New Stock Item</h2>
+          <form onSubmit={addStock}>
+            <div className="form-grid">
+              <div className="form-group full"><label>Canonical Name *</label><input name="name" value={f.name} onChange={handle} required placeholder="e.g. Keeppower 18650 3500mAh" /></div>
+              <div className="form-group"><label>Variant</label><input name="variant" value={f.variant} onChange={handle} /></div>
+              <div className="form-group"><label>Category</label><input name="category" value={f.category} onChange={handle} /></div>
+              <div className="form-group"><label>Source Type *</label>
+                <select name="source_type" value={f.source_type} onChange={handle}>
+                  {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Location</label><input name="location" value={f.location} onChange={handle} /></div>
+              <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes} onChange={handle} /></div>
+            </div>
+            <div style={{display:'flex',gap:8,marginTop:12}}>
+              <button type="submit" className="primary">Create</button>
+              <button type="button" onClick={()=>setShowAdd(false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="overflow-x">
+        {loading ? <div className="empty">Loading…</div> : items.length===0
+          ? <div className="empty">No stock items yet.<br/>Create stock items then receive purchased items into them.</div>
+          : (
+          <table>
+            <thead><tr><th>SKU</th><th>Name</th><th>Type</th><th>Category</th><th>On Hand</th><th>Avg Cost</th><th>Location</th><th></th></tr></thead>
+            <tbody>
+              {items.map(i=>{
+                const sc = i.qty_on_hand===0?'badge-out':i.qty_on_hand<=1?'badge-low':'badge-ok';
+                return (
+                  <tr key={i.id}>
+                    <td style={{fontFamily:'monospace',fontSize:11}}>{i.sku}</td>
+                    <td><div style={{fontWeight:500}}>{i.name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
+                    <td>{srcBadge(i.source_type)}</td>
+                    <td style={{fontSize:12}}>{i.category||'—'}</td>
+                    <td><span className={`badge ${sc}`}>{i.qty_on_hand}</span></td>
+                    <td>{fmt$(i.unit_cost)}</td>
+                    <td style={{fontSize:12}}>{i.location||'—'}</td>
+                    <td><Kebab items={[
+                      {label:'Receive to Stock', action:()=>openReceive(i)},
+                      {label:'Delete', danger:true, action:()=>del(i)}
+                    ]} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {receiveItem && (
+        <Modal title={`Receive — ${receiveItem.name}`} onClose={()=>setReceiveItem(null)} width="520px">
+          <form onSubmit={doReceive}>
+            <div className="form-grid">
+              <div className="form-group full">
+                <label>Link to Purchased Item (optional)</label>
+                <select value={rf.purchased_item_id} onChange={e=>{
+                  const pi = purchasedItems.find(p=>p.item_id===e.target.value);
+                  setRf(r=>({...r, purchased_item_id:e.target.value, unit_cost:pi?pi.unit_cost:r.unit_cost, qty_received:pi?pi.qty_remaining:r.qty_received}));
+                }}>
+                  <option value="">— none —</option>
+                  {purchasedItems.map(p=><option key={p.item_id} value={p.item_id}>{p.item_id} — {p.item_name} (rem: {p.qty_remaining})</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Qty Received *</label><input type="number" value={rf.qty_received} onChange={e=>setRf(r=>({...r,qty_received:e.target.value}))} min="1" required /></div>
+              <div className="form-group"><label>Unit Cost</label><input type="number" value={rf.unit_cost} onChange={e=>setRf(r=>({...r,unit_cost:e.target.value}))} step="0.01" min="0" /></div>
+            </div>
+            <div style={{display:'flex',gap:8,marginTop:16}}>
+              <button type="submit" className="primary">Receive</button>
+              <button type="button" onClick={()=>setReceiveItem(null)}>Cancel</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </>
+  );
+}
+
 // ── Builds Tab ────────────────────────────
 function BuildsTab({ tiers }) {
-  const [builds, setBuilds] = useState([]);
+  const [builds, setBuilds]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null);
+  const [modal, setModal]     = useState(null);
   const [usageModal, setUsageModal] = useState(null);
 
-  const load = async () => {
-    setLoading(true);
-    setBuilds(await apiFetch('/api/builds'));
-    setLoading(false);
-  };
-  useEffect(() => { load(); }, []);
+  const load = async () => { setLoading(true); setBuilds(await api('/api/builds')); setLoading(false); };
+  useEffect(()=>{ load(); },[]);
 
   const save = async f => {
-    if (modal === 'add') await apiFetch('/api/builds', { method:'POST', body: f });
-    else await apiFetch(`/api/builds/${modal.build_id}`, { method:'PUT', body: f });
+    if (modal==='add') await api('/api/builds', { method:'POST', body:f });
+    else await api(`/api/builds/${modal.build_id}`, { method:'PUT', body:f });
     setModal(null); load();
   };
 
   const del = async b => {
     if (!confirm(`Delete build ${b.build_id}?`)) return;
-    await apiFetch(`/api/builds/${b.build_id}`, { method:'DELETE' });
+    await api(`/api/builds/${b.build_id}`, { method:'DELETE' });
     load();
   };
 
-  const totalProfit = builds.reduce((s, b) => s + Number(b.profit || 0), 0);
-  const sold = builds.filter(b => b.status === 'Sold').length;
+  const totalProfit = builds.reduce((s,b)=>s+Number(b.profit||0),0);
+  const sold = builds.filter(b=>b.status==='Sold').length;
 
   return (
     <>
       <div className="stats-row">
-        <div className="stat"><div className="stat-label">Total Builds</div><div className="stat-value">{builds.length}</div></div>
+        <div className="stat"><div className="stat-label">Builds</div><div className="stat-value">{builds.length}</div></div>
         <div className="stat"><div className="stat-label">Sold</div><div className="stat-value">{sold}</div></div>
-        <div className="stat"><div className="stat-label">Total Profit</div><div className="stat-value" style={{ color: totalProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>{fmt$(totalProfit)}</div></div>
+        <div className="stat"><div className="stat-label">Total Profit</div><div className="stat-value" style={{color:totalProfit>=0?'var(--success)':'var(--danger)'}}>{fmt$(totalProfit)}</div></div>
       </div>
-
       <div className="toolbar">
-        <button className="primary" onClick={() => setModal('add')}>+ New Build</button>
+        <button className="primary" onClick={()=>setModal('add')}>+ New Build</button>
       </div>
-
       <div className="overflow-x">
-        {loading ? <div className="empty">Loading…</div> : builds.length === 0 ? <div className="empty">No builds yet.</div> : (
+        {loading ? <div className="empty">Loading…</div> : builds.length===0 ? <div className="empty">No builds yet.</div> : (
           <table>
-            <thead><tr>
-              <th>ID</th><th>Hilt</th><th>Customer</th><th>Tier</th><th>Parts Cost</th>
-              <th>Labor</th><th>Total Cost</th><th>Sold Price</th><th>Profit</th><th>Status</th><th></th>
-            </tr></thead>
+            <thead><tr><th>ID</th><th>Hilt</th><th>Customer</th><th>Tier</th><th>Parts</th><th>Labor</th><th>Total</th><th>Sold</th><th>Profit</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {builds.map(b => (
+              {builds.map(b=>(
                 <tr key={b.build_id}>
-                  <td style={{ fontFamily:'monospace', fontSize:12 }}>{b.build_id}</td>
-                  <td style={{ fontFamily:'monospace', fontSize:12 }}>{b.hilt_item_id || '—'}</td>
-                  <td>{b.customer || '—'}</td>
-                  <td>{b.tier_name || '—'}</td>
+                  <td style={{fontFamily:'monospace',fontSize:12}}>{b.build_id}</td>
+                  <td style={{fontFamily:'monospace',fontSize:11}}>{b.hilt_item_id||'—'}</td>
+                  <td>{b.customer||'—'}</td>
+                  <td>{b.tier_name||'—'}</td>
                   <td>{fmt$(b.parts_cost)}</td>
                   <td>{fmt$(b.labor_value)}</td>
                   <td>{fmt$(b.total_build_cost)}</td>
                   <td>{fmt$(b.sold_price)}</td>
-                  <td style={{ color: Number(b.profit) >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight:500 }}>{fmt$(b.profit)}</td>
-                  <td><span className="badge" style={{ background:'#1e2a1e', color:'var(--accent2)' }}>{b.status}</span></td>
-                  <td>
-                    <div style={{ display:'flex', gap:4 }}>
-                      <button className="sm" onClick={() => setUsageModal(b)}>Parts</button>
-                      <button className="sm" onClick={() => setModal(b)}>Edit</button>
-                      <button className="sm danger" onClick={() => del(b)}>Del</button>
-                    </div>
-                  </td>
+                  <td style={{color:Number(b.profit)>=0?'var(--success)':'var(--danger)',fontWeight:500}}>{fmt$(b.profit)}</td>
+                  <td><span className="badge" style={{background:'#1e2a1e',color:'var(--accent2)'}}>{b.status}</span></td>
+                  <td><Kebab items={[
+                    {label:'Parts Used', action:()=>setUsageModal(b)},
+                    {label:'Edit',       action:()=>setModal(b)},
+                    {label:'Delete',     danger:true, action:()=>del(b)}
+                  ]} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-
       {modal && (
-        <Modal title={modal === 'add' ? 'New Build' : `Edit ${modal.build_id}`} onClose={() => setModal(null)}>
-          <BuildForm initial={modal === 'add' ? {} : modal} tiers={tiers} onSave={save} onClose={() => setModal(null)} />
+        <Modal title={modal==='add'?'New Build':`Edit ${modal.build_id}`} onClose={()=>setModal(null)}>
+          <BuildForm initial={modal==='add'?{}:modal} tiers={tiers} onSave={save} onClose={()=>setModal(null)} />
         </Modal>
       )}
-
       {usageModal && (
-        <Modal title={`Parts — ${usageModal.build_id}`} onClose={() => setUsageModal(null)}>
+        <Modal title={`Parts — ${usageModal.build_id}`} onClose={()=>setUsageModal(null)}>
           <UsagePanel buildId={usageModal.build_id} />
         </Modal>
       )}
@@ -473,73 +1025,101 @@ function BuildsTab({ tiers }) {
   );
 }
 
-// ── Usage Panel ───────────────────────────
-function UsagePanel({ buildId }) {
-  const [usage, setUsage] = useState([]);
-  const [inv, setInv] = useState([]);
-  const [f, setF] = useState({ item_id:'', qty_used:1, unit_cost:'' });
-
-  const load = async () => {
-    const [u, i] = await Promise.all([
-      apiFetch(`/api/usage?build_id=${buildId}`),
-      apiFetch('/api/inventory?consumed=false')
-    ]);
-    setUsage(u); setInv(i);
-  };
-  useEffect(() => { load(); }, [buildId]);
-
-  const pickItem = id => {
-    const item = inv.find(i => i.item_id === id);
-    setF(p => ({ ...p, item_id: id, unit_cost: item ? item.unit_cost : '' }));
-  };
-
-  const add = async e => {
-    e.preventDefault();
-    await apiFetch('/api/usage', { method:'POST', body: { ...f, build_id: buildId } });
-    setF({ item_id:'', qty_used:1, unit_cost:'' }); load();
-  };
-
-  const del = async id => {
-    await apiFetch(`/api/usage?id=${id}`, { method:'DELETE' });
-    load();
-  };
-
-  const total = usage.reduce((s, u) => s + Number(u.total_cost || 0), 0);
-
+function BuildForm({ initial={}, tiers, onSave, onClose }) {
+  const [f,setF]=useState({
+    hilt_item_id:'',customer:'',tier_id:'',parts_cost:'',labor_value:'',
+    target_price:'',listed_price:'',sold_price:'',date_sold:'',
+    status:'In Progress',notes:'',...initial,tier_id:initial.tier_id??''
+  });
+  const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
+  const totalCost=(Number(f.parts_cost)||0)+(Number(f.labor_value)||0);
+  const profit=(Number(f.sold_price)||0)-totalCost;
   return (
-    <div>
-      <table style={{ marginBottom:16 }}>
-        <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Total</th><th></th></tr></thead>
-        <tbody>
-          {usage.map(u => (
-            <tr key={u.id}>
-              <td><span style={{ fontFamily:'monospace', fontSize:11 }}>{u.item_id}</span> {u.item_name}</td>
-              <td>{u.qty_used}</td>
-              <td>{fmt$(u.unit_cost)}</td>
-              <td>{fmt$(u.total_cost)}</td>
-              <td><button className="sm danger" onClick={() => del(u.id)}>✕</button></td>
-            </tr>
-          ))}
-          {usage.length === 0 && <tr><td colSpan={5} style={{ color:'var(--muted)', textAlign:'center', padding:16 }}>No parts linked.</td></tr>}
-        </tbody>
-      </table>
-      <div style={{ textAlign:'right', marginBottom:16, fontWeight:500 }}>Parts Total: {fmt$(total)}</div>
-      <form onSubmit={add} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr auto', gap:8, alignItems:'end' }}>
-        <div>
-          <label style={{ fontSize:11, color:'var(--muted)' }}>Item</label>
-          <select value={f.item_id} onChange={e => pickItem(e.target.value)} required>
+    <form onSubmit={e=>{e.preventDefault();onSave(f);}}>
+      <div className="form-grid">
+        <div className="form-group"><label>Hilt Item ID</label><input name="hilt_item_id" value={f.hilt_item_id} onChange={handle} placeholder="HB-001" /></div>
+        <div className="form-group"><label>Customer</label><input name="customer" value={f.customer} onChange={handle} /></div>
+        <div className="form-group"><label>Build Tier</label>
+          <select name="tier_id" value={f.tier_id} onChange={handle}>
             <option value="">— select —</option>
-            {inv.map(i => <option key={i.item_id} value={i.item_id}>{i.item_id} — {i.item_name}</option>)}
+            {tiers.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-        <div>
-          <label style={{ fontSize:11, color:'var(--muted)' }}>Qty</label>
-          <input type="number" value={f.qty_used} onChange={e => setF(p => ({ ...p, qty_used: e.target.value }))} min="1" required />
+        <div className="form-group"><label>Status</label>
+          <select name="status" value={f.status} onChange={handle}>
+            {['In Progress','Complete','Sold','On Hold'].map(s=><option key={s}>{s}</option>)}
+          </select>
         </div>
-        <div>
-          <label style={{ fontSize:11, color:'var(--muted)' }}>Unit Cost</label>
-          <input type="number" value={f.unit_cost} onChange={e => setF(p => ({ ...p, unit_cost: e.target.value }))} step="0.01" />
+        <div className="form-group"><label>Parts Cost</label><input type="number" name="parts_cost" value={f.parts_cost} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group"><label>Labor Value</label><input type="number" name="labor_value" value={f.labor_value} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group"><label>Target Price</label><input type="number" name="target_price" value={f.target_price} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group"><label>Listed Price</label><input type="number" name="listed_price" value={f.listed_price} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group"><label>Sold Price</label><input type="number" name="sold_price" value={f.sold_price} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group"><label>Date Sold</label><input type="date" name="date_sold" value={f.date_sold} onChange={handle} /></div>
+        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes} onChange={handle} rows={2} /></div>
+      </div>
+      <div style={{background:'var(--surface)',borderRadius:'var(--radius)',padding:'10px 14px',marginTop:12,fontSize:13,display:'flex',gap:24}}>
+        <span>Total Cost: <strong>{fmt$(totalCost)}</strong></span>
+        <span>Profit: <strong style={{color:profit>=0?'var(--success)':'var(--danger)'}}>{fmt$(profit)}</strong></span>
+      </div>
+      <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
+        <button type="button" onClick={onClose}>Cancel</button>
+        <button type="submit" className="primary">Save</button>
+      </div>
+    </form>
+  );
+}
+
+function UsagePanel({ buildId }) {
+  const [usage,setUsage]=useState([]);
+  const [stock,setStock]=useState([]);
+  const [f,setF]=useState({stock_item_id:'',qty_used:1,unit_cost:''});
+
+  const load=async()=>{
+    const [u,s]=await Promise.all([api(`/api/usage?build_id=${buildId}`),api('/api/stock')]);
+    setUsage(u);setStock(s);
+  };
+  useEffect(()=>{load();},[buildId]);
+
+  const pickStock=id=>{
+    const s=stock.find(s=>s.id==id);
+    setF(p=>({...p,stock_item_id:id,unit_cost:s?s.unit_cost||'':''}));
+  };
+  const add=async e=>{
+    e.preventDefault();
+    await api('/api/usage',{method:'POST',body:{...f,build_id:buildId}});
+    setF({stock_item_id:'',qty_used:1,unit_cost:''});load();
+  };
+  const del=async id=>{
+    await api(`/api/usage?id=${id}`,{method:'DELETE'});load();
+  };
+  const total=usage.reduce((s,u)=>s+Number(u.total_cost||0),0);
+  return (
+    <div>
+      <table style={{marginBottom:16}}>
+        <thead><tr><th>SKU</th><th>Name</th><th>Qty</th><th>Unit Cost</th><th>Total</th><th></th></tr></thead>
+        <tbody>
+          {usage.map(u=>(
+            <tr key={u.id}>
+              <td style={{fontFamily:'monospace',fontSize:11}}>{u.sku}</td>
+              <td>{u.name}</td><td>{u.qty_used}</td>
+              <td>{fmt$(u.unit_cost)}</td><td>{fmt$(u.total_cost)}</td>
+              <td><button className="sm danger" onClick={()=>del(u.id)}>✕</button></td>
+            </tr>
+          ))}
+          {usage.length===0&&<tr><td colSpan={6} style={{color:'var(--muted)',textAlign:'center',padding:16}}>No parts linked.</td></tr>}
+        </tbody>
+      </table>
+      <div style={{textAlign:'right',marginBottom:16,fontWeight:500}}>Total: {fmt$(total)}</div>
+      <form onSubmit={add} style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr auto',gap:8,alignItems:'end'}}>
+        <div><label style={{fontSize:11,color:'var(--muted)'}}>Stock Item</label>
+          <select value={f.stock_item_id} onChange={e=>pickStock(e.target.value)} required>
+            <option value="">— select —</option>
+            {stock.map(s=><option key={s.id} value={s.id}>{s.sku} — {s.name} (qty: {s.qty_on_hand})</option>)}
+          </select>
         </div>
+        <div><label style={{fontSize:11,color:'var(--muted)'}}>Qty</label><input type="number" value={f.qty_used} onChange={e=>setF(p=>({...p,qty_used:e.target.value}))} min="1" required /></div>
+        <div><label style={{fontSize:11,color:'var(--muted)'}}>Unit Cost</label><input type="number" value={f.unit_cost} onChange={e=>setF(p=>({...p,unit_cost:e.target.value}))} step="0.01" /></div>
         <button type="submit" className="primary">Add</button>
       </form>
     </div>
@@ -548,293 +1128,126 @@ function UsagePanel({ buildId }) {
 
 // ── Tiers Tab ─────────────────────────────
 function TiersTab({ tiers, onRefresh }) {
-  const [name, setName] = useState('');
-  const add = async e => {
+  const [name,setName]=useState('');
+  const add=async e=>{
     e.preventDefault();
-    await apiFetch('/api/tiers', { method:'POST', body: { name } });
-    setName(''); onRefresh();
+    await api('/api/tiers',{method:'POST',body:{name}});
+    setName('');onRefresh();
   };
-  const del = async id => {
-    if (!confirm('Delete this tier?')) return;
-    await apiFetch(`/api/tiers?id=${id}`, { method:'DELETE' });
-    onRefresh();
+  const del=async id=>{
+    if(!confirm('Delete this tier?'))return;
+    await api(`/api/tiers?id=${id}`,{method:'DELETE'});onRefresh();
   };
   return (
-    <div style={{ maxWidth:400 }}>
+    <div style={{maxWidth:400}}>
       <h2>Build Tiers</h2>
-      {tiers.map(t => (
-        <div key={t.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-          padding:'8px 12px', border:'1px solid var(--border)', borderRadius:'var(--radius)', marginBottom:6 }}>
+      {tiers.map(t=>(
+        <div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',
+          padding:'8px 12px',border:'1px solid var(--border)',borderRadius:'var(--radius)',marginBottom:6}}>
           <span>{t.name}</span>
-          <button className="sm danger" onClick={() => del(t.id)}>Delete</button>
+          <button className="sm danger" onClick={()=>del(t.id)}>Delete</button>
         </div>
       ))}
-      <form onSubmit={add} style={{ display:'flex', gap:8, marginTop:16 }}>
-        <input placeholder="New tier name" value={name} onChange={e => setName(e.target.value)} required />
+      <form onSubmit={add} style={{display:'flex',gap:8,marginTop:16}}>
+        <input placeholder="New tier name" value={name} onChange={e=>setName(e.target.value)} required />
         <button type="submit" className="primary">Add</button>
       </form>
     </div>
   );
 }
 
-// ── Orders Tab ────────────────────────────
-function OrdersTab() {
-  const [orders, setOrders]       = useState([]);
-  const [detail, setDetail]       = useState(null);   // selected order
-  const [detailItems, setDetailItems] = useState([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [f, setF] = useState({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
-  const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
-
-  const load = async () => setOrders(await apiFetch('/api/orders'));
-  useEffect(() => { load(); }, []);
-
-  const save = async e => {
-    e.preventDefault();
-    await apiFetch('/api/orders', { method:'POST', body: f });
-    setF({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
-    load();
-  };
-
-  const openDetail = async order => {
-    setDetail(order);
-    setDetailLoading(true);
-    const items = await apiFetch(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
-    setDetailItems(items);
-    setDetailLoading(false);
-  };
-
-  const totalShipping = orders.reduce((s, o) => s + Number(o.shipping_total || 0), 0);
-  const totalTax      = orders.reduce((s, o) => s + Number(o.tax_total || 0), 0);
-  const totalSpend    = orders.reduce((s, o) => s + Number(o.order_total || 0), 0);
-
-  return (
-    <div>
-      <div className="stats-row" style={{ marginBottom:24 }}>
-        <div className="stat"><div className="stat-label">Orders</div><div className="stat-value">{orders.length}</div></div>
-        <div className="stat"><div className="stat-label">Total Spend</div><div className="stat-value">{fmt$(totalSpend)}</div></div>
-        <div className="stat"><div className="stat-label">Total Shipping</div><div className="stat-value">{fmt$(totalShipping)}</div></div>
-        <div className="stat"><div className="stat-label">Total Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
-      </div>
-
-      <h2>Add / Update Order</h2>
-      <p style={{ color:'var(--muted)', marginBottom:16, fontSize:13 }}>
-        Enter order-level shipping & tax to proportionally allocate across all inventory items on that order.
-      </p>
-      <form onSubmit={save}>
-        <div className="form-grid" style={{ maxWidth:640 }}>
-          <div className="form-group">
-            <label>Order # *</label>
-            <input name="order_number" value={f.order_number} onChange={handle} required />
-          </div>
-          <div className="form-group">
-            <label>Vendor</label>
-            <input name="vendor" value={f.vendor} onChange={handle} />
-          </div>
-          <div className="form-group">
-            <label>Order Date</label>
-            <input type="date" name="order_date" value={f.order_date} onChange={handle} />
-          </div>
-          <div className="form-group">
-            <label>Shipping Total</label>
-            <input type="number" name="shipping_total" value={f.shipping_total} onChange={handle} step="0.01" min="0" />
-          </div>
-          <div className="form-group">
-            <label>Tax Total</label>
-            <input type="number" name="tax_total" value={f.tax_total} onChange={handle} step="0.01" min="0" />
-          </div>
-          <div className="form-group full">
-            <label>Notes</label>
-            <input name="notes" value={f.notes} onChange={handle} />
-          </div>
-        </div>
-        <button type="submit" className="primary" style={{ marginTop:12 }}>Save & Allocate</button>
-      </form>
-
-      {orders.length > 0 && (
-        <div style={{ marginTop:28 }}>
-          <h2>All Orders</h2>
-          <div className="overflow-x">
-            <table>
-              <thead><tr>
-                <th>Order #</th><th>Vendor</th><th>Date</th><th>Items</th>
-                <th>Parts Total</th><th>Shipping</th><th>Tax</th><th>Order Total</th><th></th>
-              </tr></thead>
-              <tbody>
-                {orders.map(o => (
-                  <tr key={o.id}>
-                    <td style={{ fontFamily:'monospace', fontSize:12 }}>{o.order_number}</td>
-                    <td>{o.vendor || '—'}</td>
-                    <td>{o.order_date || '—'}</td>
-                    <td style={{ textAlign:'center' }}>{o.item_count}</td>
-                    <td>{fmt$(o.parts_total)}</td>
-                    <td>{fmt$(o.shipping_total)}</td>
-                    <td>{fmt$(o.tax_total)}</td>
-                    <td style={{ fontWeight:500 }}>{fmt$(o.order_total)}</td>
-                    <td>
-                      <button className="sm" onClick={() => openDetail(o)}>View</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {detail && (
-        <Modal title={`Order ${detail.order_number} — ${detail.vendor || ''}`} onClose={() => setDetail(null)}>
-          <div style={{ marginBottom:16, display:'flex', gap:24, fontSize:13 }}>
-            <span>Date: <strong>{detail.order_date || '—'}</strong></span>
-            <span>Items: <strong>{detail.item_count}</strong></span>
-            <span>Shipping: <strong>{fmt$(detail.shipping_total)}</strong></span>
-            <span>Tax: <strong>{fmt$(detail.tax_total)}</strong></span>
-            <span>Total: <strong>{fmt$(detail.order_total)}</strong></span>
-          </div>
-          {detailLoading ? <div className="empty">Loading…</div> : (
-            <div className="overflow-x">
-              <table>
-                <thead><tr>
-                  <th>ID</th><th>Name</th><th>Type</th><th>Qty</th>
-                  <th>Unit Cost</th><th>Ship Alloc</th><th>Tax Alloc</th><th>Line Total</th>
-                </tr></thead>
-                <tbody>
-                  {detailItems.map(i => (
-                    <tr key={i.item_id}>
-                      <td style={{ fontFamily:'monospace', fontSize:11 }}>{i.item_id}</td>
-                      <td><div style={{ fontWeight:500 }}>{i.item_name}</div>{i.variant && <div style={{ fontSize:11, color:'var(--muted)' }}>{i.variant}</div>}</td>
-                      <td>{srcBadge(i.source_type)}</td>
-                      <td>{i.qty_purchased}</td>
-                      <td>{fmt$(i.unit_cost)}</td>
-                      <td>{fmt$(i.shipping_allocated)}</td>
-                      <td>{fmt$(i.tax_allocated)}</td>
-                      <td style={{ fontWeight:500 }}>{fmt$(i.total_line_cost)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Modal>
-      )}
-    </div>
-  );
-}
-
+// ── Import Tab ────────────────────────────
 function ImportTab() {
-  const [invCSV, setInvCSV]     = useState('');
-  const [ordCSV, setOrdCSV]     = useState('');
-  const [result, setResult]     = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const [invCSV,setInvCSV]=useState('');
+  const [ordCSV,setOrdCSV]=useState('');
+  const [invResult,setInvResult]=useState(null);
+  const [ordResult,setOrdResult]=useState(null);
+  const [invLoading,setInvLoading]=useState(false);
+  const [ordLoading,setOrdLoading]=useState(false);
+  const invRef=useRef();const ordRef=useRef();
 
-  const readFile = (e, setter) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => setter(ev.target.result);
-    reader.readAsText(file);
+  const readFile=(e,setter)=>{
+    const file=e.target.files[0];if(!file)return;
+    const r=new FileReader();r.onload=ev=>setter(ev.target.result);r.readAsText(file);
   };
-
-  const run = async (type, csv) => {
-    if (!csv.trim()) return;
-    setLoading(true); setResult(null);
-    try {
-      const data = await apiFetch('/api/import', { method:'POST', body: { type, csv } });
-      setResult({ type, ...data });
-    } catch(e) {
-      setResult({ type, error: e.message });
-    }
-    setLoading(false);
+  const runInv=async()=>{
+    setInvLoading(true);setInvResult(null);
+    try{const d=await api('/api/import',{method:'POST',body:{mode:'inventory',csv:invCSV}});setInvResult(d);setInvCSV('');if(invRef.current)invRef.current.value='';}
+    catch(e){setInvResult({error:e.message});}
+    setInvLoading(false);
   };
+  const runOrd=async()=>{
+    setOrdLoading(true);setOrdResult(null);
+    try{const d=await api('/api/import',{method:'POST',body:{mode:'orders',csv:ordCSV}});setOrdResult(d);setOrdCSV('');if(ordRef.current)ordRef.current.value='';}
+    catch(e){setOrdResult({error:e.message});}
+    setOrdLoading(false);
+  };
+  const Result=({r})=>!r?null:r.error
+    ?<div className="result-err">{r.error}</div>
+    :<div className="result-ok">
+      {r.inserted??r.insertedItems} inserted, {r.skipped??0} skipped
+      {r.errors?.length>0&&<div style={{marginTop:6,fontSize:12,color:'var(--warn)'}}>{r.errors.map((e,i)=><div key={i}>{e}</div>)}</div>}
+    </div>;
 
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div style={{maxWidth:600}}>
       <h2>Bulk Import</h2>
-      <p style={{ color:'var(--muted)', marginBottom:24, fontSize:13 }}>
-        Import inventory items and order allocations from CSV files. Run inventory first, then orders — order import also triggers shipping/tax allocation.
-      </p>
-
-      <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', padding:20, marginBottom:16 }}>
-        <h2 style={{ marginBottom:8 }}>1. Inventory CSV</h2>
-        <p style={{ fontSize:12, color:'var(--muted)', marginBottom:12 }}>
-          Required columns: item_name, source_type, qty_purchased, unit_cost<br/>
-          Optional: variant, category, vendor, order_number, date_purchased, condition, notes
-        </p>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <input type="file" accept=".csv" onChange={e => readFile(e, setInvCSV)} style={{ flex:1 }} />
-          <button className="primary" onClick={() => run('inventory', invCSV)} disabled={!invCSV || loading}>
-            {loading ? 'Importing…' : 'Import'}
-          </button>
+      <p style={{color:'var(--muted)',marginBottom:24,fontSize:13}}>Run purchased items CSV first, then orders CSV. Order import triggers shipping/tax reallocation.</p>
+      {[
+        {label:'1. Purchased Items CSV',ref:invRef,csv:invCSV,set:setInvCSV,run:runInv,loading:invLoading,result:invResult,hint:'Required: item_name, source_type, qty_purchased, unit_cost'},
+        {label:'2. Orders CSV',ref:ordRef,csv:ordCSV,set:setOrdCSV,run:runOrd,loading:ordLoading,result:ordResult,hint:'Required: order_number, shipping_total, tax_total'}
+      ].map(s=>(
+        <div key={s.label} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:20,marginBottom:16}}>
+          <h2 style={{marginBottom:6}}>{s.label}</h2>
+          <p style={{fontSize:12,color:'var(--muted)',marginBottom:12}}>{s.hint}</p>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input ref={s.ref} type="file" accept=".csv" onChange={e=>readFile(e,s.set)} style={{flex:1}} />
+            <button className="primary" onClick={s.run} disabled={!s.csv||s.loading}>{s.loading?'Importing…':'Import'}</button>
+          </div>
+          {s.csv&&<div style={{fontSize:11,color:'var(--muted)',marginTop:6}}>{s.csv.trim().split('\n').length-1} rows</div>}
+          <Result r={s.result} />
         </div>
-        {invCSV && <div style={{ fontSize:11, color:'var(--muted)', marginTop:6 }}>{invCSV.trim().split('\n').length - 1} rows detected</div>}
-      </div>
-
-      <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', padding:20, marginBottom:16 }}>
-        <h2 style={{ marginBottom:8 }}>2. Orders CSV</h2>
-        <p style={{ fontSize:12, color:'var(--muted)', marginBottom:12 }}>
-          Required columns: order_number, shipping_total, tax_total<br/>
-          Optional: vendor, order_date
-        </p>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <input type="file" accept=".csv" onChange={e => readFile(e, setOrdCSV)} style={{ flex:1 }} />
-          <button className="primary" onClick={() => run('orders', ordCSV)} disabled={!ordCSV || loading}>
-            {loading ? 'Importing…' : 'Import'}
-          </button>
-        </div>
-        {ordCSV && <div style={{ fontSize:11, color:'var(--muted)', marginTop:6 }}>{ordCSV.trim().split('\n').length - 1} rows detected</div>}
-      </div>
-
-      {result && (
-        <div style={{ background: result.error ? '#2a1010' : '#102010', border:`1px solid ${result.error ? 'var(--danger)' : 'var(--success)'}`, borderRadius:'var(--radius)', padding:16 }}>
-          {result.error
-            ? <div style={{ color:'var(--danger)' }}>Error: {result.error}</div>
-            : <>
-                <div style={{ color:'var(--success)', marginBottom:8, fontWeight:500 }}>
-                  {result.type === 'inventory' ? 'Inventory' : 'Orders'} import complete — {result.inserted} inserted, {result.skipped} skipped
-                </div>
-                {result.errors?.length > 0 && (
-                  <div style={{ fontSize:12, color:'var(--warn)' }}>
-                    {result.errors.map((e,i) => <div key={i}>{e}</div>)}
-                  </div>
-                )}
-              </>
-          }
-        </div>
-      )}
+      ))}
     </div>
   );
 }
 
 // ── App ───────────────────────────────────
 function App() {
-  const [tab, setTab] = useState('inventory');
-  const [tiers, setTiers] = useState([]);
+  const [tab,setTab]     = useState('orders');
+  const [tiers,setTiers] = useState([]);
+  const [pendingOrder,setPendingOrder] = useState(null);
 
-  const loadTiers = async () => setTiers(await apiFetch('/api/tiers'));
-  useEffect(() => { loadTiers(); }, []);
+  const loadTiers=async()=>setTiers(await api('/api/tiers'));
+  useEffect(()=>{loadTiers();},[]);
 
-  const tabs = [
-    { id:'inventory', label:'Inventory' },
-    { id:'builds',    label:'Builds' },
-    { id:'orders',    label:'Orders / Alloc' },
-    { id:'tiers',     label:'Build Tiers' },
-    { id:'import',    label:'Import' },
+  const goToOrder=orderNum=>{ setPendingOrder(orderNum); setTab('orders'); };
+
+  const tabs=[
+    {id:'orders',    label:'Orders'},
+    {id:'purchased', label:'Purchased Items'},
+    {id:'stock',     label:'Stock'},
+    {id:'builds',    label:'Builds'},
+    {id:'tiers',     label:'Build Tiers'},
+    {id:'import',    label:'Import'},
   ];
+
   return (
     <>
       <div className="header">
         <h1>⚔ Saber Tracker</h1>
-        <span style={{ fontSize:12, color:'var(--muted)' }}>Jedi Master Tech</span>
+        <span style={{fontSize:12,color:'var(--muted)'}}>Jedi Master Tech</span>
       </div>
       <div className="content">
         <div className="tab-bar">
-          {tabs.map(t => <button key={t.id} className={`tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
+          {tabs.map(t=><button key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
         </div>
-        {tab === 'inventory' && <InventoryTab />}
-        {tab === 'builds'    && <BuildsTab tiers={tiers} />}
-        {tab === 'orders'    && <OrdersTab />}
-        {tab === 'tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers} />}
-		{tab === 'import'    && <ImportTab />}
+        {tab==='orders'    && <OrdersTab onViewItem={()=>setTab('purchased')} pendingOrder={pendingOrder} clearPending={()=>setPendingOrder(null)} />}
+        {tab==='purchased' && <PurchasedItemsTab onViewOrder={goToOrder} />}
+        {tab==='stock'     && <StockTab />}
+        {tab==='builds'    && <BuildsTab tiers={tiers} />}
+        {tab==='tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers} />}
+        {tab==='import'    && <ImportTab />}
       </div>
     </>
   );
