@@ -76,7 +76,7 @@
   .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .toggle-link { font-size: 12px; color: var(--accent); cursor: pointer; background: none; border: none; padding: 0; }
   .toggle-link:hover { text-decoration: underline; background: none; }
-  .alloc-match  { color: var(--success); font-weight: 600; }
+  .alloc-match   { color: var(--success); font-weight: 600; }
   .alloc-nomatch { color: var(--danger);  font-weight: 600; }
   .kebab-wrap { position: relative; display: inline-block; }
   .kebab-btn { background: none; border: none; padding: 2px 8px; font-size: 18px; color: var(--muted); line-height: 1; cursor: pointer; }
@@ -89,7 +89,8 @@
   .order-link:hover { text-decoration: underline; }
   .result-ok  { background: #102010; border: 1px solid var(--success); border-radius: var(--radius); padding: 10px 14px; color: var(--success); margin-top: 10px; font-size: 13px; }
   .result-err { background: #2a1010; border: 1px solid var(--danger);  border-radius: var(--radius); padding: 10px 14px; color: var(--danger);  margin-top: 10px; font-size: 13px; }
-  .warn-box   { background: #2a1a00; border: 1px solid var(--warn); border-radius: var(--radius); padding: 10px 14px; color: var(--warn); font-size: 13px; }
+  .warn-box   { background: #2a1a00; border: 1px solid var(--warn); border-radius: var(--radius); padding: 6px 12px; color: var(--warn); font-size: 12px; }
+  .alloc-table input { padding: 4px 6px; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -100,6 +101,7 @@ const API = '';
 
 const fmt$ = v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
 const round2 = v => Math.round(Number(v) * 100) / 100;
+const fmtDate = v => { if (!v) return '—'; const s = String(v); return s.includes('T') ? s.split('T')[0] : s; };
 const SOURCE_TYPES = ['Hilt','Parts','Electronics','Blade','Saber'];
 const CONDITIONS   = ['New','Used','Refurbished','Damaged'];
 
@@ -133,6 +135,25 @@ function parseCSVText(text) {
     vals.push(cur.trim());
     return Object.fromEntries(headers.map((h,i)=>[h,vals[i]??'']));
   });
+}
+
+// ── Distribute helper ─────────────────────
+function distributeAllocations(items, shippingTotal, taxTotal) {
+  const ship = round2(Number(shippingTotal)||0);
+  const tax  = round2(Number(taxTotal)||0);
+  const total = items.reduce((s,i) => s + round2(Number(i.unit_cost||0)*Number(i.qty_purchased||1)), 0);
+  const rows = items.map(i => {
+    const weight = total > 0 ? round2(Number(i.unit_cost||0)*Number(i.qty_purchased||1))/total : 1/items.length;
+    return { ...i, shipping_alloc: round2(ship * weight), tax_alloc: round2(tax * weight) };
+  });
+  // Fix rounding residuals on last row
+  if (rows.length) {
+    const shipDiff = round2(ship - rows.reduce((s,r)=>s+r.shipping_alloc,0));
+    const taxDiff  = round2(tax  - rows.reduce((s,r)=>s+r.tax_alloc,0));
+    rows[rows.length-1].shipping_alloc = round2(rows[rows.length-1].shipping_alloc + shipDiff);
+    rows[rows.length-1].tax_alloc      = round2(rows[rows.length-1].tax_alloc      + taxDiff);
+  }
+  return rows;
 }
 
 // ── Modal ─────────────────────────────────
@@ -175,166 +196,462 @@ function Kebab({ items }) {
   );
 }
 
-// ── PasteToggle ───────────────────────────
-// Renders a label row with a "Paste instead" / "Enter manually" toggle
-function PasteToggle({ label, show, onToggle, children }) {
+// ── New Order Modal ───────────────────────
+function NewOrderModal({ onClose, onSaved }) {
+  const [pasteMode, setPasteMode] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [header, setHeader] = useState({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
+  const [items, setItems] = useState([]);
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [pasteItems, setPasteItems] = useState(false);
+  const [pasteItemText, setPasteItemText] = useState('');
+  const [itemPreview, setItemPreview] = useState(null);
+  const [allocRows, setAllocRows] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  const [addF, setAddF] = useState({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
+
+  const handleHeader = e => setHeader(p=>({...p,[e.target.name]:e.target.value}));
+
+  // Parse order header paste
+  const parseHeaderPaste = () => {
+    const rows = parseCSVText(pasteText);
+    if (!rows.length) return;
+    const r = rows[0];
+    setHeader(p=>({
+      ...p,
+      order_number:   r.order_number   || p.order_number,
+      vendor:         r.vendor         || p.vendor,
+      order_date:     r.order_date     || p.order_date,
+      shipping_total: r.shipping_total || p.shipping_total,
+      tax_total:      r.tax_total      || p.tax_total,
+    }));
+    setPasteMode(false); setPasteText('');
+  };
+
+  // Auto-distribute whenever items or header shipping/tax changes
+  const autoDistribute = (itms, ship, tax) => {
+    if (!itms.length) { setAllocRows([]); return; }
+    setAllocRows(distributeAllocations(itms, ship, tax));
+  };
+
+  const updateItems = (newItems) => {
+    setItems(newItems);
+    autoDistribute(newItems, header.shipping_total, header.tax_total);
+  };
+
+  const handleHeaderShipTax = e => {
+    const updated = {...header, [e.target.name]: e.target.value};
+    setHeader(updated);
+    autoDistribute(items, updated.shipping_total, updated.tax_total);
+  };
+
+  // Add item manually
+  const addItem = e => {
+    e.preventDefault();
+    const newItem = { ...addF, qty_purchased: parseInt(addF.qty_purchased)||1, unit_cost: parseFloat(addF.unit_cost)||0, _key: Date.now() };
+    updateItems([...items, newItem]);
+    setAddF({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
+    setShowAddItem(false);
+  };
+
+  const removeItem = key => updateItems(items.filter(i=>i._key!==key));
+
+  // Parse paste preview
+  const parsePasteItems = () => {
+    const rows = parseCSVText(pasteItemText);
+    if (!rows.length) return;
+    const valid = ['Hilt','Parts','Electronics','Blade','Saber'];
+    setItemPreview(rows.map((r,i) => ({
+      ...r,
+      item_name: r.item_name||'?',
+      source_type: valid.includes(r.source_type)?r.source_type:'Parts',
+      qty_purchased: parseInt(r.qty_purchased)||1,
+      unit_cost: parseFloat(r.unit_cost)||0,
+      condition: r.condition||'New',
+      _key: Date.now()+i,
+    })));
+  };
+
+  const confirmPasteItems = () => {
+    updateItems([...items, ...itemPreview]);
+    setItemPreview(null); setPasteItemText(''); setPasteItems(false);
+  };
+
+  // Redistribute
+  const redistribute = () => autoDistribute(items, header.shipping_total, header.tax_total);
+
+  // Validation
+  const shipTarget = round2(Number(header.shipping_total)||0);
+  const taxTarget  = round2(Number(header.tax_total)||0);
+  const allocShipSum = round2(allocRows.reduce((s,r)=>s+Number(r.shipping_alloc||0),0));
+  const allocTaxSum  = round2(allocRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
+  const allocValid = allocShipSum===shipTarget && allocTaxSum===taxTarget;
+  const canSave = header.order_number && items.length > 0 && allocValid;
+
+  // Final save — writes everything atomically
+  const save = async () => {
+    if (!canSave) return;
+    setSaving(true); setErr('');
+    try {
+      // Upsert order header
+      await api('/api/orders', { method:'POST', body: {
+        order_number: header.order_number,
+        vendor: header.vendor||null,
+        order_date: header.order_date||null,
+        shipping_total: shipTarget,
+        tax_total: taxTarget,
+        notes: header.notes||null,
+      }});
+      // Insert all items with their allocations
+      for (let i=0; i<items.length; i++) {
+        const item = items[i];
+        const alloc = allocRows[i] || {};
+        await api('/api/purchased-items', { method:'POST', body: {
+          order_number: header.order_number,
+          item_name: item.item_name,
+          variant: item.variant||null,
+          category: item.category||null,
+          vendor: header.vendor||null,
+          date_purchased: header.order_date||null,
+          qty_purchased: item.qty_purchased,
+          unit_cost: item.unit_cost,
+          condition: item.condition||'New',
+          source_type: item.source_type,
+          notes: item.notes||null,
+          shipping_allocated: alloc.shipping_alloc||0,
+          tax_allocated: alloc.tax_alloc||0,
+        }});
+      }
+      onSaved();
+    } catch(e) { setErr(e.message); }
+    setSaving(false);
+  };
+
   return (
-    <div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-        <h3 style={{margin:0}}>{label}</h3>
-        <button className="toggle-link" onClick={onToggle}>{show ? 'Enter manually' : 'Paste instead'}</button>
+    <Modal title="New Order" onClose={onClose} width="820px">
+
+      {/* Order Header */}
+      <div className="section">
+        <div className="section-header">
+          <h3 style={{margin:0}}>Order Header</h3>
+          <button className="toggle-link" onClick={()=>setPasteMode(p=>!p)}>{pasteMode?'Enter manually':'Paste instead'}</button>
+        </div>
+
+        {pasteMode ? (
+          <div>
+            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>
+              Paste your order footer CSV:<br/>
+              <code style={{fontSize:11}}>order_number,vendor,order_date,shipping_total,tax_total</code>
+            </p>
+            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={3}
+              style={{fontFamily:'monospace',fontSize:12,marginBottom:8}} />
+            <div style={{display:'flex',gap:8}}>
+              <button className="primary sm" onClick={parseHeaderPaste} disabled={!pasteText.trim()}>Parse & Fill</button>
+              <button className="sm" onClick={()=>{setPasteMode(false);setPasteText('');}}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div className="form-grid">
+            <div className="form-group"><label>Order # *</label><input name="order_number" value={header.order_number} onChange={handleHeader} /></div>
+            <div className="form-group"><label>Vendor</label><input name="vendor" value={header.vendor} onChange={handleHeader} /></div>
+            <div className="form-group"><label>Order Date</label><input type="date" name="order_date" value={header.order_date} onChange={handleHeader} /></div>
+            <div className="form-group"><label>Shipping Total</label><input type="number" name="shipping_total" value={header.shipping_total} onChange={handleHeaderShipTax} step="0.01" min="0" /></div>
+            <div className="form-group"><label>Tax Total</label><input type="number" name="tax_total" value={header.tax_total} onChange={handleHeaderShipTax} step="0.01" min="0" /></div>
+            <div className="form-group full"><label>Notes</label><input name="notes" value={header.notes} onChange={handleHeader} /></div>
+          </div>
+        )}
       </div>
-      {children}
-    </div>
+
+      {/* Line Items */}
+      <div className="section">
+        <div className="section-header">
+          <h3 style={{margin:0}}>Line Items ({items.length})</h3>
+          <div style={{display:'flex',gap:8}}>
+            <button className="sm" onClick={()=>{setShowAddItem(a=>!a);setPasteItems(false);}}>+ Add Item</button>
+            <button className="sm" onClick={()=>{setPasteItems(p=>!p);setShowAddItem(false);setItemPreview(null);}}>Paste Items</button>
+          </div>
+        </div>
+
+        {showAddItem && (
+          <form onSubmit={addItem} style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
+            <div className="form-grid">
+              <div className="form-group full"><label>Item Name *</label><input value={addF.item_name} onChange={e=>setAddF(p=>({...p,item_name:e.target.value}))} required /></div>
+              <div className="form-group"><label>Source Type</label>
+                <select value={addF.source_type} onChange={e=>setAddF(p=>({...p,source_type:e.target.value}))}>
+                  {SOURCE_TYPES.map(s=><option key={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Category</label><input value={addF.category} onChange={e=>setAddF(p=>({...p,category:e.target.value}))} /></div>
+              <div className="form-group"><label>Variant</label><input value={addF.variant} onChange={e=>setAddF(p=>({...p,variant:e.target.value}))} /></div>
+              <div className="form-group"><label>Condition</label>
+                <select value={addF.condition} onChange={e=>setAddF(p=>({...p,condition:e.target.value}))}>
+                  {CONDITIONS.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Qty</label><input type="number" value={addF.qty_purchased} onChange={e=>setAddF(p=>({...p,qty_purchased:e.target.value}))} min="1" /></div>
+              <div className="form-group"><label>Unit Cost</label><input type="number" value={addF.unit_cost} onChange={e=>setAddF(p=>({...p,unit_cost:e.target.value}))} step="0.01" min="0" /></div>
+              <div className="form-group full"><label>Notes</label><input value={addF.notes} onChange={e=>setAddF(p=>({...p,notes:e.target.value}))} /></div>
+            </div>
+            <div style={{display:'flex',gap:8,marginTop:10}}>
+              <button type="submit" className="primary sm">Add</button>
+              <button type="button" className="sm" onClick={()=>setShowAddItem(false)}>Cancel</button>
+            </div>
+          </form>
+        )}
+
+        {pasteItems && !itemPreview && (
+          <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
+            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>Paste items CSV with header row:</p>
+            <textarea value={pasteItemText} onChange={e=>setPasteItemText(e.target.value)} rows={7}
+              style={{fontFamily:'monospace',fontSize:12,marginBottom:8}}
+              placeholder={'item_name,variant,category,vendor,order_number,date_purchased,qty_purchased,unit_cost,source_type,condition,notes'} />
+            <div style={{display:'flex',gap:8}}>
+              <button className="primary sm" onClick={parsePasteItems} disabled={!pasteItemText.trim()}>Preview</button>
+              <button className="sm" onClick={()=>{setPasteItems(false);setPasteItemText('');}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {itemPreview && (
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{itemPreview.length} items parsed — confirm to add:</div>
+            <div className="overflow-x" style={{marginBottom:10}}>
+              <table>
+                <thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Variant</th></tr></thead>
+                <tbody>
+                  {itemPreview.map((r,i)=>(
+                    <tr key={i}>
+                      <td>{r.item_name}</td><td>{srcBadge(r.source_type)}</td>
+                      <td>{r.qty_purchased}</td><td>{fmt$(r.unit_cost)}</td>
+                      <td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="primary sm" onClick={confirmPasteItems}>Confirm</button>
+              <button className="sm" onClick={()=>{setItemPreview(null);setPasteItemText('');}}>Back</button>
+            </div>
+          </div>
+        )}
+
+        {items.length === 0
+          ? <div className="empty" style={{padding:20}}>No items yet. Add items above.</div>
+          : (
+          <div className="overflow-x">
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Line</th><th></th></tr></thead>
+              <tbody>
+                {items.map(i=>(
+                  <tr key={i._key}>
+                    <td><div style={{fontWeight:500}}>{i.item_name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
+                    <td>{srcBadge(i.source_type)}</td>
+                    <td>{i.qty_purchased}</td>
+                    <td>{fmt$(i.unit_cost)}</td>
+                    <td>{fmt$(round2(i.unit_cost*i.qty_purchased))}</td>
+                    <td><button className="sm danger" onClick={()=>removeItem(i._key)}>✕</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Shipping & Tax Distribution — always visible when items exist */}
+      {items.length > 0 && (
+        <div className="section">
+          <div className="section-header">
+            <h3 style={{margin:0}}>Shipping & Tax Distribution</h3>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              {(shipTarget>0||taxTarget>0) && (
+                <button className="sm" onClick={redistribute}>Redistribute</button>
+              )}
+              <span className={allocValid ? 'alloc-match' : 'alloc-nomatch'} style={{fontSize:12}}>
+                {allocValid ? '✓ Balanced' : '✗ Totals do not match'}
+              </span>
+            </div>
+          </div>
+
+          {(shipTarget===0 && taxTarget===0) ? (
+            <div style={{fontSize:13,color:'var(--muted)'}}>No shipping or tax on this order — nothing to distribute.</div>
+          ) : (
+            <>
+              <p style={{fontSize:12,color:'var(--muted)',marginBottom:10}}>
+                Shipping must total {fmt$(shipTarget)} · Tax must total {fmt$(taxTarget)}
+              </p>
+              <div className="overflow-x alloc-table">
+                <table>
+                  <thead><tr><th>Item</th><th>Qty × Cost</th><th>Shipping Alloc</th><th>Tax Alloc</th><th>Line Total</th></tr></thead>
+                  <tbody>
+                    {allocRows.map((r,i)=>{
+                      const lineTotal = round2(r.unit_cost*r.qty_purchased + Number(r.shipping_alloc||0) + Number(r.tax_alloc||0));
+                      return (
+                        <tr key={r._key||i}>
+                          <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
+                          <td style={{fontSize:12}}>{r.qty_purchased} × {fmt$(r.unit_cost)}</td>
+                          <td style={{width:120}}>
+                            <input type="number" value={r.shipping_alloc} step="0.01"
+                              onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,shipping_alloc:v}:x));}} />
+                          </td>
+                          <td style={{width:120}}>
+                            <input type="number" value={r.tax_alloc} step="0.01"
+                              onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,tax_alloc:v}:x));}} />
+                          </td>
+                          <td style={{fontWeight:500}}>{fmt$(lineTotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={2} style={{fontSize:12,color:'var(--muted)',paddingTop:8}}>Totals</td>
+                      <td style={{paddingTop:8}}>
+                        <span className={round2(allocShipSum)===shipTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocShipSum)} / {fmt$(shipTarget)}</span>
+                      </td>
+                      <td style={{paddingTop:8}}>
+                        <span className={round2(allocTaxSum)===taxTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocTaxSum)} / {fmt$(taxTarget)}</span>
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {err && <div className="result-err" style={{marginBottom:12}}>{err}</div>}
+      {items.length>0 && !allocValid && (shipTarget>0||taxTarget>0) && (
+        <div className="warn-box" style={{marginBottom:12}}>Shipping and tax allocations must balance before saving.</div>
+      )}
+
+      <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+        <button onClick={onClose}>Cancel</button>
+        <button className="primary" onClick={save} disabled={!canSave||saving}>
+          {saving ? 'Saving…' : `Save Order (${items.length} item${items.length!==1?'s':''})`}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
 // ── Order Detail Modal ────────────────────
-function OrderDetailModal({ order: initOrder, onClose, onViewItem }) {
-  const [order, setOrder]         = useState(initOrder);
-  const [items, setItems]         = useState([]);
-  const [loading, setLoading]     = useState(true);
+function OrderDetailModal({ order, onClose, onViewItem }) {
+  const [items, setItems]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
   const [pasteItems, setPasteItems] = useState(false);
-  const [pasteText, setPasteText] = useState('');
-  const [preview, setPreview]     = useState(null);  // parsed rows awaiting confirm
-  const [pasteErr, setPasteErr]   = useState('');
-  const [saving, setSaving]       = useState(false);
-  // inline add form
-  const [showAdd, setShowAdd]     = useState(false);
-  const [addF, setAddF]           = useState({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
-  // distribution
-  const [showDistrib, setShowDistrib] = useState(false);
-  const [allocRows, setAllocRows] = useState([]);
-  const [distribSaved, setDistribSaved] = useState(false);
+  const [pasteText, setPasteText]   = useState('');
+  const [preview, setPreview]       = useState(null);
+  const [saving, setSaving]         = useState(false);
+  const [allocRows, setAllocRows]   = useState([]);
+  const [addF, setAddF] = useState({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
+
+  const shipTarget = round2(Number(order.shipping_total)||0);
+  const taxTarget  = round2(Number(order.tax_total)||0);
+  const allocShipSum = round2(allocRows.reduce((s,r)=>s+Number(r.shipping_alloc||0),0));
+  const allocTaxSum  = round2(allocRows.reduce((s,r)=>s+Number(r.tax_alloc||0),0));
+  const allocValid = allocShipSum===shipTarget && allocTaxSum===taxTarget;
 
   const load = async () => {
     setLoading(true);
     const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
     setItems(rows);
+    // Auto-distribute on load
+    setAllocRows(distributeAllocations(rows, order.shipping_total, order.tax_total));
     setLoading(false);
   };
 
   useEffect(()=>{ load(); },[order.order_number]);
 
-  // ── Parse paste preview ───────────────
-  const parsePaste = () => {
-    setPasteErr('');
-    const rows = parseCSVText(pasteText);
-    if (!rows.length) { setPasteErr('No rows parsed — check format.'); return; }
-    const valid = ['Hilt','Parts','Electronics','Blade','Saber'];
-    const cleaned = rows.map(r => ({
-      item_name:    r.item_name || '?',
-      variant:      r.variant   || '',
-      category:     r.category  || '',
-      source_type:  valid.includes(r.source_type) ? r.source_type : 'Parts',
-      qty_purchased: parseInt(r.qty_purchased)||1,
-      unit_cost:     parseFloat(r.unit_cost)||0,
-      condition:     r.condition||'New',
-      notes:         r.notes||'',
-      vendor:        r.vendor || order.vendor || '',
-      date_purchased: r.date_purchased || order.order_date || '',
-      order_number:  order.order_number,
-    }));
-    setPreview(cleaned);
+  const refreshAndDistribute = (newItems) => {
+    setItems(newItems);
+    setAllocRows(distributeAllocations(newItems, order.shipping_total, order.tax_total));
   };
 
-  const confirmPaste = async () => {
-    setSaving(true);
-    for (const row of preview) {
-      await api('/api/purchased-items', { method:'POST', body: row });
-    }
-    setPreview(null); setPasteText(''); setPasteItems(false);
-    setSaving(false); load();
-  };
-
-  // ── Inline add ────────────────────────
   const addItem = async e => {
     e.preventDefault();
-    await api('/api/purchased-items', { method:'POST', body: {
-      ...addF, order_number: order.order_number,
-      vendor: order.vendor, date_purchased: order.order_date
+    await api('/api/purchased-items', { method:'POST', body:{
+      ...addF, order_number:order.order_number,
+      vendor:order.vendor, date_purchased:order.order_date
     }});
     setAddF({ item_name:'',variant:'',category:'',source_type:'Electronics',qty_purchased:1,unit_cost:'',condition:'New',notes:'' });
-    setShowAdd(false); load();
+    setShowAdd(false);
+    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
+    refreshAndDistribute(rows);
   };
 
   const delItem = async item => {
     if (!confirm(`Delete ${item.item_id}?`)) return;
     await api(`/api/purchased-items/${item.item_id}`, { method:'DELETE' });
-    load();
+    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
+    refreshAndDistribute(rows);
   };
 
-  // ── Distribution ──────────────────────
-  const openDistrib = () => {
-    const ship = Number(order.shipping_total)||0;
-    const tax  = Number(order.tax_total)||0;
-    const total = items.reduce((s,i) => s + Number(i.unit_cost||0)*Number(i.qty_purchased||0), 0);
-    const rows = items.map(i => {
-      const weight = total > 0 ? (Number(i.unit_cost||0)*Number(i.qty_purchased||0))/total : 1/items.length;
-      return {
-        item_id:   i.item_id,
-        item_name: i.item_name,
-        variant:   i.variant,
-        qty:       i.qty_purchased,
-        unit_cost: Number(i.unit_cost||0),
-        shipping:  round2(ship * weight),
-        tax:       round2(tax  * weight),
-      };
-    });
-    // fix rounding residuals on last row
-    const shipSum = rows.reduce((s,r)=>s+r.shipping,0);
-    const taxSum  = rows.reduce((s,r)=>s+r.tax,0);
-    if (rows.length) {
-      rows[rows.length-1].shipping = round2(rows[rows.length-1].shipping + (ship - shipSum));
-      rows[rows.length-1].tax      = round2(rows[rows.length-1].tax      + (tax  - taxSum));
-    }
-    setAllocRows(rows);
-    setShowDistrib(true);
-    setDistribSaved(false);
+  const parsePaste = () => {
+    const rows = parseCSVText(pasteText);
+    if (!rows.length) return;
+    const valid = ['Hilt','Parts','Electronics','Blade','Saber'];
+    setPreview(rows.map(r=>({
+      item_name: r.item_name||'?',
+      variant: r.variant||'',
+      category: r.category||'',
+      source_type: valid.includes(r.source_type)?r.source_type:'Parts',
+      qty_purchased: parseInt(r.qty_purchased)||1,
+      unit_cost: parseFloat(r.unit_cost)||0,
+      condition: r.condition||'New',
+      notes: r.notes||'',
+    })));
   };
 
-  const allocShipTotal = allocRows.reduce((s,r)=>s+Number(r.shipping||0),0);
-  const allocTaxTotal  = allocRows.reduce((s,r)=>s+Number(r.tax||0),0);
-  const shipTarget     = round2(Number(order.shipping_total)||0);
-  const taxTarget      = round2(Number(order.tax_total)||0);
-  const allocMatch     = round2(allocShipTotal)===shipTarget && round2(allocTaxTotal)===taxTarget;
-
-  const saveDistrib = async () => {
+  const confirmPaste = async () => {
     setSaving(true);
-    for (const r of allocRows) {
-      await api(`/api/purchased-items/${r.item_id}`, { method:'PUT', body: {
-        shipping_allocated: r.shipping,
-        tax_allocated:      r.tax,
-        _partial:           true,
+    for (const row of preview) {
+      await api('/api/purchased-items', { method:'POST', body:{
+        ...row, order_number:order.order_number,
+        vendor:order.vendor, date_purchased:order.order_date
       }});
     }
-    setShowDistrib(false);
-    setDistribSaved(true);
+    setPreview(null); setPasteText(''); setPasteItems(false);
+    setSaving(false);
+    const rows = await api(`/api/orders?order_number=${encodeURIComponent(order.order_number)}`);
+    refreshAndDistribute(rows);
+  };
+
+  const redistribute = () => setAllocRows(distributeAllocations(items, order.shipping_total, order.tax_total));
+
+  const saveAllocation = async () => {
+    setSaving(true);
+    for (let i=0; i<items.length; i++) {
+      const alloc = allocRows.find(r=>r.item_id===items[i].item_id) || allocRows[i] || {};
+      await api(`/api/purchased-items/${items[i].item_id}`, { method:'PUT', body:{
+        _partial:true,
+        shipping_allocated: alloc.shipping_alloc||0,
+        tax_allocated: alloc.tax_alloc||0,
+      }});
+    }
     setSaving(false);
     load();
   };
 
-  const unallocated = !distribSaved && (shipTarget > 0 || taxTarget > 0);
   const subtotal = items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
 
   return (
-    <Modal title={`Order ${order.order_number}`} onClose={() => {
-      if (unallocated && items.length > 0) {
-        if (!confirm('Shipping/tax has not been distributed. Close anyway?')) return;
-      }
-      onClose();
-    }}>
-
-      {/* Order summary bar */}
-      <div style={{display:'flex',gap:20,fontSize:13,marginBottom:18,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)'}}>
+    <Modal title={`Order ${order.order_number}`} onClose={onClose}>
+      {/* Summary bar */}
+      <div style={{display:'flex',gap:20,fontSize:13,marginBottom:16,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)'}}>
         <span><span style={{color:'var(--muted)'}}>Vendor:</span> <strong>{order.vendor||'—'}</strong></span>
-        <span><span style={{color:'var(--muted)'}}>Date:</span> <strong>{order.order_date||'—'}</strong></span>
+        <span><span style={{color:'var(--muted)'}}>Date:</span> <strong>{fmtDate(order.order_date)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Shipping:</span> <strong>{fmt$(order.shipping_total)}</strong></span>
         <span><span style={{color:'var(--muted)'}}>Tax:</span> <strong>{fmt$(order.tax_total)}</strong></span>
-        <span><span style={{color:'var(--muted)'}}>Order Total:</span> <strong style={{color:'var(--accent2)'}}>{fmt$(subtotal)}</strong></span>
+        <span><span style={{color:'var(--muted)'}}>Total:</span> <strong style={{color:'var(--accent2)'}}>{fmt$(subtotal)}</strong></span>
       </div>
 
-      {/* Items section */}
+      {/* Line Items */}
       <div className="section">
         <div className="section-header">
           <h3 style={{margin:0}}>Line Items ({items.length})</h3>
@@ -344,7 +661,6 @@ function OrderDetailModal({ order: initOrder, onClose, onViewItem }) {
           </div>
         </div>
 
-        {/* Inline add form */}
         {showAdd && (
           <form onSubmit={addItem} style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
             <div className="form-grid">
@@ -372,35 +688,28 @@ function OrderDetailModal({ order: initOrder, onClose, onViewItem }) {
           </form>
         )}
 
-        {/* Paste items */}
         {pasteItems && !preview && (
           <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
-            <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>Paste your items CSV (with header row). Order number, vendor, and date will be filled from this order.</p>
             <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} rows={7}
               style={{fontFamily:'monospace',fontSize:12,marginBottom:8}}
-              placeholder={'item_name,variant,category,vendor,order_number,date_purchased,qty_purchased,unit_cost,source_type,condition,notes\n...'} />
-            {pasteErr && <div className="result-err" style={{marginBottom:8}}>{pasteErr}</div>}
+              placeholder="item_name,variant,category,..." />
             <div style={{display:'flex',gap:8}}>
               <button className="primary sm" onClick={parsePaste} disabled={!pasteText.trim()}>Preview</button>
-              <button className="sm" onClick={()=>{setPasteItems(false);setPasteText('');setPasteErr('');}}>Cancel</button>
+              <button className="sm" onClick={()=>{setPasteItems(false);setPasteText('');}}>Cancel</button>
             </div>
           </div>
         )}
 
-        {/* Paste preview */}
         {preview && (
           <div style={{marginBottom:14}}>
-            <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{preview.length} items parsed — review before importing:</div>
+            <div style={{fontSize:13,color:'var(--muted)',marginBottom:8}}>{preview.length} items parsed:</div>
             <div className="overflow-x" style={{marginBottom:10}}>
               <table>
                 <thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Variant</th></tr></thead>
                 <tbody>
                   {preview.map((r,i)=>(
-                    <tr key={i}>
-                      <td>{r.item_name}</td>
-                      <td>{srcBadge(r.source_type)}</td>
-                      <td>{r.qty_purchased}</td>
-                      <td>{fmt$(r.unit_cost)}</td>
+                    <tr key={i}><td>{r.item_name}</td><td>{srcBadge(r.source_type)}</td>
+                      <td>{r.qty_purchased}</td><td>{fmt$(r.unit_cost)}</td>
                       <td style={{fontSize:12,color:'var(--muted)'}}>{r.variant||'—'}</td>
                     </tr>
                   ))}
@@ -408,14 +717,13 @@ function OrderDetailModal({ order: initOrder, onClose, onViewItem }) {
               </table>
             </div>
             <div style={{display:'flex',gap:8}}>
-              <button className="primary sm" onClick={confirmPaste} disabled={saving}>{saving?'Saving…':'Confirm Import'}</button>
+              <button className="primary sm" onClick={confirmPaste} disabled={saving}>{saving?'Saving…':'Confirm'}</button>
               <button className="sm" onClick={()=>{setPreview(null);setPasteText('');}}>Back</button>
             </div>
           </div>
         )}
 
-        {/* Items table */}
-        {loading ? <div className="empty">Loading…</div> : items.length===0 ? <div className="empty">No items yet.</div> : (
+        {loading ? <div className="empty">Loading…</div> : items.length===0 ? <div className="empty">No items on this order.</div> : (
           <div className="overflow-x">
             <table>
               <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Qty</th><th>Unit Cost</th><th>Ship Alloc</th><th>Tax Alloc</th><th>Line Total</th><th></th></tr></thead>
@@ -427,12 +735,12 @@ function OrderDetailModal({ order: initOrder, onClose, onViewItem }) {
                     <td>{srcBadge(i.source_type)}</td>
                     <td>{i.qty_purchased}</td>
                     <td>{fmt$(i.unit_cost)}</td>
-                    <td style={{fontSize:12,color: Number(i.shipping_allocated)>0?'var(--text)':'var(--muted)'}}>{fmt$(i.shipping_allocated)}</td>
-                    <td style={{fontSize:12,color: Number(i.tax_allocated)>0?'var(--text)':'var(--muted)'}}>{fmt$(i.tax_allocated)}</td>
+                    <td style={{fontSize:12}}>{fmt$(i.shipping_allocated)}</td>
+                    <td style={{fontSize:12}}>{fmt$(i.tax_allocated)}</td>
                     <td style={{fontWeight:500}}>{fmt$(i.total_line_cost)}</td>
                     <td><Kebab items={[
-                      {label:'View',action:()=>onViewItem(i)},
-                      {label:'Delete',danger:true,action:()=>delItem(i)}
+                      {label:'View', action:()=>onViewItem(i)},
+                      {label:'Delete', danger:true, action:()=>delItem(i)}
                     ]} /></td>
                   </tr>
                 ))}
@@ -442,67 +750,60 @@ function OrderDetailModal({ order: initOrder, onClose, onViewItem }) {
         )}
       </div>
 
-      {/* Distribution section */}
-      {items.length > 0 && (shipTarget > 0 || taxTarget > 0) && (
+      {/* Distribution — always visible when items exist */}
+      {items.length>0 && (
         <div className="section">
           <div className="section-header">
             <h3 style={{margin:0}}>Shipping & Tax Distribution</h3>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              {distribSaved && <span style={{fontSize:12,color:'var(--success)'}}>✓ Saved</span>}
-              {unallocated  && <span className="warn-box" style={{padding:'3px 10px',fontSize:12}}>Not yet distributed</span>}
-              <button className="sm primary" onClick={openDistrib}>Distribute</button>
+              {(shipTarget>0||taxTarget>0) && <button className="sm" onClick={redistribute}>Redistribute</button>}
+              {(shipTarget>0||taxTarget>0) && (
+                <button className="primary sm" onClick={saveAllocation} disabled={!allocValid||saving}>
+                  {saving?'Saving…':'Save Allocation'}
+                </button>
+              )}
+              <span className={(shipTarget>0||taxTarget>0) ? (allocValid?'alloc-match':'alloc-nomatch') : 'alloc-match'} style={{fontSize:12}}>
+                {(shipTarget===0&&taxTarget===0) ? '✓ No shipping/tax' : allocValid ? '✓ Balanced' : '✗ Unbalanced'}
+              </span>
             </div>
           </div>
 
-          {showDistrib && (
-            <>
-              <p style={{fontSize:12,color:'var(--muted)',marginBottom:10}}>
-                Adjust per-item allocations. Totals must match order shipping ({fmt$(shipTarget)}) and tax ({fmt$(taxTarget)}) to save.
-              </p>
-              <div className="overflow-x" style={{marginBottom:12}}>
-                <table>
-                  <thead><tr><th>Item</th><th>Qty × Cost</th><th>Shipping Alloc</th><th>Tax Alloc</th></tr></thead>
-                  <tbody>
-                    {allocRows.map((r,i)=>(
-                      <tr key={r.item_id}>
+          {(shipTarget===0&&taxTarget===0) ? (
+            <div style={{fontSize:13,color:'var(--muted)'}}>No shipping or tax on this order.</div>
+          ) : (
+            <div className="overflow-x alloc-table">
+              <table>
+                <thead><tr><th>Item</th><th>Qty × Cost</th><th>Shipping Alloc</th><th>Tax Alloc</th><th>Line Total</th></tr></thead>
+                <tbody>
+                  {allocRows.map((r,i)=>{
+                    const lineTotal = round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1) + Number(r.shipping_alloc||0) + Number(r.tax_alloc||0));
+                    return (
+                      <tr key={r.item_id||i}>
                         <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
-                        <td style={{fontSize:12}}>{r.qty} × {fmt$(r.unit_cost)}</td>
-                        <td style={{width:130}}>
-                          <input type="number" value={r.shipping} step="0.01"
-                            onChange={e=>{const v=parseFloat(e.target.value)||0;setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,shipping:v}:x));}}
-                            style={{fontSize:12}} />
+                        <td style={{fontSize:12}}>{r.qty_purchased} × {fmt$(r.unit_cost)}</td>
+                        <td style={{width:120}}>
+                          <input type="number" value={r.shipping_alloc} step="0.01"
+                            onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,shipping_alloc:v}:x));}} />
                         </td>
-                        <td style={{width:130}}>
-                          <input type="number" value={r.tax} step="0.01"
-                            onChange={e=>{const v=parseFloat(e.target.value)||0;setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,tax:v}:x));}}
-                            style={{fontSize:12}} />
+                        <td style={{width:120}}>
+                          <input type="number" value={r.tax_alloc} step="0.01"
+                            onChange={e=>{const v=round2(parseFloat(e.target.value)||0);setAllocRows(rows=>rows.map((x,j)=>j===i?{...x,tax_alloc:v}:x));}} />
                         </td>
+                        <td style={{fontWeight:500}}>{fmt$(lineTotal)}</td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={2} style={{fontSize:12,color:'var(--muted)',paddingTop:10}}>Totals</td>
-                      <td style={{paddingTop:10}}>
-                        <span className={allocMatch&&round2(allocShipTotal)===shipTarget?'alloc-match':'alloc-nomatch'}>
-                          {fmt$(allocShipTotal)} / {fmt$(shipTarget)}
-                        </span>
-                      </td>
-                      <td style={{paddingTop:10}}>
-                        <span className={allocMatch&&round2(allocTaxTotal)===taxTarget?'alloc-match':'alloc-nomatch'}>
-                          {fmt$(allocTaxTotal)} / {fmt$(taxTarget)}
-                        </span>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-              <div style={{display:'flex',gap:8}}>
-                <button className="primary" onClick={saveDistrib} disabled={!allocMatch||saving}>{saving?'Saving…':'Save Distribution'}</button>
-                <button onClick={()=>setShowDistrib(false)}>Cancel</button>
-              </div>
-              {!allocMatch && <div className="result-err" style={{marginTop:8}}>Totals must match before saving.</div>}
-            </>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={2} style={{fontSize:12,color:'var(--muted)',paddingTop:8}}>Totals</td>
+                    <td style={{paddingTop:8}}><span className={round2(allocShipSum)===shipTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocShipSum)} / {fmt$(shipTarget)}</span></td>
+                    <td style={{paddingTop:8}}><span className={round2(allocTaxSum)===taxTarget?'alloc-match':'alloc-nomatch'}>{fmt$(allocTaxSum)} / {fmt$(taxTarget)}</span></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -516,37 +817,9 @@ function OrdersTab({ onViewItem }) {
   const [loading, setLoading] = useState(true);
   const [detail, setDetail]   = useState(null);
   const [showNew, setShowNew] = useState(false);
-  const [pasteOrder, setPasteOrder] = useState(false);
-  const [pasteOrderText, setPasteOrderText] = useState('');
-  const [f, setF] = useState({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
-  const handle = e => setF(p=>({...p,[e.target.name]:e.target.value}));
 
   const load = async () => { setLoading(true); setOrders(await api('/api/orders')); setLoading(false); };
   useEffect(()=>{ load(); },[]);
-
-  // Parse order header paste
-  const parseOrderPaste = () => {
-    const rows = parseCSVText(pasteOrderText);
-    if (!rows.length) return;
-    const r = rows[0];
-    setF(prev => ({
-      ...prev,
-      order_number:   r.order_number   || prev.order_number,
-      vendor:         r.vendor         || prev.vendor,
-      order_date:     r.order_date     || prev.order_date,
-      shipping_total: r.shipping_total || prev.shipping_total,
-      tax_total:      r.tax_total      || prev.tax_total,
-    }));
-    setPasteOrder(false);
-    setPasteOrderText('');
-  };
-
-  const save = async e => {
-    e.preventDefault();
-    await api('/api/orders', { method:'POST', body: f });
-    setF({ order_number:'', vendor:'', order_date:'', shipping_total:'', tax_total:'', notes:'' });
-    setShowNew(false); load();
-  };
 
   const del = async o => {
     if (!confirm(`Delete order ${o.order_number}? Line items will NOT be deleted.`)) return;
@@ -566,49 +839,11 @@ function OrdersTab({ onViewItem }) {
         <div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShipping)}</div></div>
         <div className="stat"><div className="stat-label">Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
       </div>
-
       <div className="toolbar">
-        <button className="primary" onClick={()=>setShowNew(n=>!n)}>+ New Order</button>
+        <button className="primary" onClick={()=>setShowNew(true)}>+ New Order</button>
       </div>
-
-      {showNew && (
-        <div className="section" style={{maxWidth:680,marginBottom:20}}>
-          <PasteToggle label="Order Header" show={pasteOrder} onToggle={()=>setPasteOrder(p=>!p)}>
-            {pasteOrder ? (
-              <div>
-                <p style={{fontSize:12,color:'var(--muted)',marginBottom:8}}>
-                  Paste your order footer CSV (header + one data row):<br/>
-                  <code style={{fontSize:11}}>order_number,vendor,order_date,shipping_total,tax_total</code>
-                </p>
-                <textarea value={pasteOrderText} onChange={e=>setPasteOrderText(e.target.value)} rows={4}
-                  style={{fontFamily:'monospace',fontSize:12,marginBottom:8}} />
-                <div style={{display:'flex',gap:8}}>
-                  <button className="primary sm" onClick={parseOrderPaste} disabled={!pasteOrderText.trim()}>Parse & Fill Fields</button>
-                  <button className="sm" onClick={()=>{setPasteOrder(false);setPasteOrderText('');}}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={save}>
-                <div className="form-grid">
-                  <div className="form-group"><label>Order # *</label><input name="order_number" value={f.order_number} onChange={handle} required /></div>
-                  <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor} onChange={handle} /></div>
-                  <div className="form-group"><label>Order Date</label><input type="date" name="order_date" value={f.order_date} onChange={handle} /></div>
-                  <div className="form-group"><label>Shipping Total</label><input type="number" name="shipping_total" value={f.shipping_total} onChange={handle} step="0.01" min="0" /></div>
-                  <div className="form-group"><label>Tax Total</label><input type="number" name="tax_total" value={f.tax_total} onChange={handle} step="0.01" min="0" /></div>
-                  <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes} onChange={handle} /></div>
-                </div>
-                <div style={{display:'flex',gap:8,marginTop:14}}>
-                  <button type="submit" className="primary">Create & Open Order</button>
-                  <button type="button" onClick={()=>setShowNew(false)}>Cancel</button>
-                </div>
-              </form>
-            )}
-          </PasteToggle>
-        </div>
-      )}
-
       <div className="overflow-x">
-        {loading ? <div className="empty">Loading…</div> : orders.length===0 ? <div className="empty">No orders yet. Create one to get started.</div> : (
+        {loading ? <div className="empty">Loading…</div> : orders.length===0 ? <div className="empty">No orders yet.</div> : (
           <table>
             <thead><tr><th>Order #</th><th>Vendor</th><th>Date</th><th>Items</th><th>Parts</th><th>Shipping</th><th>Tax</th><th>Total</th><th></th></tr></thead>
             <tbody>
@@ -616,7 +851,7 @@ function OrdersTab({ onViewItem }) {
                 <tr key={o.id}>
                   <td><span className="order-link" onClick={()=>setDetail(o)}>{o.order_number}</span></td>
                   <td>{o.vendor||'—'}</td>
-                  <td style={{fontSize:12}}>{o.order_date||'—'}</td>
+                  <td style={{fontSize:12}}>{fmtDate(o.order_date)}</td>
                   <td style={{textAlign:'center'}}>{o.item_count}</td>
                   <td>{fmt$(o.parts_total)}</td>
                   <td>{fmt$(o.shipping_total)}</td>
@@ -624,7 +859,7 @@ function OrdersTab({ onViewItem }) {
                   <td style={{fontWeight:500}}>{fmt$(o.order_total)}</td>
                   <td><Kebab items={[
                     {label:'Open Order',  action:()=>setDetail(o)},
-                    {label:'Delete',danger:true,action:()=>del(o)}
+                    {label:'Delete', danger:true, action:()=>del(o)}
                   ]} /></td>
                 </tr>
               ))}
@@ -632,14 +867,8 @@ function OrdersTab({ onViewItem }) {
           </table>
         )}
       </div>
-
-      {detail && (
-        <OrderDetailModal
-          order={detail}
-          onClose={()=>{ setDetail(null); load(); }}
-          onViewItem={item=>{ setDetail(null); onViewItem(item); }}
-        />
-      )}
+      {showNew && <NewOrderModal onClose={()=>setShowNew(false)} onSaved={()=>{ setShowNew(false); load(); }} />}
+      {detail && <OrderDetailModal order={detail} onClose={()=>{ setDetail(null); load(); }} onViewItem={item=>{ setDetail(null); onViewItem(item); }} />}
     </>
   );
 }
@@ -704,7 +933,7 @@ function PurchasedItemsTab({ onViewOrder }) {
                   <td><div style={{fontWeight:500}}>{i.item_name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
                   <td>{srcBadge(i.source_type)}</td>
                   <td style={{fontSize:12}}>{i.vendor||'—'}</td>
-                  <td>{i.order_number ? <span className="order-link" onClick={()=>onViewOrder(i.order_number)}>{i.order_number}</span> : '—'}</td>
+                  <td>{i.order_number?<span className="order-link" onClick={()=>onViewOrder(i.order_number)}>{i.order_number}</span>:'—'}</td>
                   <td style={{fontWeight:500,color:i.qty_remaining===0?'var(--danger)':'inherit'}}>{i.qty_remaining}</td>
                   <td>{fmt$(i.unit_cost)}</td>
                   <td>{fmt$(i.total_line_cost)}</td>
@@ -730,7 +959,7 @@ function PurchasedItemsTab({ onViewOrder }) {
               ['Order #', viewItem.order_number
                 ? <span className="order-link" onClick={()=>{setViewItem(null);onViewOrder(viewItem.order_number);}}>{viewItem.order_number}</span>
                 : '—'],
-              ['Date',viewItem.date_purchased||'—'],['Condition',viewItem.condition||'—'],
+              ['Date',fmtDate(viewItem.date_purchased)],['Condition',viewItem.condition||'—'],
               ['Qty Purchased',viewItem.qty_purchased],['Qty Remaining',viewItem.qty_remaining],
               ['Unit Cost',fmt$(viewItem.unit_cost)],['Shipping Alloc',fmt$(viewItem.shipping_allocated)],
               ['Tax Alloc',fmt$(viewItem.tax_allocated)],['Line Total',fmt$(viewItem.total_line_cost)],
@@ -755,15 +984,13 @@ function PurchasedItemsTab({ onViewOrder }) {
   );
 }
 
-// ── Purchased Item Form ───────────────────
-function PurchasedItemForm({ initial={}, orderNumber, onSave, onClose }) {
-  const [f, setF] = useState({
-    item_name:'', variant:'', category:'', vendor:'', date_purchased:'',
-    qty_purchased:1, qty_remaining:1, unit_cost:'', condition:'New',
-    source_type:'Electronics', location:'', notes:'',
-    ...initial, order_number: orderNumber||initial.order_number||''
+function PurchasedItemForm({ initial={}, onSave, onClose }) {
+  const [f,setF]=useState({
+    item_name:'',variant:'',category:'',vendor:'',date_purchased:'',
+    qty_purchased:1,qty_remaining:1,unit_cost:'',condition:'New',
+    source_type:'Electronics',location:'',notes:'',...initial
   });
-  const handle = e => setF(p=>({...p,[e.target.name]:e.target.value}));
+  const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
   return (
     <form onSubmit={e=>{e.preventDefault();onSave(f);}}>
       <div className="form-grid">
@@ -775,8 +1002,8 @@ function PurchasedItemForm({ initial={}, orderNumber, onSave, onClose }) {
         </div>
         <div className="form-group"><label>Category</label><input name="category" value={f.category} onChange={handle} /></div>
         <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor} onChange={handle} /></div>
-        <div className="form-group"><label>Date Purchased</label><input type="date" name="date_purchased" value={f.date_purchased} onChange={handle} /></div>
-        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant} onChange={handle} /></div>
+        <div className="form-group"><label>Date Purchased</label><input type="date" name="date_purchased" value={f.date_purchased ? fmtDate(f.date_purchased) : ''} onChange={handle} /></div>
+        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant||''} onChange={handle} /></div>
         <div className="form-group"><label>Condition</label>
           <select name="condition" value={f.condition} onChange={handle}>
             {CONDITIONS.map(c=><option key={c}>{c}</option>)}
@@ -785,8 +1012,8 @@ function PurchasedItemForm({ initial={}, orderNumber, onSave, onClose }) {
         <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
         <div className="form-group"><label>Qty Remaining</label><input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Location</label><input name="location" value={f.location} onChange={handle} /></div>
-        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes} onChange={handle} rows={2} /></div>
+        <div className="form-group"><label>Location</label><input name="location" value={f.location||''} onChange={handle} /></div>
+        <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes||''} onChange={handle} rows={2} /></div>
       </div>
       <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
         <button type="button" onClick={onClose}>Cancel</button>
@@ -798,56 +1025,55 @@ function PurchasedItemForm({ initial={}, orderNumber, onSave, onClose }) {
 
 // ── Stock Tab ─────────────────────────────
 function StockTab() {
-  const [items, setItems]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState('');
-  const [filterSrc, setFilterSrc] = useState('');
-  const [showAdd, setShowAdd] = useState(false);
-  const [receiveItem, setReceiveItem] = useState(null);
-  const [purchasedItems, setPurchasedItems] = useState([]);
-  const [f, setF] = useState({ name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:'' });
-  const [rf, setRf] = useState({ stock_item_id:'',purchased_item_id:'',qty_received:1,unit_cost:'' });
-  const handle = e => setF(p=>({...p,[e.target.name]:e.target.value}));
+  const [items,setItems]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState('');
+  const [filterSrc,setFilterSrc]=useState('');
+  const [showAdd,setShowAdd]=useState(false);
+  const [receiveItem,setReceiveItem]=useState(null);
+  const [purchasedItems,setPurchasedItems]=useState([]);
+  const [f,setF]=useState({name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:''});
+  const [rf,setRf]=useState({stock_item_id:'',purchased_item_id:'',qty_received:1,unit_cost:''});
+  const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
 
-  const load = useCallback(async () => {
+  const load=useCallback(async()=>{
     setLoading(true);
-    const p = new URLSearchParams();
-    if (search) p.set('search', search);
-    if (filterSrc) p.set('source_type', filterSrc);
-    setItems(await api('/api/stock?' + p));
+    const p=new URLSearchParams();
+    if(search)p.set('search',search);
+    if(filterSrc)p.set('source_type',filterSrc);
+    setItems(await api('/api/stock?'+p));
     setLoading(false);
-  }, [search, filterSrc]);
+  },[search,filterSrc]);
 
-  useEffect(()=>{ load(); },[load]);
+  useEffect(()=>{load();},[load]);
 
-  const addStock = async e => {
+  const addStock=async e=>{
     e.preventDefault();
-    await api('/api/stock', { method:'POST', body: f });
-    setF({ name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:'' });
-    setShowAdd(false); load();
+    await api('/api/stock',{method:'POST',body:f});
+    setF({name:'',variant:'',category:'',source_type:'Electronics',location:'',notes:''});
+    setShowAdd(false);load();
   };
 
-  const openReceive = async item => {
+  const openReceive=async item=>{
     setReceiveItem(item);
-    setRf({ stock_item_id:item.id, purchased_item_id:'', qty_received:1, unit_cost:item.unit_cost||'' });
+    setRf({stock_item_id:item.id,purchased_item_id:'',qty_received:1,unit_cost:item.unit_cost||''});
     setPurchasedItems(await api('/api/purchased-items'));
   };
 
-  const doReceive = async e => {
+  const doReceive=async e=>{
     e.preventDefault();
-    await api('/api/stock/receive', { method:'POST', body: rf });
-    setReceiveItem(null); load();
+    await api('/api/stock/receive',{method:'POST',body:rf});
+    setReceiveItem(null);load();
   };
 
-  const del = async item => {
-    if (!confirm(`Delete stock item ${item.sku}?`)) return;
-    await api(`/api/stock/${item.id}`, { method:'DELETE' });
-    load();
+  const del=async item=>{
+    if(!confirm(`Delete stock item ${item.sku}?`))return;
+    await api(`/api/stock/${item.id}`,{method:'DELETE'});load();
   };
 
-  const lowStock = items.filter(i=>i.qty_on_hand===1).length;
-  const outStock = items.filter(i=>i.qty_on_hand===0).length;
-  const totalQty = items.reduce((s,i)=>s+Number(i.qty_on_hand||0),0);
+  const lowStock=items.filter(i=>i.qty_on_hand===1).length;
+  const outStock=items.filter(i=>i.qty_on_hand===0).length;
+  const totalQty=items.reduce((s,i)=>s+Number(i.qty_on_hand||0),0);
 
   return (
     <>
@@ -866,7 +1092,7 @@ function StockTab() {
         <button className="primary" onClick={()=>setShowAdd(a=>!a)}>+ New Stock Item</button>
       </div>
 
-      {showAdd && (
+      {showAdd&&(
         <div className="section" style={{maxWidth:640,marginBottom:16}}>
           <h2>New Stock Item</h2>
           <form onSubmit={addStock}>
@@ -891,15 +1117,15 @@ function StockTab() {
       )}
 
       <div className="overflow-x">
-        {loading ? <div className="empty">Loading…</div> : items.length===0
-          ? <div className="empty">No stock items yet.<br/>Create stock items then receive purchased items into them.</div>
-          : (
+        {loading?<div className="empty">Loading…</div>:items.length===0
+          ?<div className="empty">No stock items yet.<br/>Create stock items then receive purchased items into them.</div>
+          :(
           <table>
             <thead><tr><th>SKU</th><th>Name</th><th>Type</th><th>Category</th><th>On Hand</th><th>Avg Cost</th><th>Location</th><th></th></tr></thead>
             <tbody>
               {items.map(i=>{
-                const sc = i.qty_on_hand===0?'badge-out':i.qty_on_hand<=1?'badge-low':'badge-ok';
-                return (
+                const sc=i.qty_on_hand===0?'badge-out':i.qty_on_hand<=1?'badge-low':'badge-ok';
+                return(
                   <tr key={i.id}>
                     <td style={{fontFamily:'monospace',fontSize:11}}>{i.sku}</td>
                     <td><div style={{fontWeight:500}}>{i.name}</div>{i.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{i.variant}</div>}</td>
@@ -909,8 +1135,8 @@ function StockTab() {
                     <td>{fmt$(i.unit_cost)}</td>
                     <td style={{fontSize:12}}>{i.location||'—'}</td>
                     <td><Kebab items={[
-                      {label:'Receive to Stock', action:()=>openReceive(i)},
-                      {label:'Delete', danger:true, action:()=>del(i)}
+                      {label:'Receive to Stock',action:()=>openReceive(i)},
+                      {label:'Delete',danger:true,action:()=>del(i)}
                     ]} /></td>
                   </tr>
                 );
@@ -920,15 +1146,15 @@ function StockTab() {
         )}
       </div>
 
-      {receiveItem && (
+      {receiveItem&&(
         <Modal title={`Receive — ${receiveItem.name}`} onClose={()=>setReceiveItem(null)} width="520px">
           <form onSubmit={doReceive}>
             <div className="form-grid">
               <div className="form-group full">
                 <label>Link to Purchased Item (optional)</label>
                 <select value={rf.purchased_item_id} onChange={e=>{
-                  const pi = purchasedItems.find(p=>p.item_id===e.target.value);
-                  setRf(r=>({...r, purchased_item_id:e.target.value, unit_cost:pi?pi.unit_cost:r.unit_cost, qty_received:pi?pi.qty_remaining:r.qty_received}));
+                  const pi=purchasedItems.find(p=>p.item_id===e.target.value);
+                  setRf(r=>({...r,purchased_item_id:e.target.value,unit_cost:pi?pi.unit_cost:r.unit_cost,qty_received:pi?pi.qty_remaining:r.qty_received}));
                 }}>
                   <option value="">— none —</option>
                   {purchasedItems.map(p=><option key={p.item_id} value={p.item_id}>{p.item_id} — {p.item_name} (rem: {p.qty_remaining})</option>)}
@@ -950,28 +1176,27 @@ function StockTab() {
 
 // ── Builds Tab ────────────────────────────
 function BuildsTab({ tiers }) {
-  const [builds, setBuilds]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal]     = useState(null);
-  const [usageModal, setUsageModal] = useState(null);
+  const [builds,setBuilds]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [modal,setModal]=useState(null);
+  const [usageModal,setUsageModal]=useState(null);
 
-  const load = async () => { setLoading(true); setBuilds(await api('/api/builds')); setLoading(false); };
-  useEffect(()=>{ load(); },[]);
+  const load=async()=>{setLoading(true);setBuilds(await api('/api/builds'));setLoading(false);};
+  useEffect(()=>{load();},[]);
 
-  const save = async f => {
-    if (modal==='add') await api('/api/builds', { method:'POST', body:f });
-    else await api(`/api/builds/${modal.build_id}`, { method:'PUT', body:f });
-    setModal(null); load();
+  const save=async f=>{
+    if(modal==='add')await api('/api/builds',{method:'POST',body:f});
+    else await api(`/api/builds/${modal.build_id}`,{method:'PUT',body:f});
+    setModal(null);load();
   };
 
-  const del = async b => {
-    if (!confirm(`Delete build ${b.build_id}?`)) return;
-    await api(`/api/builds/${b.build_id}`, { method:'DELETE' });
-    load();
+  const del=async b=>{
+    if(!confirm(`Delete build ${b.build_id}?`))return;
+    await api(`/api/builds/${b.build_id}`,{method:'DELETE'});load();
   };
 
-  const totalProfit = builds.reduce((s,b)=>s+Number(b.profit||0),0);
-  const sold = builds.filter(b=>b.status==='Sold').length;
+  const totalProfit=builds.reduce((s,b)=>s+Number(b.profit||0),0);
+  const sold=builds.filter(b=>b.status==='Sold').length;
 
   return (
     <>
@@ -984,7 +1209,7 @@ function BuildsTab({ tiers }) {
         <button className="primary" onClick={()=>setModal('add')}>+ New Build</button>
       </div>
       <div className="overflow-x">
-        {loading ? <div className="empty">Loading…</div> : builds.length===0 ? <div className="empty">No builds yet.</div> : (
+        {loading?<div className="empty">Loading…</div>:builds.length===0?<div className="empty">No builds yet.</div>:(
           <table>
             <thead><tr><th>ID</th><th>Hilt</th><th>Customer</th><th>Tier</th><th>Parts</th><th>Labor</th><th>Total</th><th>Sold</th><th>Profit</th><th>Status</th><th></th></tr></thead>
             <tbody>
@@ -992,18 +1217,15 @@ function BuildsTab({ tiers }) {
                 <tr key={b.build_id}>
                   <td style={{fontFamily:'monospace',fontSize:12}}>{b.build_id}</td>
                   <td style={{fontFamily:'monospace',fontSize:11}}>{b.hilt_item_id||'—'}</td>
-                  <td>{b.customer||'—'}</td>
-                  <td>{b.tier_name||'—'}</td>
-                  <td>{fmt$(b.parts_cost)}</td>
-                  <td>{fmt$(b.labor_value)}</td>
-                  <td>{fmt$(b.total_build_cost)}</td>
-                  <td>{fmt$(b.sold_price)}</td>
+                  <td>{b.customer||'—'}</td><td>{b.tier_name||'—'}</td>
+                  <td>{fmt$(b.parts_cost)}</td><td>{fmt$(b.labor_value)}</td>
+                  <td>{fmt$(b.total_build_cost)}</td><td>{fmt$(b.sold_price)}</td>
                   <td style={{color:Number(b.profit)>=0?'var(--success)':'var(--danger)',fontWeight:500}}>{fmt$(b.profit)}</td>
                   <td><span className="badge" style={{background:'#1e2a1e',color:'var(--accent2)'}}>{b.status}</span></td>
                   <td><Kebab items={[
-                    {label:'Parts Used', action:()=>setUsageModal(b)},
-                    {label:'Edit',       action:()=>setModal(b)},
-                    {label:'Delete',     danger:true, action:()=>del(b)}
+                    {label:'Parts Used',action:()=>setUsageModal(b)},
+                    {label:'Edit',action:()=>setModal(b)},
+                    {label:'Delete',danger:true,action:()=>del(b)}
                   ]} /></td>
                 </tr>
               ))}
@@ -1011,12 +1233,12 @@ function BuildsTab({ tiers }) {
           </table>
         )}
       </div>
-      {modal && (
+      {modal&&(
         <Modal title={modal==='add'?'New Build':`Edit ${modal.build_id}`} onClose={()=>setModal(null)}>
           <BuildForm initial={modal==='add'?{}:modal} tiers={tiers} onSave={save} onClose={()=>setModal(null)} />
         </Modal>
       )}
-      {usageModal && (
+      {usageModal&&(
         <Modal title={`Parts — ${usageModal.build_id}`} onClose={()=>setUsageModal(null)}>
           <UsagePanel buildId={usageModal.build_id} />
         </Modal>
@@ -1192,7 +1414,7 @@ function ImportTab() {
   return (
     <div style={{maxWidth:600}}>
       <h2>Bulk Import</h2>
-      <p style={{color:'var(--muted)',marginBottom:24,fontSize:13}}>Run purchased items CSV first, then orders CSV. Order import triggers shipping/tax reallocation.</p>
+      <p style={{color:'var(--muted)',marginBottom:24,fontSize:13}}>Run purchased items CSV first, then orders CSV.</p>
       {[
         {label:'1. Purchased Items CSV',ref:invRef,csv:invCSV,set:setInvCSV,run:runInv,loading:invLoading,result:invResult,hint:'Required: item_name, source_type, qty_purchased, unit_cost'},
         {label:'2. Orders CSV',ref:ordRef,csv:ordCSV,set:setOrdCSV,run:runOrd,loading:ordLoading,result:ordResult,hint:'Required: order_number, shipping_total, tax_total'}
@@ -1214,14 +1436,13 @@ function ImportTab() {
 
 // ── App ───────────────────────────────────
 function App() {
-  const [tab,setTab]     = useState('orders');
-  const [tiers,setTiers] = useState([]);
-  const [pendingOrder,setPendingOrder] = useState(null);
+  const [tab,setTab]=useState('orders');
+  const [tiers,setTiers]=useState([]);
 
   const loadTiers=async()=>setTiers(await api('/api/tiers'));
   useEffect(()=>{loadTiers();},[]);
 
-  const goToOrder=orderNum=>{ setPendingOrder(orderNum); setTab('orders'); };
+  const goToOrder=orderNum=>setTab('orders');
 
   const tabs=[
     {id:'orders',    label:'Orders'},
@@ -1242,7 +1463,7 @@ function App() {
         <div className="tab-bar">
           {tabs.map(t=><button key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
         </div>
-        {tab==='orders'    && <OrdersTab onViewItem={()=>setTab('purchased')} pendingOrder={pendingOrder} clearPending={()=>setPendingOrder(null)} />}
+        {tab==='orders'    && <OrdersTab onViewItem={()=>setTab('purchased')} />}
         {tab==='purchased' && <PurchasedItemsTab onViewOrder={goToOrder} />}
         {tab==='stock'     && <StockTab />}
         {tab==='builds'    && <BuildsTab tiers={tiers} />}
