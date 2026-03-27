@@ -654,6 +654,90 @@ function OrdersTab() {
   );
 }
 
+function ImportTab() {
+  const [invCSV, setInvCSV]     = useState('');
+  const [ordCSV, setOrdCSV]     = useState('');
+  const [result, setResult]     = useState(null);
+  const [loading, setLoading]   = useState(false);
+
+  const readFile = (e, setter) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setter(ev.target.result);
+    reader.readAsText(file);
+  };
+
+  const run = async (type, csv) => {
+    if (!csv.trim()) return;
+    setLoading(true); setResult(null);
+    try {
+      const data = await apiFetch('/api/import', { method:'POST', body: { type, csv } });
+      setResult({ type, ...data });
+    } catch(e) {
+      setResult({ type, error: e.message });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <h2>Bulk Import</h2>
+      <p style={{ color:'var(--muted)', marginBottom:24, fontSize:13 }}>
+        Import inventory items and order allocations from CSV files. Run inventory first, then orders — order import also triggers shipping/tax allocation.
+      </p>
+
+      <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', padding:20, marginBottom:16 }}>
+        <h2 style={{ marginBottom:8 }}>1. Inventory CSV</h2>
+        <p style={{ fontSize:12, color:'var(--muted)', marginBottom:12 }}>
+          Required columns: item_name, source_type, qty_purchased, unit_cost<br/>
+          Optional: variant, category, vendor, order_number, date_purchased, condition, notes
+        </p>
+        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+          <input type="file" accept=".csv" onChange={e => readFile(e, setInvCSV)} style={{ flex:1 }} />
+          <button className="primary" onClick={() => run('inventory', invCSV)} disabled={!invCSV || loading}>
+            {loading ? 'Importing…' : 'Import'}
+          </button>
+        </div>
+        {invCSV && <div style={{ fontSize:11, color:'var(--muted)', marginTop:6 }}>{invCSV.trim().split('\n').length - 1} rows detected</div>}
+      </div>
+
+      <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', padding:20, marginBottom:16 }}>
+        <h2 style={{ marginBottom:8 }}>2. Orders CSV</h2>
+        <p style={{ fontSize:12, color:'var(--muted)', marginBottom:12 }}>
+          Required columns: order_number, shipping_total, tax_total<br/>
+          Optional: vendor, order_date
+        </p>
+        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+          <input type="file" accept=".csv" onChange={e => readFile(e, setOrdCSV)} style={{ flex:1 }} />
+          <button className="primary" onClick={() => run('orders', ordCSV)} disabled={!ordCSV || loading}>
+            {loading ? 'Importing…' : 'Import'}
+          </button>
+        </div>
+        {ordCSV && <div style={{ fontSize:11, color:'var(--muted)', marginTop:6 }}>{ordCSV.trim().split('\n').length - 1} rows detected</div>}
+      </div>
+
+      {result && (
+        <div style={{ background: result.error ? '#2a1010' : '#102010', border:`1px solid ${result.error ? 'var(--danger)' : 'var(--success)'}`, borderRadius:'var(--radius)', padding:16 }}>
+          {result.error
+            ? <div style={{ color:'var(--danger)' }}>Error: {result.error}</div>
+            : <>
+                <div style={{ color:'var(--success)', marginBottom:8, fontWeight:500 }}>
+                  {result.type === 'inventory' ? 'Inventory' : 'Orders'} import complete — {result.inserted} inserted, {result.skipped} skipped
+                </div>
+                {result.errors?.length > 0 && (
+                  <div style={{ fontSize:12, color:'var(--warn)' }}>
+                    {result.errors.map((e,i) => <div key={i}>{e}</div>)}
+                  </div>
+                )}
+              </>
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── App ───────────────────────────────────
 function App() {
   const [tab, setTab] = useState('inventory');
@@ -667,8 +751,8 @@ function App() {
     { id:'builds',    label:'Builds' },
     { id:'orders',    label:'Orders / Alloc' },
     { id:'tiers',     label:'Build Tiers' },
+    { id:'import',    label:'Import' },
   ];
-
   return (
     <>
       <div className="header">
@@ -683,6 +767,7 @@ function App() {
         {tab === 'builds'    && <BuildsTab tiers={tiers} />}
         {tab === 'orders'    && <OrdersTab />}
         {tab === 'tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers} />}
+		{tab === 'import'    && <ImportTab />}
       </div>
     </>
   );
