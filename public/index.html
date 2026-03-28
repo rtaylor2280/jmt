@@ -75,8 +75,8 @@
   .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:14px; }
   .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .kebab-wrap { position:relative; display:inline-block; }
-  .kebab-btn { background:none; border:none; padding:2px 8px; font-size:18px; color:var(--muted); line-height:1; cursor:pointer; }
-  .kebab-btn:hover { color:var(--text); background:none; }
+  .kebab-btn { background:none; border:none; padding:4px 8px; font-size:18px; color:var(--muted); line-height:1; cursor:pointer; border-radius:var(--radius);}
+  .kebab-btn:hover { color:var(--text);  background:var(--surface);}
   .kebab-menu { position:absolute; right:0; top:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); min-width:140px; z-index:50; }
   .kebab-menu button { display:block; width:100%; text-align:left; background:none; border:none; border-radius:0; padding:8px 14px; font-size:13px; }
   .kebab-menu button:hover { background:var(--border); }
@@ -153,13 +153,16 @@ function distribute(items,shipTotal,taxTotal) {
 }
 
 // ── Modal ─────────────────────────────────
-function Modal({title,onClose,width='900px',children}){
+function Modal({title,onClose,width='900px',headerActions=null,children}){
   return(
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{width}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,gap:12}}>
           <h2 style={{margin:0}}>{title}</h2>
-          <button onClick={onClose} className="ghost" style={{fontSize:20,lineHeight:1}}>✕</button>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            {headerActions}
+            <button onClick={onClose} className="ghost" style={{fontSize:20,lineHeight:1}}>✕</button>
+          </div>
         </div>
         {children}
       </div>
@@ -608,21 +611,24 @@ function OrderDetailModal({order,onClose,onEdit,onDelete}){
   const subtotal=items.reduce((s,i)=>s+Number(i.total_line_cost||0),0);
 
   return(
-    <Modal title={`Order ${order.order_number}`} onClose={onClose}>
-      {/* Summary bar */}
-      <div style={{display:'flex',gap:16,fontSize:13,marginBottom:14,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)',alignItems:'center'}}>
-        <span><span style={{color:'var(--muted)'}}>Vendor:</span> <strong>{order.vendor||'—'}</strong></span>
-        <span><span style={{color:'var(--muted)'}}>Date:</span> <strong>{fmtDate(order.order_date)}</strong></span>
-        <span><span style={{color:'var(--muted)'}}>Shipping:</span> <strong>{fmt$(order.shipping_total)}</strong></span>
-        <span><span style={{color:'var(--muted)'}}>Tax:</span> <strong>{fmt$(order.tax_total)}</strong></span>
-        <span><span style={{color:'var(--muted)'}}>Total:</span> <strong style={{color:'var(--accent2)'}}>{fmt$(subtotal)}</strong></span>
-        <span style={{marginLeft:'auto'}}>
-          <Kebab items={[
-            {label:'Edit Order', action:()=>{onClose();onEdit(order);}},
-            {label:'Delete Order', danger:true, action:()=>{onClose();onDelete(order);}},
-          ]}/>
-        </span>
-      </div>
+		<Modal
+		  title={`Order ${order.order_number}`}
+		  onClose={onClose}
+		  headerActions={
+			<Kebab items={[
+			  {label:'Edit Order', action:()=>{onClose();onEdit(order);}},
+			  {label:'Delete Order', danger:true, action:()=>{onClose();onDelete(order);}},
+			]}/>
+		  }
+		>
+		  {/* Summary bar */}
+		  <div style={{display:'flex',gap:16,fontSize:13,marginBottom:14,flexWrap:'wrap',padding:'10px 14px',background:'var(--surface)',borderRadius:'var(--radius)',alignItems:'center'}}>
+			<span><span style={{color:'var(--muted)'}}>Vendor:</span> <strong>{order.vendor||'—'}</strong></span>
+			<span><span style={{color:'var(--muted)'}}>Date:</span> <strong>{fmtDate(order.order_date)}</strong></span>
+			<span><span style={{color:'var(--muted)'}}>Shipping:</span> <strong>{fmt$(order.shipping_total)}</strong></span>
+			<span><span style={{color:'var(--muted)'}}>Tax:</span> <strong>{fmt$(order.tax_total)}</strong></span>
+			<span><span style={{color:'var(--muted)'}}>Total:</span> <strong style={{color:'var(--accent2)'}}>{fmt$(subtotal)}</strong></span>
+		  </div>
 
       <div className="section">
         <div className="section-header">
@@ -872,28 +878,42 @@ function PurchasedItemsTab({onOpenOrder}){
         )}
       </div>
 
-      {viewItem&&!editItem&&(
-        <Modal title={`${viewItem.item_id} — ${viewItem.item_name}`} onClose={()=>setViewItem(null)} width="560px">
-          <div className="view-grid" style={{marginBottom:20}}>
-            {[['Item ID',viewItem.item_id],['Source Type',viewItem.source_type],['Variant',viewItem.variant||'—'],['Category',viewItem.category||'—'],['Vendor',viewItem.vendor||'—'],
-              ['Order #',viewItem.order_number?<span className="order-link" onClick={()=>{setViewItem(null);onOpenOrder(viewItem.order_number);}}>{viewItem.order_number}</span>:'—'],
-              ['Date',fmtDate(viewItem.date_purchased)],['Condition',viewItem.condition||'—'],
-              ['Qty Purchased',viewItem.qty_purchased],
-              ['Unit Cost',fmt$(viewItem.unit_cost)],['Shipping Alloc',fmt$(viewItem.shipping_allocated)],
-              ['Tax Alloc',fmt$(viewItem.tax_allocated)],['Line Total',fmt$(viewItem.total_line_cost)],
-              ['Location',viewItem.location||'—'],['Notes',viewItem.notes||'—'],
-            ].map(([k,v])=>(
-              <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
-            ))}
-          </div>
-          <div style={{display:'flex',justifyContent:'flex-end'}}>
-			  <Kebab items={[
-				{label:'Edit',   action:()=>setEditItem(viewItem)},
-				{label:'Delete', danger:true, action:()=>del(viewItem)},
-			  ]}/>
-		  </div>
-        </Modal>
-      )}
+	{viewItem&&!editItem&&(
+	  <Modal
+		title={`${viewItem.item_id} — ${viewItem.item_name}`}
+		onClose={()=>setViewItem(null)}
+		width="560px"
+		headerActions={
+		  <Kebab items={[
+			{
+			  label:'Edit',
+			  action:()=>{
+				setViewItem(null);
+				setEditItem(viewItem);
+			  }
+			},
+			{
+			  label:'Delete',
+			  danger:true,
+			  action:()=>del(viewItem)
+			}
+		  ]}/>
+		}
+	  >
+		<div className="view-grid">
+		  {[['Item ID',viewItem.item_id],['Source Type',viewItem.source_type],['Variant',viewItem.variant||'—'],['Category',viewItem.category||'—'],['Vendor',viewItem.vendor||'—'],
+			['Order #',viewItem.order_number?<span className="order-link" onClick={()=>{setViewItem(null);onOpenOrder(viewItem.order_number);}}>{viewItem.order_number}</span>:'—'],
+			['Date',fmtDate(viewItem.date_purchased)],['Condition',viewItem.condition||'—'],
+			['Qty Purchased',viewItem.qty_purchased],
+			['Unit Cost',fmt$(viewItem.unit_cost)],['Shipping Alloc',fmt$(viewItem.shipping_allocated)],
+			['Tax Alloc',fmt$(viewItem.tax_allocated)],['Line Total',fmt$(viewItem.total_line_cost)],
+			['Location',viewItem.location||'—'],['Notes',viewItem.notes||'—'],
+		  ].map(([k,v])=>(
+			<div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
+		  ))}
+		</div>
+	  </Modal>
+	)}
 
       {editItem&&(
         <Modal title={`Edit ${editItem.item_id}`} onClose={()=>setEditItem(null)} width="640px">
