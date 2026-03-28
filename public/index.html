@@ -35,12 +35,27 @@ const catBadge = s => {
 
 function CategoryCombobox({ value, onChange }) {
   const [categories, setCategories] = useState([]);
+  const [inputVal, setInputVal] = useState(value || '');
+
   useEffect(() => {
     api('/api/purchased-items?categories=true').then(setCategories);
   }, []);
+
+  useEffect(() => {
+    setInputVal(value || '');
+  }, [value]);
+
   return (
     <>
-      <input name="category" value={value || ''} onChange={onChange} list="category-options" autoComplete="off"/>
+      <input
+        name="category"
+        value={inputVal}
+        onChange={e => { setInputVal(e.target.value); onChange(e); }}
+        onFocus={() => setInputVal('')}
+        onBlur={() => setInputVal(value || '')}
+        list="category-options"
+        autoComplete="off"
+      />
       <datalist id="category-options">
         {categories.map(c => <option key={c} value={c} />)}
       </datalist>
