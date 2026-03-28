@@ -229,7 +229,7 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
 		...p, 
 		name: f.item_name, 
 		category: f.category,
-		sku_prefix: f.category ? f.category.slice(0, 2).toUpperCase() : ''
+		sku_prefix: f.item_name ? f.item_name.slice(0, 2).toUpperCase() : ''
 	  }));
 	}, [f.item_name, f.category]);
 
@@ -1133,9 +1133,9 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
   // Auto-derive SKU prefix from category when category changes
   useEffect(() => {
     if (f.category && !initial.id) {
-      setF(p => ({ ...p, sku_prefix: f.category.slice(0, 2).toUpperCase() }));
+      setF(p => ({ ...p, sku_prefix: f.name.slice(0, 2).toUpperCase() }));
     }
-  }, [f.category]);
+  }, [f.name]);
 
   const submit = e => {
     e.preventDefault();
