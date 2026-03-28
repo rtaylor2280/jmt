@@ -1291,6 +1291,7 @@ function App(){
   const [tab,setTab]=useState('stock');
   const [tiers,setTiers]=useState([]);
   const [orderModal,setOrderModal]=useState(null); // for cross-tab order link
+  const [editOrder, setEditOrder] = useState(null);
 
   const loadTiers=async()=>setTiers(await api('/api/tiers'));
   useEffect(()=>{loadTiers();},[]);
@@ -1328,7 +1329,21 @@ function App(){
         {tab==='tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers}/>}
         {tab==='import'    && <ImportTab/>}
       </div>
-      {orderModal&&<OrderDetailModal order={orderModal} onClose={()=>setOrderModal(null)} onOpenOrder={openOrderModal}/>}
+      {orderModal&&<OrderDetailModal 
+	  order={orderModal} 
+	  onClose={()=>setOrderModal(null)}
+	  onEdit={o=>{setOrderModal(null);setEditOrder(o);}}
+	  onDelete={async o=>{
+		if(!confirm(`Delete order ${o.order_number}?`))return;
+		await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});
+		setOrderModal(null);
+	  }}
+	  />}
+	  {editOrder&&<NewOrderModal 
+		editOrder={editOrder} 
+		onClose={()=>setEditOrder(null)} 
+		onSaved={()=>setEditOrder(null)}
+	  />}
     </>
   );
 }
