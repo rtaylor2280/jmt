@@ -25,6 +25,7 @@ const categoryColor = str => {
   let h = 0;
   for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
   const hue = Math.abs(h) % 360;
+  console.log(str, hue);
   return { bg: `hsl(${hue},28%,18%)`, color: `hsl(${hue},55%,68%)` };
 };
 
@@ -255,7 +256,7 @@ function LineItemsTable({rows,shipTarget,taxTarget,onAllocChange,onDelete,onEdit
               const lineTotal=round2(Number(r.unit_cost||0)*Number(r.qty_purchased||1)+Number(r.ship_alloc||0)+Number(r.tax_alloc||0));
               return(
                 <tr key={r.item_id||r._key||i}>
-                  {r.item_id&&<td style={{fontFamily:'monospace',fontSize:11}}>{r.item_id}</td>}
+                  {rows[0]?.item_id!==undefined&&<td style={{fontFamily:'monospace',fontSize:11,color:r.item_id?'inherit':'var(--muted)'}}>{r.item_id||'—'}</td>}
                   <td><div style={{fontWeight:500}}>{r.item_name}</div>{r.variant&&<div style={{fontSize:11,color:'var(--muted)'}}>{r.variant}</div>}</td>
                   <td>{catBadge(r.category)}</td>
                   <td>{r.qty_purchased}</td>
