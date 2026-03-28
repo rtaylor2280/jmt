@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // GET /api/orders?order_number=X  → line items for that order
+    // GET /api/orders?order_number=X → line items for that order
     if (req.method === 'GET' && req.query.order_number) {
       const rows = await sql`
         SELECT * FROM purchased_items
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       return res.json(rows);
     }
 
-    // GET /api/orders  → all orders with totals
+    // GET /api/orders → all orders with totals
     if (req.method === 'GET') {
       const rows = await sql`
         SELECT o.*,
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       return res.json(rows);
     }
 
-    // POST /api/orders  → upsert order header
+    // POST /api/orders → upsert order header
     if (req.method === 'POST') {
       const { order_number, vendor, order_date, shipping_total, tax_total, notes } = req.body;
       const [row] = await sql`
@@ -46,13 +46,29 @@ export default async function handler(req, res) {
           notes          = EXCLUDED.notes,
           updated_at     = NOW()
         RETURNING *`;
-      // Recalc allocation for existing items on this order
       await sql`SELECT recalc_allocation(${order_number})`;
       return res.status(200).json(row);
     }
 
     // DELETE /api/orders?order_number=X
     if (req.method === 'DELETE' && req.query.order_number) {
+      // Get all purchased items for this order that are linked to stock
+      const items = await sql`
+        SELECT id, stock_item_id, qty_purchased
+        FROM purchased_items
+        WHERE order_number = ${req.query.order_number}
+        AND stock_item_id IS NOT NULL`;
+
+      // Reverse stock quantities
+      for (const item of items) {
+        await sql`
+          UPDATE stock_items SET qty_on_hand = qty_on_hand - ${item.qty_purchased}
+          WHERE id = ${item.stock_item_id}`;
+        await sql`
+          INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
+          VALUES (${item.stock_item_id}, ${item.id}, ${-item.qty_purchased}, 'order_deleted')`;
+      }
+
       await sql`DELETE FROM orders WHERE order_number = ${req.query.order_number}`;
       return res.status(204).end();
     }

@@ -1,27 +1,81 @@
 import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL);
+
 export default async function handler(req, res) {
-  const { id } = req.query;
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
   try {
+    // GET /api/orders?order_number=X → line items for that order
+    if (req.method === 'GET' && req.query.order_number) {
+      const rows = await sql`
+        SELECT * FROM purchased_items
+        WHERE order_number = ${req.query.order_number}
+        ORDER BY item_id`;
+      return res.json(rows);
+    }
+
+    // GET /api/orders → all orders with totals
     if (req.method === 'GET') {
-      const [row] = await sql`SELECT * FROM stock_items WHERE id = ${id}`;
-      return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
+      const rows = await sql`
+        SELECT o.*,
+          COUNT(p.id)                                    AS item_count,
+          COALESCE(SUM(p.unit_cost * p.qty_purchased),0) AS parts_total,
+          COALESCE(SUM(p.total_line_cost),0)             AS order_total
+        FROM orders o
+        LEFT JOIN purchased_items p ON p.order_number = o.order_number
+        GROUP BY o.id
+        ORDER BY o.order_date DESC NULLS LAST, o.id DESC`;
+      return res.json(rows);
     }
-    if (req.method === 'PUT') {
-      const { name, variant, category, source_type, qty_on_hand, location, notes } = req.body;
+
+    // POST /api/orders → upsert order header
+    if (req.method === 'POST') {
+      const { order_number, vendor, order_date, shipping_total, tax_total, notes } = req.body;
       const [row] = await sql`
-        UPDATE stock_items SET name=${name}, variant=${variant||null}, category=${category||null},
-          source_type=${source_type}, qty_on_hand=${qty_on_hand}, location=${location||null}, notes=${notes||null}
-        WHERE id=${id} RETURNING *`;
-      return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
+        INSERT INTO orders (order_number, vendor, order_date, shipping_total, tax_total, notes)
+        VALUES (${order_number}, ${vendor||null}, ${order_date||null},
+                ${shipping_total||0}, ${tax_total||0}, ${notes||null})
+        ON CONFLICT (order_number) DO UPDATE SET
+          vendor         = EXCLUDED.vendor,
+          order_date     = EXCLUDED.order_date,
+          shipping_total = EXCLUDED.shipping_total,
+          tax_total      = EXCLUDED.tax_total,
+          notes          = EXCLUDED.notes,
+          updated_at     = NOW()
+        RETURNING *`;
+      await sql`SELECT recalc_allocation(${order_number})`;
+      return res.status(200).json(row);
     }
-    if (req.method === 'DELETE') {
-      await sql`DELETE FROM stock_items WHERE id=${id}`;
+
+    // DELETE /api/orders?order_number=X
+    if (req.method === 'DELETE' && req.query.order_number) {
+      // Get all purchased items for this order that are linked to stock
+      const items = await sql`
+        SELECT id, stock_item_id, qty_purchased
+        FROM purchased_items
+        WHERE order_number = ${req.query.order_number}
+        AND stock_item_id IS NOT NULL`;
+
+      // Reverse stock quantities
+      for (const item of items) {
+        await sql`
+          UPDATE stock_items SET qty_on_hand = qty_on_hand - ${item.qty_purchased}
+          WHERE id = ${item.stock_item_id}`;
+        await sql`
+          INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
+          VALUES (${item.stock_item_id}, ${item.id}, ${-item.qty_purchased}, 'order_deleted')`;
+      }
+
+      await sql`DELETE FROM orders WHERE order_number = ${req.query.order_number}`;
       return res.status(204).end();
     }
-  } catch(e) { return res.status(500).json({ error: e.message }); }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
 }

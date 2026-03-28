@@ -211,22 +211,86 @@ function Kebab({items}){
 }
 
 // ── Item Form (shared add/edit) ───────────
-function ItemForm({ initial = {}, onSave, onClose, categories = [] }) {
-  const [f, setF] = useState({ item_name: '', variant: '', category: '', qty_purchased: 1, unit_cost: '', condition: 'New', notes: '', ...initial });
+function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreated }) {
+  const [f, setF] = useState({
+    item_name: '', variant: '', category: '', qty_purchased: 1,
+    unit_cost: '', condition: 'New', notes: '', stock_item_id: '', ...initial
+  });
+  const [showNewStock, setShowNewStock] = useState(false);
+  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', location: '', notes: '' });
+  const [creatingStock, setCreatingStock] = useState(false);
+
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+  const handleNewStock = e => setNewStock(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  // When category or item_name changes, pre-fill new stock form
+  useEffect(() => {
+    setNewStock(p => ({ ...p, name: f.item_name, category: f.category }));
+  }, [f.item_name, f.category]);
+
+  const createStockItem = async () => {
+    if (!newStock.name) return;
+    setCreatingStock(true);
+    try {
+      const created = await api('/api/stock', { method: 'POST', body: newStock });
+      // Notify parent to re-fetch stock list, then auto-select new item
+      const refreshed = await onStockCreated();
+      setF(p => ({ ...p, stock_item_id: String(created.id) }));
+      setShowNewStock(false);
+      setNewStock({ name: '', variant: '', category: '', location: '', notes: '' });
+    } catch (e) {
+      alert('Failed to create stock item: ' + e.message);
+    }
+    setCreatingStock(false);
+  };
+
+  const canSave = f.item_name && f.stock_item_id;
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(f); }} style={{ background: 'var(--card)', borderRadius: 'var(--radius)', padding: 14, marginBottom: 14 }}>
+    <form onSubmit={e => { e.preventDefault(); if (canSave) onSave(f); }}
+      style={{ background: 'var(--card)', borderRadius: 'var(--radius)', padding: 14, marginBottom: 14 }}>
       <div className="form-grid">
         <div className="form-group full"><label>Item Name *</label><input name="item_name" value={f.item_name} onChange={handle} required /></div>
-        <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} categories={categories} /></div>
+        <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} /></div>
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition || 'New'} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group full">
+          <label>Stock Item *</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select name="stock_item_id" value={f.stock_item_id} onChange={handle} style={{ flex: 1 }} required>
+              <option value="">— select or create —</option>
+              {stockItems.map(s => <option key={s.id} value={s.id}>{s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}</option>)}
+            </select>
+            <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
+              {showNewStock ? 'Cancel' : '+ New'}
+            </button>
+          </div>
+        </div>
         <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
       </div>
+
+      {showNewStock && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 12, marginTop: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>New Stock Item</div>
+          <div className="form-grid">
+            <div className="form-group full"><label>Name *</label><input name="name" value={newStock.name} onChange={handleNewStock} required /></div>
+            <div className="form-group"><label>Category</label><CategoryCombobox value={newStock.category} onChange={handleNewStock} /></div>
+            <div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
+            <div className="form-group"><label>Location</label><input name="location" value={newStock.location} onChange={handleNewStock} /></div>
+            <div className="form-group full"><label>Notes</label><input name="notes" value={newStock.notes} onChange={handleNewStock} /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button type="button" className="primary sm" onClick={createStockItem} disabled={!newStock.name || creatingStock}>
+              {creatingStock ? 'Creating…' : 'Create Stock Item'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-        <button type="submit" className="primary sm">Save</button>
+        <button type="submit" className="primary sm" disabled={!canSave}>Save</button>
         <button type="button" className="sm" onClick={onClose}>Cancel</button>
       </div>
     </form>
@@ -346,6 +410,7 @@ function NewOrderModal({onClose,onSaved,editOrder}){
   const [loading, setLoading] = useState(isEdit);
   const [err, setErr] = useState('');
   const [categories, setCategories] = useState([]);
+  const [stockItems, setStockItems] = useState([]);
 
   useEffect(() => {
     // Load distinct categories for combobox
@@ -353,6 +418,7 @@ function NewOrderModal({onClose,onSaved,editOrder}){
       const cats = [...new Set(items.map(i => i.category).filter(Boolean))].sort();
       setCategories(cats);
     });
+	api('/api/stock').then(setStockItems);
     if (!isEdit) return;
     api(`/api/orders?order_number=${encodeURIComponent(editOrder.order_number)}`).then(items => {
       const mapped = items.map(i => ({
@@ -425,6 +491,12 @@ const parsePasteItems = () => {
   };
 
   const allocChange=(i,field,val)=>setRows(r=>r.map((x,j)=>j===i?{...x,[field]:val}:x));
+  
+  const refreshStockItems = async () => {
+	  const items = await api('/api/stock');
+	  setStockItems(items);
+	  return items;
+	};
 
   const save=async()=>{
     if(!canSave)return;
@@ -536,8 +608,19 @@ const parsePasteItems = () => {
           </div>
         </div>
 
-        {showAdd&&<ItemForm onSave={addItem} onClose={()=>setShowAdd(false)}/>}
-        {editIdx!==null&&<ItemForm initial={rows[editIdx]} onSave={f=>editItem(f,editIdx)} onClose={()=>setEditIdx(null)}/>}
+		{showAdd && <ItemForm
+		  onSave={addItem}
+		  onClose={() => setShowAdd(false)}
+		  stockItems={stockItems}
+		  onStockCreated={refreshStockItems}
+		/>}
+		{editIdx !== null && <ItemForm
+		  initial={rows[editIdx]}
+		  onSave={f => editItem(f, editIdx)}
+		  onClose={() => setEditIdx(null)}
+		  stockItems={stockItems}
+		  onStockCreated={refreshStockItems}
+		/>}
 
         {pasteItems&&!preview&&(
           <div style={{background:'var(--card)',borderRadius:'var(--radius)',padding:14,marginBottom:14}}>
@@ -919,14 +1002,25 @@ function PurchasedItemsTab({ onOpenOrder }) {
   );
 }
 
-function PurchasedItemForm({ initial = {}, onSave, onClose, categories = [] }) {
-  const [f, setF] = useState({ item_name: '', variant: '', vendor: '', date_purchased: '', qty_purchased: 1, qty_remaining: 1, unit_cost: '', condition: 'New', category: '', location: '', notes: '', ...initial });
+function PurchasedItemForm({ initial = {}, onSave, onClose }) {
+  const [f, setF] = useState({
+    item_name: '', variant: '', vendor: '', date_purchased: '',
+    qty_purchased: 1, qty_remaining: 1, unit_cost: '', condition: 'New',
+    category: '', location: '', notes: '', stock_item_id: '', ...initial
+  });
+  const [stockItems, setStockItems] = useState([]);
+
+  useEffect(() => {
+    api('/api/stock').then(setStockItems);
+  }, []);
+
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+
   return (
     <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
       <div className="form-grid">
         <div className="form-group full"><label>Item Name *</label><input name="item_name" value={f.item_name} onChange={handle} required /></div>
-        <div className="form-group"><label>Category *</label><CategoryCombobox value={f.category} onChange={handle} categories={categories} /></div>
+        <div className="form-group"><label>Category *</label><CategoryCombobox value={f.category} onChange={handle} /></div>
         <div className="form-group"><label>Vendor</label><input name="vendor" value={f.vendor || ''} onChange={handle} /></div>
         <div className="form-group"><label>Date Purchased</label><input type="date" name="date_purchased" value={f.date_purchased ? fmtDate(f.date_purchased) : ''} onChange={handle} /></div>
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
@@ -935,7 +1029,34 @@ function PurchasedItemForm({ initial = {}, onSave, onClose, categories = [] }) {
         <div className="form-group"><label>Qty Remaining</label><input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
         <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
+        <div className="form-group full">
+          <label>Stock Item</label>
+          <select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle}>
+            <option value="">— none —</option>
+            {stockItems.map(s => <option key={s.id} value={s.id}>{s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}</option>)}
+          </select>
+        </div>
         <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes || ''} onChange={handle} rows={2} /></div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+        <button type="button" onClick={onClose}>Cancel</button>
+        <button type="submit" className="primary">Save</button>
+      </div>
+    </form>
+  );
+}
+
+function StockItemForm({ initial = {}, onSave, onClose }) {
+  const [f, setF] = useState({ name: '', variant: '', category: '', location: '', notes: '', ...initial });
+  const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+  return (
+    <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
+      <div className="form-grid">
+        <div className="form-group full"><label>Name *</label><input name="name" value={f.name} onChange={handle} required /></div>
+        <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} /></div>
+        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
+        <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
+        <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
       </div>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
         <button type="button" onClick={onClose}>Cancel</button>
@@ -958,6 +1079,7 @@ function StockTab() {
   const [f, setF] = useState({ name: '', variant: '', category: '', location: '', notes: '' });
   const [rf, setRf] = useState({ stock_item_id: '', purchased_item_id: '', qty_received: 1, unit_cost: '' });
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+  const [editStockItem, setEditStockItem] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1076,7 +1198,10 @@ function StockTab() {
                       <td><span className={`badge ${sc}`}>{i.qty_on_hand}</span></td>
                       <td>{fmt$(i.unit_cost)}</td>
                       <td style={{ fontSize: 12 }}>{i.location || '—'}</td>
-                      <td><Kebab items={[{ label: 'Receive to Stock', action: () => openReceive(i) }, { label: 'Delete', danger: true, action: () => del(i) }]} /></td>
+                      <td><Kebab items={[
+						  {label:'Edit',action:()=>setEditStockItem(i)},
+						  {label:'Delete',danger:true,action:()=>del(i)}
+						]}/></td>
                     </tr>
                   );
                 })}
@@ -1109,6 +1234,14 @@ function StockTab() {
           </form>
         </Modal>
       )}
+	  {editStockItem && (
+		  <Modal title={`Edit ${editStockItem.sku}`} onClose={() => setEditStockItem(null)} width="520px">
+			<StockItemForm initial={editStockItem} onSave={async f => {
+			  await api(`/api/stock/${editStockItem.id}`, { method: 'PUT', body: f });
+			  setEditStockItem(null); load();
+			}} onClose={() => setEditStockItem(null)} />
+		  </Modal>
+		)}
     </>
   );
 }
