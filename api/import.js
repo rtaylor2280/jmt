@@ -17,7 +17,6 @@ function parseCSV(text) {
   });
 }
 
-// Parse a combined paste (items CSV + optional order footer)
 function parsePaste(text) {
   const lines = text.trim().split('\n').filter(l => l.trim());
   let orderHeaderIdx = -1;
@@ -26,7 +25,6 @@ function parsePaste(text) {
   }
   const itemLines  = orderHeaderIdx > 0 ? lines.slice(0, orderHeaderIdx) : lines;
   const orderLines = orderHeaderIdx > 0 ? lines.slice(orderHeaderIdx) : [];
-
   const items  = itemLines.length  > 1 ? parseCSVLines(itemLines)  : [];
   const orders = orderLines.length > 1 ? parseCSVLines(orderLines) : [];
   return { items, orders };
@@ -47,8 +45,6 @@ function parseCSVLines(lines) {
   });
 }
 
-const VALID_SOURCES = ['Hilt','Parts','Electronics','Blade','Saber'];
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -59,12 +55,10 @@ export default async function handler(req, res) {
   const { mode, csv, text } = req.body;
 
   try {
-    // ── PASTE mode: full order paste (items + optional order footer) ──────────
     if (mode === 'paste') {
       const { items, orders: orderRows } = parsePaste(text || csv);
       let insertedItems = 0, insertedOrders = 0, errors = [];
 
-      // Upsert order header first
       for (const o of orderRows) {
         if (!o.order_number) continue;
         await sql`
@@ -78,11 +72,8 @@ export default async function handler(req, res) {
         insertedOrders++;
       }
 
-      // Insert line items
       for (const r of items) {
         try {
-          const src = VALID_SOURCES.includes(r.source_type) ? r.source_type : 'Parts';
-          // Ensure order exists if referenced
           if (r.order_number) {
             await sql`
               INSERT INTO orders (order_number, vendor, order_date)
@@ -91,33 +82,31 @@ export default async function handler(req, res) {
           }
           await sql`
             INSERT INTO purchased_items
-              (order_number, item_name, variant, category, vendor, date_purchased,
-               qty_purchased, qty_remaining, unit_cost, condition, source_type, notes)
+              (order_number, item_name, variant, vendor, date_purchased,
+               qty_purchased, qty_remaining, unit_cost, condition, category, notes)
             VALUES
-              (${r.order_number||null}, ${r.item_name}, ${r.variant||null}, ${r.category||null},
+              (${r.order_number||null}, ${r.item_name}, ${r.variant||null},
                ${r.vendor||null}, ${r.date_purchased||null},
                ${parseInt(r.qty_purchased)||1}, ${parseInt(r.qty_purchased)||1},
-               ${parseFloat(r.unit_cost)||0}, ${r.condition||'New'}, ${src}, ${r.notes||null})`;
+               ${parseFloat(r.unit_cost)||0}, ${r.condition||'New'},
+               ${r.category||r.source_type||null}, ${r.notes||null})`;
           insertedItems++;
         } catch(e) {
           errors.push(`"${r.item_name}": ${e.message}`);
         }
       }
 
-      // Recalc allocation for all touched orders
       const orderNums = [...new Set(items.map(r => r.order_number).filter(Boolean))];
       for (const on of orderNums) await sql`SELECT recalc_allocation(${on})`;
 
       return res.json({ insertedItems, insertedOrders, errors: errors.slice(0,20) });
     }
 
-    // ── BULK mode: inventory CSV file (legacy import) ─────────────────────────
     if (mode === 'inventory') {
       const rows = parseCSV(csv);
       let inserted = 0, skipped = 0, errors = [];
       for (const r of rows) {
         try {
-          const src = VALID_SOURCES.includes(r.source_type) ? r.source_type : 'Parts';
           if (r.order_number) {
             await sql`INSERT INTO orders (order_number, vendor, order_date)
               VALUES (${r.order_number}, ${r.vendor||null}, ${r.date_purchased||null})
@@ -125,20 +114,20 @@ export default async function handler(req, res) {
           }
           await sql`
             INSERT INTO purchased_items
-              (order_number, item_name, variant, category, vendor, date_purchased,
-               qty_purchased, qty_remaining, unit_cost, condition, source_type, notes)
+              (order_number, item_name, variant, vendor, date_purchased,
+               qty_purchased, qty_remaining, unit_cost, condition, category, notes)
             VALUES
-              (${r.order_number||null}, ${r.item_name}, ${r.variant||null}, ${r.category||null},
+              (${r.order_number||null}, ${r.item_name}, ${r.variant||null},
                ${r.vendor||null}, ${r.date_purchased||null},
                ${parseInt(r.qty_purchased)||1}, ${parseInt(r.qty_purchased)||1},
-               ${parseFloat(r.unit_cost)||0}, ${r.condition||'New'}, ${src}, ${r.notes||null})`;
+               ${parseFloat(r.unit_cost)||0}, ${r.condition||'New'},
+               ${r.category||r.source_type||null}, ${r.notes||null})`;
           inserted++;
         } catch(e) { skipped++; errors.push(`"${r.item_name}": ${e.message}`); }
       }
       return res.json({ inserted, skipped, errors: errors.slice(0,20) });
     }
 
-    // ── BULK mode: orders CSV file ────────────────────────────────────────────
     if (mode === 'orders') {
       const rows = parseCSV(csv);
       let inserted = 0, skipped = 0, errors = [];

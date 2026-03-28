@@ -18,7 +18,6 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const body = req.body;
 
-      // Partial update — shipping/tax allocation only
       if (body._partial) {
         const [row] = await sql`
           UPDATE purchased_items SET
@@ -29,22 +28,20 @@ export default async function handler(req, res) {
         return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
       }
 
-      // Full update
-      const { item_name, variant, category, vendor, date_purchased,
+      const { item_name, variant, vendor, date_purchased,
               qty_purchased, qty_remaining, unit_cost, condition,
-              source_type, location, notes } = body;
+              category, location, notes } = body;
       const [row] = await sql`
         UPDATE purchased_items SET
           item_name      = ${item_name},
           variant        = ${variant||null},
-          category       = ${category||null},
           vendor         = ${vendor||null},
           date_purchased = ${date_purchased||null},
           qty_purchased  = ${qty_purchased},
           qty_remaining  = ${qty_remaining},
           unit_cost      = ${unit_cost},
           condition      = ${condition||'New'},
-          source_type    = ${source_type},
+          category       = ${category||null},
           location       = ${location||null},
           notes          = ${notes||null}
         WHERE item_id = ${id}
@@ -54,8 +51,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const [row] = await sql`
-        DELETE FROM purchased_items WHERE item_id = ${id} RETURNING order_number`;
+      await sql`DELETE FROM purchased_items WHERE item_id = ${id}`;
       return res.status(204).end();
     }
 
