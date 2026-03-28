@@ -525,6 +525,7 @@ const parsePasteItems = () => {
             // Existing item — update
             await api(`/api/purchased-items/${row.item_id}`,{method:'PUT',body:{
               item_name:row.item_name,variant:row.variant||null,category:row.category||null,
+			  stock_item_id:row.stock_item_id?parseInt(row.stock_item_id):null,
               vendor:header.vendor||null,date_purchased:header.order_date||null,
               qty_purchased:row.qty_purchased,qty_remaining:row.qty_purchased,
               unit_cost:row.unit_cost,condition:row.condition||'New',
@@ -541,6 +542,7 @@ const parsePasteItems = () => {
             await api('/api/purchased-items',{method:'POST',body:{
               order_number:header.order_number,
               item_name:row.item_name,variant:row.variant||null,category:row.category||null,
+			  stock_item_id:row.stock_item_id?parseInt(row.stock_item_id):null,
               vendor:header.vendor||null,date_purchased:header.order_date||null,
               qty_purchased:row.qty_purchased,unit_cost:row.unit_cost,
               condition:row.condition||'New',category:row.category,
@@ -553,10 +555,10 @@ const parsePasteItems = () => {
       } else {
         // New order — insert all items
         for(const row of rows){
-          console.log('saving row:', row); 
-		  await api('/api/purchased-items',{method:'POST',body:{
+          await api('/api/purchased-items',{method:'POST',body:{
             order_number:header.order_number,
             item_name:row.item_name,variant:row.variant||null,category:row.category||null,
+			stock_item_id:row.stock_item_id?parseInt(row.stock_item_id):null,
             vendor:header.vendor||null,date_purchased:header.order_date||null,
             qty_purchased:row.qty_purchased,unit_cost:row.unit_cost,
             condition:row.condition||'New',category:row.category,
