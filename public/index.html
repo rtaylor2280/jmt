@@ -176,31 +176,72 @@ function Kebab({items}){
   const [menuPos,setMenuPos]=useState({top:0,left:0});
   const ref=useRef();
   const btnRef=useRef();
+  const menuRef=useRef();
 
   useEffect(()=>{
-    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
-    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+    const h=e=>{
+      const clickedTrigger = ref.current && ref.current.contains(e.target);
+      const clickedMenu = menuRef.current && menuRef.current.contains(e.target);
+      if(!clickedTrigger && !clickedMenu){
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown',h);
+    return()=>document.removeEventListener('mousedown',h);
   },[]);
 
   const toggle=()=>{
     if(!open&&btnRef.current){
       const rect=btnRef.current.getBoundingClientRect();
-      const spaceBelow=window.innerHeight-rect.bottom;
+      const menuW=140;
       const menuH=items.length*38;
-      const top=spaceBelow<menuH?rect.top-menuH:rect.bottom;
-      setMenuPos({top:top+window.scrollY,left:rect.right-140});
+      const spaceBelow=window.innerHeight-rect.bottom;
+      const top=spaceBelow<menuH ? rect.top-menuH : rect.bottom;
+      const left=Math.max(8, rect.right-menuW);
+      setMenuPos({top:top+window.scrollY,left:left+window.scrollX});
     }
     setOpen(o=>!o);
   };
 
   const menu=open&&ReactDOM.createPortal(
-    <div style={{position:'absolute',top:menuPos.top,left:menuPos.left,background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--radius)',minWidth:140,zIndex:1000}}>
+    <div
+      ref={menuRef}
+      style={{
+        position:'absolute',
+        top:menuPos.top,
+        left:menuPos.left,
+        background:'var(--card)',
+        border:'1px solid var(--border)',
+        borderRadius:'var(--radius)',
+        minWidth:140,
+        zIndex:1000
+      }}
+    >
       {items.map((item,i)=>(
-        <button key={i} style={{display:'block',width:'100%',textAlign:'left',background:'none',border:'none',borderRadius:0,padding:'8px 14px',fontSize:13,cursor:'pointer',color:item.danger?'var(--danger)':'var(--text)'}}
-          onClick={()=>{setOpen(false);item.action();}}
+        <button
+          key={i}
+          type="button"
+          style={{
+            display:'block',
+            width:'100%',
+            textAlign:'left',
+            background:'none',
+            border:'none',
+            borderRadius:0,
+            padding:'8px 14px',
+            fontSize:13,
+            cursor:'pointer',
+            color:item.danger?'var(--danger)':'var(--text)'
+          }}
+          onClick={()=>{
+            setOpen(false);
+            item.action();
+          }}
           onMouseEnter={e=>e.currentTarget.style.background='var(--border)'}
           onMouseLeave={e=>e.currentTarget.style.background='none'}
-        >{item.label}</button>
+        >
+          {item.label}
+        </button>
       ))}
     </div>,
     document.body
@@ -208,7 +249,7 @@ function Kebab({items}){
 
   return(
     <div className="kebab-wrap" ref={ref}>
-      <button className="kebab-btn" ref={btnRef} onClick={toggle}>⋮</button>
+      <button type="button" className="kebab-btn" ref={btnRef} onClick={toggle}>⋮</button>
       {menu}
     </div>
   );
