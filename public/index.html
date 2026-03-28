@@ -1021,12 +1021,47 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
     category: '', location: '', notes: '', stock_item_id: '', ...initial
   });
   const [stockItems, setStockItems] = useState([]);
+  const [showNewStock, setShowNewStock] = useState(false);
+  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+  const [creatingStock, setCreatingStock] = useState(false);
+  const [skuError, setSkuError] = useState('');
 
   useEffect(() => {
     api('/api/stock').then(setStockItems);
   }, []);
 
+  // Pre-fill new stock form from item
+  useEffect(() => {
+    setNewStock(p => ({
+      ...p,
+      name: f.item_name,
+      category: f.category,
+      sku_prefix: f.category ? f.category.slice(0, 2).toUpperCase() : ''
+    }));
+  }, [f.item_name, f.category]);
+
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+  const handleNewStock = e => { setSkuError(''); setNewStock(p => ({ ...p, [e.target.name]: e.target.value })); };
+
+  const createStockItem = async () => {
+    if (!newStock.name) return;
+    const prefix = (newStock.sku_prefix || '').toUpperCase();
+    if (!prefix) { setSkuError('SKU prefix is required.'); return; }
+    const taken = stockItems.some(s => s.sku && s.sku.startsWith(prefix + '-'));
+    if (taken) { setSkuError(`Prefix "${prefix}" already in use. Choose a different one.`); return; }
+    setCreatingStock(true);
+    try {
+      const created = await api('/api/stock', { method: 'POST', body: { ...newStock, sku_prefix: prefix } });
+      const refreshed = await api('/api/stock');
+      setStockItems(refreshed);
+      setF(p => ({ ...p, stock_item_id: String(created.id), category: newStock.category }));
+      setShowNewStock(false);
+      setNewStock({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+    } catch (e) {
+      setSkuError('Failed to create stock item: ' + e.message);
+    }
+    setCreatingStock(false);
+  };
 
   return (
     <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
@@ -1043,13 +1078,42 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
         <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
         <div className="form-group full">
           <label>Stock Item</label>
-          <select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle}>
-            <option value="">— none —</option>
-            {stockItems.map(s => <option key={s.id} value={s.id}>{s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle} style={{ flex: 1 }}>
+              <option value="">— none —</option>
+              {stockItems.map(s => <option key={s.id} value={s.id}>{s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}</option>)}
+            </select>
+            <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
+              {showNewStock ? 'Cancel' : '+ New'}
+            </button>
+          </div>
         </div>
         <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes || ''} onChange={handle} rows={2} /></div>
       </div>
+
+      {showNewStock && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 12, marginTop: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>New Stock Item</div>
+          <div className="form-grid">
+            <div className="form-group full"><label>Name *</label><input name="name" value={newStock.name} onChange={handleNewStock} required /></div>
+            <div className="form-group"><label>Category</label><CategoryCombobox value={newStock.category} onChange={handleNewStock} /></div>
+            <div className="form-group">
+              <label>SKU Prefix *</label>
+              <input name="sku_prefix" value={newStock.sku_prefix || ''} onChange={handleNewStock} placeholder="e.g. EL, PT" maxLength={4} style={{ textTransform: 'uppercase' }} />
+              {skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
+            </div>
+            <div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
+            <div className="form-group"><label>Location</label><input name="location" value={newStock.location} onChange={handleNewStock} /></div>
+            <div className="form-group full"><label>Notes</label><input name="notes" value={newStock.notes} onChange={handleNewStock} /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button type="button" className="primary sm" onClick={createStockItem} disabled={!newStock.name || creatingStock}>
+              {creatingStock ? 'Creating…' : 'Create Stock Item'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
         <button type="button" onClick={onClose}>Cancel</button>
         <button type="submit" className="primary">Save</button>
@@ -1123,10 +1187,7 @@ function StockTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [receiveItem, setReceiveItem] = useState(null);
   const [purchasedItems, setPurchasedItems] = useState([]);
-  const [allCategories, setAllCategories] = useState([]);
-  const [f, setF] = useState({ name: '', variant: '', category: '', location: '', notes: '' });
   const [rf, setRf] = useState({ stock_item_id: '', purchased_item_id: '', qty_received: 1, unit_cost: '' });
-  const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
   const [editStockItem, setEditStockItem] = useState(null);
 
   const load = useCallback(async () => {
@@ -1153,22 +1214,7 @@ function StockTab() {
     return () => { ignore = true; };
   }, [search, filterCat]);
 
-  // Load all categories from purchased items for combobox
-  useEffect(() => {
-    api('/api/purchased-items').then(rows => {
-      const cats = [...new Set(rows.map(r => r.category).filter(Boolean))].sort();
-      setAllCategories(cats);
-    });
-  }, []);
-
   const catTypes = useMemo(() => [...new Set(items.map(i => i.category).filter(Boolean))].sort(), [items]);
-
-  const addStock = async e => {
-    e.preventDefault();
-    await api('/api/stock', { method: 'POST', body: f });
-    setF({ name: '', variant: '', category: '', location: '', notes: '' });
-    setShowAdd(false); load();
-  };
 
   const openReceive = async item => {
     setReceiveItem(item);
@@ -1211,25 +1257,19 @@ function StockTab() {
         <button className="primary" style={{ marginLeft: 'auto' }} onClick={() => setShowAdd(a => !a)}>+ New Stock Item</button>
       </div>
 
-      {showAdd && (
-        <div className="section" style={{ maxWidth: 640, marginBottom: 16 }}>
-          <h2>New Stock Item</h2>
-          <form onSubmit={addStock}>
-            <div className="form-grid">
-              <div className="form-group full"><label>Canonical Name *</label><input name="name" value={f.name} onChange={handle} required placeholder="e.g. Keeppower 18650 3500mAh" /></div>
-              <div className="form-group"><label>Category *</label><CategoryCombobox value={f.category} onChange={handle} categories={allCategories} /></div>
-              <div className="form-group"><label>Variant</label><input name="variant" value={f.variant} onChange={handle} /></div>
-              <div className="form-group"><label>Location</label><input name="location" value={f.location} onChange={handle} /></div>
-              <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes} onChange={handle} /></div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button type="submit" className="primary">Create</button>
-              <button type="button" onClick={() => setShowAdd(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-
+		{showAdd && (
+		  <Modal title="New Stock Item" onClose={() => setShowAdd(false)} width="560px">
+			<StockItemForm
+			  stockItems={items}
+			  onSave={async f => {
+				await api('/api/stock', { method: 'POST', body: f });
+				setShowAdd(false); load();
+			  }}
+			  onClose={() => setShowAdd(false)}
+			/>
+		  </Modal>
+		)}
+		
       <div className="overflow-x">
         {loading ? <div className="empty">Loading…</div> : items.length === 0
           ? <div className="empty">No stock items yet.<br />Create stock items then receive purchased items into them.</div> : (
