@@ -27,14 +27,16 @@ export default async function handler(req, res) {
       return res.json(rows);
     }
 
-    if (req.method === 'POST') {
-      const { name, variant, category, location, notes } = req.body;
-      const [row] = await sql`
-        INSERT INTO stock_items (name, variant, category, location, notes)
-        VALUES (${name}, ${variant||null}, ${category||null}, ${location||null}, ${notes||null})
-        RETURNING *`;
-      return res.status(201).json(row);
-    }
+	if (req.method === 'POST') {
+	  const { name, variant, category, sku_prefix, location, notes } = req.body;
+	  const [row] = await sql`
+		INSERT INTO stock_items (name, variant, category, sku, location, notes)
+		VALUES (${name}, ${variant||null}, ${category||null},
+				${sku_prefix ? sku_prefix.toUpperCase() : null},
+				${location||null}, ${notes||null})
+		RETURNING *`;
+	  return res.status(201).json(row);
+	}
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (e) {

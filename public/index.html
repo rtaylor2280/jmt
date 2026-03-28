@@ -217,7 +217,7 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
     unit_cost: '', condition: 'New', notes: '', stock_item_id: '', ...initial
   });
   const [showNewStock, setShowNewStock] = useState(false);
-  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', location: '', notes: '' });
+  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
   const [creatingStock, setCreatingStock] = useState(false);
 
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -225,24 +225,32 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
 
   // When category or item_name changes, pre-fill new stock form
   useEffect(() => {
-    setNewStock(p => ({ ...p, name: f.item_name, category: f.category }));
-  }, [f.item_name, f.category]);
+	  setNewStock(p => ({ 
+		...p, 
+		name: f.item_name, 
+		category: f.category,
+		sku_prefix: f.category ? f.category.slice(0, 2).toUpperCase() : ''
+	  }));
+	}, [f.item_name, f.category]);
 
-  const createStockItem = async () => {
-    if (!newStock.name) return;
-    setCreatingStock(true);
-    try {
-      const created = await api('/api/stock', { method: 'POST', body: newStock });
-      // Notify parent to re-fetch stock list, then auto-select new item
-      const refreshed = await onStockCreated();
-      setF(p => ({ ...p, stock_item_id: String(created.id) }));
-      setShowNewStock(false);
-      setNewStock({ name: '', variant: '', category: '', location: '', notes: '' });
-    } catch (e) {
-      alert('Failed to create stock item: ' + e.message);
-    }
-    setCreatingStock(false);
-  };
+	const createStockItem = async () => {
+	  if (!newStock.name) return;
+	  const prefix = (newStock.sku_prefix || '').toUpperCase();
+	  if (!prefix) { alert('SKU prefix is required.'); return; }
+	  const taken = stockItems.some(s => s.sku && s.sku.startsWith(prefix + '-'));
+	  if (taken) { alert(`Prefix "${prefix}" is already in use. Choose a different one.`); return; }
+	  setCreatingStock(true);
+	  try {
+		const created = await api('/api/stock', { method: 'POST', body: { ...newStock, sku_prefix: prefix } });
+		const refreshed = await onStockCreated();
+		setF(p => ({ ...p, stock_item_id: String(created.id) }));
+		setShowNewStock(false);
+		setNewStock({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+	  } catch (e) {
+		alert('Failed to create stock item: ' + e.message);
+	  }
+	  setCreatingStock(false);
+	};
 
   const canSave = f.item_name && f.stock_item_id;
 
@@ -276,8 +284,9 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>New Stock Item</div>
           <div className="form-grid">
             <div className="form-group full"><label>Name *</label><input name="name" value={newStock.name} onChange={handleNewStock} required /></div>
-            <div className="form-group"><label>Category</label><CategoryCombobox value={newStock.category} onChange={handleNewStock} /></div>
-            <div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
+			<div className="form-group"><label>Category</label><CategoryCombobox value={newStock.category} onChange={handleNewStock} /></div>
+			<div className="form-group"><label>SKU Prefix</label><input name="sku_prefix" value={newStock.sku_prefix||''} onChange={handleNewStock} placeholder="e.g. EL, PT" maxLength={4} style={{textTransform:'uppercase'}}/></div>
+			<div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
             <div className="form-group"><label>Location</label><input name="location" value={newStock.location} onChange={handleNewStock} /></div>
             <div className="form-group full"><label>Notes</label><input name="notes" value={newStock.notes} onChange={handleNewStock} /></div>
           </div>
@@ -1049,14 +1058,51 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
   );
 }
 
-function StockItemForm({ initial = {}, onSave, onClose }) {
-  const [f, setF] = useState({ name: '', variant: '', category: '', location: '', notes: '', ...initial });
-  const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
+function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
+  const [f, setF] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '', ...initial });
+  const [skuError, setSkuError] = useState('');
+  const handle = e => {
+    setSkuError('');
+    setF(p => ({ ...p, [e.target.name]: e.target.value }));
+  };
+
+  // Auto-derive SKU prefix from category when category changes
+  useEffect(() => {
+    if (f.category && !initial.id) {
+      setF(p => ({ ...p, sku_prefix: f.category.slice(0, 2).toUpperCase() }));
+    }
+  }, [f.category]);
+
+  const submit = e => {
+    e.preventDefault();
+    if (!initial.id) {
+      // Check prefix collision on creation only
+      const prefix = (f.sku_prefix || '').toUpperCase();
+      if (!prefix) { setSkuError('SKU prefix is required.'); return; }
+      const taken = stockItems.some(s => s.sku && s.sku.startsWith(prefix + '-'));
+      if (taken) { setSkuError(`Prefix "${prefix}" is already in use. Choose a different one.`); return; }
+    }
+    onSave(f);
+  };
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(f); }}>
+    <form onSubmit={submit}>
       <div className="form-grid">
         <div className="form-group full"><label>Name *</label><input name="name" value={f.name} onChange={handle} required /></div>
         <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} /></div>
+        <div className="form-group">
+          <label>SKU Prefix *</label>
+          <input
+            name="sku_prefix"
+            value={f.sku_prefix || ''}
+            onChange={handle}
+            placeholder="e.g. EL, PT"
+            maxLength={4}
+            style={{ textTransform: 'uppercase' }}
+            disabled={!!initial.id}
+          />
+          {skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
+        </div>
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
         <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
         <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
@@ -1068,7 +1114,6 @@ function StockItemForm({ initial = {}, onSave, onClose }) {
     </form>
   );
 }
-
 // ── Stock Tab ─────────────────────────────
 function StockTab() {
   const [items, setItems] = useState([]);
@@ -1239,7 +1284,7 @@ function StockTab() {
       )}
 	  {editStockItem && (
 		  <Modal title={`Edit ${editStockItem.sku}`} onClose={() => setEditStockItem(null)} width="520px">
-			<StockItemForm initial={editStockItem} onSave={async f => {
+			<StockItemForm initial={editStockItem} stockItems={items} onSave={async f => {
 			  await api(`/api/stock/${editStockItem.id}`, { method: 'PUT', body: f });
 			  setEditStockItem(null); load();
 			}} onClose={() => setEditStockItem(null)} />
