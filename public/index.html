@@ -33,18 +33,15 @@ const catBadge = s => {
   return <span className="badge" style={{ background: bg, color }}>{s||'—'}</span>;
 };
 
-function CategoryCombobox({ value, onChange, categories = [] }) {
-  const id = 'cat-list-' + Math.random().toString(36).slice(2);
+function CategoryCombobox({ value, onChange }) {
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    api('/api/purchased-items?categories=true').then(setCategories);
+  }, []);
   return (
     <>
-      <input
-        name="category"
-        value={value || ''}
-        onChange={onChange}
-        list={id}
-        autoComplete="off"
-      />
-      <datalist id={id}>
+      <input name="category" value={value || ''} onChange={onChange} list="category-options" autoComplete="off"/>
+      <datalist id="category-options">
         {categories.map(c => <option key={c} value={c} />)}
       </datalist>
     </>

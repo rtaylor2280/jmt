@@ -1,4 +1,6 @@
-import { neon } from '@neondatabase/serverless';
+import {
+  neon
+} from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL);
 
 export default async function handler(req, res) {
@@ -8,30 +10,52 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    // GET /api/purchased-items/categories
+    if (req.method === 'GET' && req.query.categories === 'true') {
+      const rows = await sql `
+    SELECT DISTINCT category FROM purchased_items 
+    WHERE category IS NOT NULL 
+    ORDER BY category`;
+      return res.json(rows.map(r => r.category));
+    }
+
     if (req.method === 'GET') {
-      const { category, search } = req.query;
-      const s   = search ? `%${search}%` : null;
+      const {
+        category,
+        search
+      } = req.query;
+      const s = search ? `%${search}%` : null;
       const cat = category || null;
       let rows;
       if (cat && s) {
-        rows = await sql`SELECT * FROM purchased_items WHERE category=${cat} AND (item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s}) ORDER BY created_at DESC`;
+        rows = await sql `SELECT * FROM purchased_items WHERE category=${cat} AND (item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s}) ORDER BY created_at DESC`;
       } else if (cat) {
-        rows = await sql`SELECT * FROM purchased_items WHERE category=${cat} ORDER BY created_at DESC`;
+        rows = await sql `SELECT * FROM purchased_items WHERE category=${cat} ORDER BY created_at DESC`;
       } else if (s) {
-        rows = await sql`SELECT * FROM purchased_items WHERE item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s} ORDER BY created_at DESC`;
+        rows = await sql `SELECT * FROM purchased_items WHERE item_name ILIKE ${s} OR item_id ILIKE ${s} OR vendor ILIKE ${s} ORDER BY created_at DESC`;
       } else {
-        rows = await sql`SELECT * FROM purchased_items ORDER BY created_at DESC`;
+        rows = await sql `SELECT * FROM purchased_items ORDER BY created_at DESC`;
       }
       return res.json(rows);
     }
 
     if (req.method === 'POST') {
       const {
-        order_number, item_name, variant, vendor, date_purchased,
-        qty_purchased, unit_cost, condition, category, location, notes,
-        shipping_allocated, tax_allocated
+        order_number,
+        item_name,
+        variant,
+        vendor,
+        date_purchased,
+        qty_purchased,
+        unit_cost,
+        condition,
+        category,
+        location,
+        notes,
+        shipping_allocated,
+        tax_allocated
       } = req.body;
-      const [row] = await sql`
+      const [row] = await sql `
         INSERT INTO purchased_items
           (order_number, item_name, variant, vendor, date_purchased,
            qty_purchased, qty_remaining, unit_cost, shipping_allocated, tax_allocated,
@@ -46,9 +70,13 @@ export default async function handler(req, res) {
       return res.status(201).json(row);
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({
+      error: 'Method not allowed'
+    });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({
+      error: e.message
+    });
   }
 }
