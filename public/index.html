@@ -536,7 +536,7 @@ const parsePasteItems = () => {
               item_name:row.item_name,variant:row.variant||null,category:row.category||null,
 			  stock_item_id:row.stock_item_id?parseInt(row.stock_item_id):null,
               vendor:header.vendor||null,date_purchased:header.order_date||null,
-              qty_purchased:row.qty_purchased,qty_remaining:row.qty_purchased,
+              qty_purchased:row.qty_purchased,
               unit_cost:row.unit_cost,condition:row.condition||'New',
               category:row.category,location:row.location||null,notes:row.notes||null,
             }});
@@ -1017,7 +1017,7 @@ function PurchasedItemsTab({ onOpenOrder }) {
 function PurchasedItemForm({ initial = {}, onSave, onClose }) {
   const [f, setF] = useState({
     item_name: '', variant: '', vendor: '', date_purchased: '',
-    qty_purchased: 1, qty_remaining: 1, unit_cost: '', condition: 'New',
+    qty_purchased: 1, unit_cost: '', condition: 'New',
     category: '', location: '', notes: '', stock_item_id: '', ...initial
   });
   const [stockItems, setStockItems] = useState([]);
@@ -1073,7 +1073,6 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
-        <div className="form-group"><label>Qty Remaining</label><input type="number" name="qty_remaining" value={f.qty_remaining} onChange={handle} min="0" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
         <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
         <div className="form-group full">
@@ -1306,10 +1305,10 @@ function StockTab() {
                 <label>Link to Purchased Item (optional)</label>
                 <select value={rf.purchased_item_id} onChange={e => {
                   const pi = purchasedItems.find(p => p.item_id === e.target.value);
-                  setRf(r => ({ ...r, purchased_item_id: e.target.value, unit_cost: pi ? pi.unit_cost : r.unit_cost, qty_received: pi ? pi.qty_remaining : r.qty_received }));
+                  setRf(r => ({ ...r, purchased_item_id: e.target.value, unit_cost: pi ? pi.unit_cost : r.unit_cost, qty_received: pi ? pi.qty_purchased : r.qty_received }));
                 }}>
                   <option value="">— none —</option>
-                  {purchasedItems.map(p => <option key={p.item_id} value={p.item_id}>{p.item_id} — {p.item_name} (rem: {p.qty_remaining})</option>)}
+                  {purchasedItems.map(p => <option key={p.item_id} value={p.item_id}>{p.item_id} — {p.item_name} (rem: {p.qty_purchased})</option>)}
                 </select>
               </div>
               <div className="form-group"><label>Qty Received *</label><input type="number" value={rf.qty_received} onChange={e => setRf(r => ({ ...r, qty_received: e.target.value }))} min="1" required /></div>
