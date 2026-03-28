@@ -553,7 +553,8 @@ const parsePasteItems = () => {
       } else {
         // New order — insert all items
         for(const row of rows){
-          await api('/api/purchased-items',{method:'POST',body:{
+          console.log('saving row:', row); 
+		  await api('/api/purchased-items',{method:'POST',body:{
             order_number:header.order_number,
             item_name:row.item_name,variant:row.variant||null,category:row.category||null,
             vendor:header.vendor||null,date_purchased:header.order_date||null,
