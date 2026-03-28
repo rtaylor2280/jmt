@@ -1132,7 +1132,7 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
 
   // Auto-derive SKU prefix from category when category changes
   useEffect(() => {
-    if (f.category && !initial.id) {
+    if (f.name && !initial.id) {
       setF(p => ({ ...p, sku_prefix: f.name.slice(0, 2).toUpperCase() }));
     }
   }, [f.name]);
