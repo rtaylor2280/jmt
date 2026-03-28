@@ -144,8 +144,8 @@ function distribute(items,shipTotal,taxTotal) {
     return{...i,ship_alloc:round2(ship*w),tax_alloc:round2(tax*w)};
   });
   if(rows.length){
-    const sd=round2(ship-rows.reduce((s,r)=>s+r.ship_alloc,0));
-    const td=round2(tax-rows.reduce((s,r)=>s+r.tax_alloc,0));
+    const sd=round2(ship-round2(rows.reduce((s,r)=>s+r.ship_alloc,0)));
+    const td=round2(tax-round2(rows.reduce((s,r)=>s+r.tax_alloc,0)));
     rows[rows.length-1].ship_alloc=round2(rows[rows.length-1].ship_alloc+sd);
     rows[rows.length-1].tax_alloc=round2(rows[rows.length-1].tax_alloc+td);
   }
@@ -725,8 +725,8 @@ function OrdersTab(){
   const [filterDateFrom,setFilterDateFrom]=useState('');
   const [filterDateTo,setFilterDateTo]=useState('');
 
-  const load=async()=>{setLoading(true);setOrders(await api('/api/orders'));setLoading(false);};
-  useEffect(()=>{load();},[]);
+  const load=useCallback(async()=>{setLoading(true);setOrders(await api('/api/orders'));setLoading(false);},[]);
+  useEffect(()=>{let ignore=false;(async()=>{setLoading(true);const d=await api('/api/orders');if(!ignore)setOrders(d);setLoading(false);})();return()=>{ignore=true;};},[]);
 
   const vendors=useMemo(()=>[...new Set(orders.map(o=>o.vendor).filter(Boolean))].sort(),[orders]);
 
@@ -738,10 +738,12 @@ function OrdersTab(){
     return true;
   }),[orders,search,filterVendor,filterDateFrom,filterDateTo]);
 
-  const del=async o=>{
-    if(!confirm(`Delete order ${o.order_number}?`))return;
-    await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});load();
-  };
+	const del=async o=>{
+	  if(!confirm(`Delete order ${o.order_number}?`))return;
+	  await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});
+	  setDetail(null);
+	  load();
+	};
 
   const totalSpend=orders.reduce((s,o)=>s+Number(o.order_total||0),0);
   const totalShip =orders.reduce((s,o)=>s+Number(o.shipping_total||0),0);
@@ -797,11 +799,7 @@ function OrdersTab(){
 		  order={detail}
 		  onClose={()=>setDetail(null)}
 		  onEdit={o=>{setEditOrder(o);}}
-		  onDelete={async o=>{
-			if(!confirm(`Delete order ${o.order_number}?`))return;
-			await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});
-			load();
-		  }}
+		  onDelete={del}
 		/>}
 	  {editOrder&&<NewOrderModal editOrder={editOrder} onClose={()=>setEditOrder(null)} onSaved={()=>{setEditOrder(null);load();}}/>}
     </>
@@ -1005,15 +1003,28 @@ function StockTab(){
   const [rf,setRf]=useState({stock_item_id:'',purchased_item_id:'',qty_received:1,unit_cost:''});
   const handle=e=>setF(p=>({...p,[e.target.name]:e.target.value}));
 
-  const load=useCallback(async()=>{
-    setLoading(true);
-    const p=new URLSearchParams();
-    if(search)p.set('search',search);
-    if(filterSrc)p.set('source_type',filterSrc);
-    setItems(await api('/api/stock?'+p));
-    setLoading(false);
-  },[search,filterSrc]);
-  useEffect(()=>{load();},[load]);
+	const load=useCallback(async()=>{
+	  setLoading(true);
+	  const p=new URLSearchParams();
+	  if(search)p.set('search',search);
+	  if(filterSrc)p.set('source_type',filterSrc);
+	  const d=await api('/api/stock?'+p);
+	  setItems(d);
+	  setLoading(false);
+	},[search,filterSrc]);
+	useEffect(()=>{
+	  let ignore=false;
+	  (async()=>{
+		setLoading(true);
+		const p=new URLSearchParams();
+		if(search)p.set('search',search);
+		if(filterSrc)p.set('source_type',filterSrc);
+		const d=await api('/api/stock?'+p);
+		if(!ignore)setItems(d);
+		setLoading(false);
+	  })();
+	  return()=>{ignore=true;};
+	},[search,filterSrc]);
 
   const srcTypes=useMemo(()=>[...new Set(items.map(i=>i.source_type).filter(Boolean))].sort(),[items]);
 
@@ -1146,7 +1157,7 @@ function BuildsTab({tiers}){
   const [usageModal,setUsageModal]=useState(null);
 
   const load=async()=>{setLoading(true);setBuilds(await api('/api/builds'));setLoading(false);};
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{let ignore=false;(async()=>{setLoading(true);const d=await api('/api/builds');if(!ignore)setBuilds(d);setLoading(false);})();return()=>{ignore=true;};},[]);
 
   const save=async f=>{
     if(modal==='add')await api('/api/builds',{method:'POST',body:f});
@@ -1353,7 +1364,7 @@ function App(){
         {tab==='tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers}/>}
         {tab==='import'    && <ImportTab/>}
       </div>
-      {orderModal&&<OrderDetailModal order={orderModal} onClose={()=>setOrderModal(null)} onOpenOrder={setOrderModal}/>}
+      {orderModal&&<OrderDetailModal order={orderModal} onClose={()=>setOrderModal(null)} onOpenOrder={openOrderModal}/>}
     </>
   );
 }
