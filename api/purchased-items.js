@@ -77,6 +77,8 @@ export default async function handler(req, res) {
         await sql `
           UPDATE stock_items SET qty_on_hand = qty_on_hand + ${qty_purchased||1}
           WHERE id = ${stock_item_id}`;
+		await sql`
+		  UPDATE stock_items SET active = true WHERE id = ${stock_item_id}`;
         await sql `
           INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
           VALUES (${stock_item_id}, ${row.id}, ${qty_purchased||1}, 'purchase')`;

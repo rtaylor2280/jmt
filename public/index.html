@@ -1122,14 +1122,18 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
 }
 
 function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
-  const [f, setF] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '', ...initial });
+  const [f, setF] = useState({
+    name: '', variant: '', category: '', sku_prefix: '',
+    location: '', notes: '', low_stock_threshold: '', ...initial
+  });
   const [skuError, setSkuError] = useState('');
+
   const handle = e => {
     setSkuError('');
     setF(p => ({ ...p, [e.target.name]: e.target.value }));
   };
 
-  // Auto-derive SKU prefix from category when category changes
+  // Auto-derive SKU prefix from name on create
   useEffect(() => {
     if (f.name && !initial.id) {
       setF(p => ({ ...p, sku_prefix: f.name.slice(0, 2).toUpperCase() }));
@@ -1139,7 +1143,6 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
   const submit = e => {
     e.preventDefault();
     if (!initial.id) {
-      // Check prefix collision on creation only
       const prefix = (f.sku_prefix || '').toUpperCase();
       if (!prefix) { setSkuError('SKU prefix is required.'); return; }
       const taken = stockItems.some(s => s.sku && s.sku.startsWith(prefix + '-'));
@@ -1154,7 +1157,7 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
         <div className="form-group full"><label>Name *</label><input name="name" value={f.name} onChange={handle} required /></div>
         <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} /></div>
         <div className="form-group">
-          <label>SKU Prefix *</label>
+          <label>SKU Prefix {!initial.id && '*'}</label>
           <input
             name="sku_prefix"
             value={f.sku_prefix || ''}
@@ -1167,6 +1170,9 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
           {skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
         </div>
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
+        <div className="form-group"><label>Low Stock Threshold</label>
+          <input type="number" name="low_stock_threshold" value={f.low_stock_threshold ?? ''} onChange={handle} min="0" placeholder="Leave blank to disable" />
+        </div>
         <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
         <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
       </div>
@@ -1177,27 +1183,182 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
     </form>
   );
 }
+
+// ── AdjustModal ───────────────────────────
+function AdjustModal({ item, onClose, onSaved }) {
+  const [qty, setQty] = useState('');
+  const [reason, setReason] = useState('Found');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const REASONS = ['Found', 'Lost', 'Damaged', 'Correction', 'Other'];
+
+  const save = async e => {
+    e.preventDefault();
+    const qtyNum = parseInt(qty);
+    if (!qtyNum || qtyNum === 0) { setErr('Qty change cannot be zero.'); return; }
+    setSaving(true); setErr('');
+    try {
+      await api('/api/stock/adjust', { method: 'POST', body: {
+        stock_item_id: item.id,
+        qty_change: qtyNum,
+        reason,
+        notes: notes || null
+      }});
+      onSaved();
+    } catch(e) { setErr(e.message); }
+    setSaving(false);
+  };
+
+  return (
+    <Modal title={`Adjust — ${item.sku}`} onClose={onClose} width="440px">
+      <form onSubmit={save}>
+        <div className="form-grid">
+          <div className="form-group full">
+            <label>Qty Change *</label>
+            <input type="number" value={qty} onChange={e => setQty(e.target.value)}
+              placeholder="e.g. 2 or -1" required />
+            <div style={{fontSize:11,color:'var(--muted)',marginTop:4}}>Use negative to decrease, positive to increase</div>
+          </div>
+          <div className="form-group full">
+            <label>Reason *</label>
+            <select value={reason} onChange={e => setReason(e.target.value)}>
+              {REASONS.map(r => <option key={r}>{r}</option>)}
+            </select>
+          </div>
+          <div className="form-group full">
+            <label>Notes</label>
+            <input value={notes} onChange={e => setNotes(e.target.value)} />
+          </div>
+        </div>
+        {err && <div className="result-err" style={{marginTop:10}}>{err}</div>}
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="primary" disabled={saving}>{saving?'Saving…':'Save Adjustment'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── StockItemViewModal ────────────────────
+function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRetire, onActivate }) {
+  const [item, setItem] = useState(initialItem);
+  const [ledger, setLedger] = useState([]);
+  const [showAllLedger, setShowAllLedger] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api(`/api/stock/${initialItem.id}`).then(data => {
+      setItem(data);
+      setLedger(data.ledger || []);
+      setLoading(false);
+    });
+  }, [initialItem.id]);
+
+  const displayedLedger = showAllLedger ? ledger : ledger.slice(0, 10);
+
+  const reasonLabel = r => ({
+    purchase: 'Purchase',
+    purchase_edit: 'Purchase Edit',
+    purchase_linked: 'Linked to Purchase',
+    purchase_unlinked: 'Unlinked from Purchase',
+    purchase_deleted: 'Purchase Deleted',
+    order_deleted: 'Order Deleted',
+    adjustment: 'Adjustment',
+    Found: 'Found', Lost: 'Lost', Damaged: 'Damaged',
+    Correction: 'Correction', Other: 'Other'
+  }[r] || r);
+
+  return (
+    <Modal
+      title={`${item.sku} — ${item.name}`}
+      onClose={onClose}
+      width="640px"
+      headerActions={
+        <Kebab items={[
+          { label: 'Edit', action: () => { onClose(); onEdit(item); }},
+          { label: 'Adjust', action: () => { onClose(); onAdjust(item); }},
+          { label: item.active ? 'Retire' : 'Activate', action: () => { onClose(); item.active ? onRetire(item) : onActivate(item); }},
+        ]}/>
+      }
+    >
+      {loading ? <div className="empty">Loading…</div> : (
+        <>
+          <div className="view-grid" style={{marginBottom:16}}>
+            {[
+              ['SKU', <span style={{fontFamily:'monospace'}}>{item.sku}</span>],
+              ['Status', <span className="badge" style={item.active ? {background:'#102010',color:'var(--success)'} : {background:'#2a1010',color:'var(--danger)'}}>{item.active ? 'Active' : 'Retired'}</span>],
+              ['Name', item.name],
+              ['Category', catBadge(item.category)],
+              ['Variant', item.variant || '—'],
+              ['On Hand', <strong style={{color: item.qty_on_hand === 0 ? 'var(--danger)' : item.low_stock_threshold && item.qty_on_hand <= item.low_stock_threshold ? 'var(--warn)' : 'var(--success)'}}>{item.qty_on_hand}</strong>],
+              ['Low Stock Threshold', item.low_stock_threshold ?? '—'],
+              ['Avg Cost', fmt$(item.unit_cost)],
+              ['Location', item.location || '—'],
+              ['Notes', item.notes || '—'],
+            ].map(([k,v]) => (
+              <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
+            ))}
+          </div>
+
+          <div style={{borderTop:'1px solid var(--border)',paddingTop:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+              <h3>History</h3>
+              {ledger.length > 10 && (
+                <button className="toggle-link" onClick={() => setShowAllLedger(p => !p)}>
+                  {showAllLedger ? 'Show less' : `View all ${ledger.length}`}
+                </button>
+              )}
+            </div>
+            {ledger.length === 0 ? <div className="empty" style={{padding:16}}>No history yet.</div> : (
+              <div className="overflow-x">
+                <table>
+                  <thead><tr><th>Date</th><th>Change</th><th>Reason</th><th>Ref</th><th>Notes</th></tr></thead>
+                  <tbody>
+                    {displayedLedger.map(l => (
+                      <tr key={l.id}>
+                        <td style={{fontSize:11}}>{fmtDate(l.created_at)}</td>
+                        <td style={{fontWeight:600,color:l.qty_change>0?'var(--success)':'var(--danger)'}}>{l.qty_change>0?'+':''}{l.qty_change}</td>
+                        <td style={{fontSize:12}}>{reasonLabel(l.reason)}</td>
+                        <td style={{fontFamily:'monospace',fontSize:11}}>{l.purchased_item_ref||'—'}</td>
+                        <td style={{fontSize:12,color:'var(--muted)'}}>{l.notes||'—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
 // ── Stock Tab ─────────────────────────────
 function StockTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [filterActive, setFilterActive] = useState('true');
   const [showAdd, setShowAdd] = useState(false);
-  const [receiveItem, setReceiveItem] = useState(null);
-  const [purchasedItems, setPurchasedItems] = useState([]);
-  const [rf, setRf] = useState({ stock_item_id: '', purchased_item_id: '', qty_received: 1, unit_cost: '' });
+  const [viewItem, setViewItem] = useState(null);
   const [editStockItem, setEditStockItem] = useState(null);
+  const [adjustItem, setAdjustItem] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     const p = new URLSearchParams();
     if (search) p.set('search', search);
     if (filterCat) p.set('category', filterCat);
+    p.set('active', filterActive);
     const d = await api('/api/stock?' + p);
     setItems(d);
     setLoading(false);
-  }, [search, filterCat]);
+  }, [search, filterCat, filterActive]);
 
   useEffect(() => {
     let ignore = false;
@@ -1206,41 +1367,49 @@ function StockTab() {
       const p = new URLSearchParams();
       if (search) p.set('search', search);
       if (filterCat) p.set('category', filterCat);
+      p.set('active', filterActive);
       const d = await api('/api/stock?' + p);
       if (!ignore) setItems(d);
       setLoading(false);
     })();
     return () => { ignore = true; };
-  }, [search, filterCat]);
+  }, [search, filterCat, filterActive]);
 
   const catTypes = useMemo(() => [...new Set(items.map(i => i.category).filter(Boolean))].sort(), [items]);
 
-  const openReceive = async item => {
-    setReceiveItem(item);
-    setRf({ stock_item_id: item.id, purchased_item_id: '', qty_received: 1, unit_cost: item.unit_cost || '' });
-    setPurchasedItems(await api('/api/purchased-items'));
+  const retire = async item => {
+    if (!confirm(`Retire ${item.sku}?`)) return;
+    await api(`/api/stock/${item.id}`, { method: 'PUT', body: { _toggle_active: false } });
+    load();
   };
 
-  const doReceive = async e => {
-    e.preventDefault();
-    await api('/api/stock/receive', { method: 'POST', body: rf });
-    setReceiveItem(null); load();
+  const activate = async item => {
+    await api(`/api/stock/${item.id}`, { method: 'PUT', body: { _toggle_active: true } });
+    load();
   };
 
   const del = async item => {
-    if (!confirm(`Delete stock item ${item.sku}?`)) return;
-    await api(`/api/stock/${item.id}`, { method: 'DELETE' }); load();
+    if (!confirm(`Delete stock item ${item.sku}? This cannot be undone.`)) return;
+    try {
+      await api(`/api/stock/${item.id}`, { method: 'DELETE' });
+      load();
+    } catch(e) { alert(e.message); }
   };
 
-  const lowStock = items.filter(i => i.qty_on_hand === 1).length;
-  const outStock  = items.filter(i => i.qty_on_hand === 0).length;
+  // Stats — respect threshold for low stock
+  const isLow = i => i.active && i.low_stock_threshold != null && i.qty_on_hand > 0 && i.qty_on_hand <= i.low_stock_threshold;
+  const isOut = i => i.qty_on_hand === 0;
+  const lowStock = items.filter(isLow).length;
+  const outStock  = items.filter(isOut).length;
   const totalQty  = items.reduce((s, i) => s + Number(i.qty_on_hand || 0), 0);
+  const totalValue = items.reduce((s, i) => s + Number(i.qty_on_hand || 0) * Number(i.unit_cost || 0), 0);
 
   return (
     <>
       <div className="stats-row">
         <div className="stat"><div className="stat-label">Stock Items</div><div className="stat-value">{items.length}</div></div>
         <div className="stat"><div className="stat-label">Total Units</div><div className="stat-value">{totalQty}</div></div>
+        <div className="stat"><div className="stat-label">Inventory Value</div><div className="stat-value">{fmt$(totalValue)}</div></div>
         <div className="stat"><div className="stat-label">Low Stock</div><div className="stat-value" style={{ color: 'var(--warn)' }}>{lowStock}</div></div>
         <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{ color: 'var(--danger)' }}>{outStock}</div></div>
       </div>
@@ -1252,43 +1421,54 @@ function StockTab() {
             <option value="">All</option>{catTypes.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
+        <div className="filter-group"><label>Status</label>
+          <select value={filterActive} onChange={e => setFilterActive(e.target.value)} style={{ width: 110 }}>
+            <option value="true">Active</option>
+            <option value="false">Retired</option>
+            <option value="all">All</option>
+          </select>
+        </div>
         {(search || filterCat) && <button className="sm ghost" onClick={() => { setSearch(''); setFilterCat(''); }}>Clear</button>}
-        <button className="primary" style={{ marginLeft: 'auto' }} onClick={() => setShowAdd(a => !a)}>+ New Stock Item</button>
+        <button className="primary" style={{ marginLeft: 'auto' }} onClick={() => setShowAdd(true)}>+ New Stock Item</button>
       </div>
 
-		{showAdd && (
-		  <Modal title="New Stock Item" onClose={() => setShowAdd(false)} width="560px">
-			<StockItemForm
-			  stockItems={items}
-			  onSave={async f => {
-				await api('/api/stock', { method: 'POST', body: f });
-				setShowAdd(false); load();
-			  }}
-			  onClose={() => setShowAdd(false)}
-			/>
-		  </Modal>
-		)}
-		
+      {showAdd && (
+        <Modal title="New Stock Item" onClose={() => setShowAdd(false)} width="560px">
+          <StockItemForm
+            stockItems={items}
+            onSave={async f => {
+              await api('/api/stock', { method: 'POST', body: f });
+              setShowAdd(false); load();
+            }}
+            onClose={() => setShowAdd(false)}
+          />
+        </Modal>
+      )}
+
       <div className="overflow-x">
         {loading ? <div className="empty">Loading…</div> : items.length === 0
-          ? <div className="empty">No stock items yet.<br />Create stock items then receive purchased items into them.</div> : (
+          ? <div className="empty">No stock items found.</div> : (
             <table>
-              <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>On Hand</th><th>Avg Cost</th><th>Location</th><th></th></tr></thead>
+              <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Status</th><th>On Hand</th><th>Avg Cost</th><th>Location</th><th></th></tr></thead>
               <tbody>
                 {items.map(i => {
-                  const sc = i.qty_on_hand === 0 ? 'badge-out' : i.qty_on_hand <= 1 ? 'badge-low' : 'badge-ok';
+                  const sc = isOut(i) ? 'badge-out' : isLow(i) ? 'badge-low' : 'badge-ok';
                   return (
                     <tr key={i.id}>
-                      <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{i.sku}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: 11, cursor: 'pointer', color: 'var(--accent)' }} onClick={() => setViewItem(i)}>{i.sku}</td>
                       <td><div style={{ fontWeight: 500 }}>{i.name}</div>{i.variant && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{i.variant}</div>}</td>
                       <td>{catBadge(i.category)}</td>
+                      <td><span className="badge" style={i.active ? {background:'#102010',color:'var(--success)'} : {background:'#2a1010',color:'var(--danger)'}}>{i.active ? 'Active' : 'Retired'}</span></td>
                       <td><span className={`badge ${sc}`}>{i.qty_on_hand}</span></td>
                       <td>{fmt$(i.unit_cost)}</td>
                       <td style={{ fontSize: 12 }}>{i.location || '—'}</td>
                       <td><Kebab items={[
-						  {label:'Edit',action:()=>setEditStockItem(i)},
-						  {label:'Delete',danger:true,action:()=>del(i)}
-						]}/></td>
+                        { label: 'View', action: () => setViewItem(i) },
+                        { label: 'Edit', action: () => setEditStockItem(i) },
+                        { label: 'Adjust', action: () => setAdjustItem(i) },
+                        { label: i.active ? 'Retire' : 'Activate', action: () => i.active ? retire(i) : activate(i) },
+                        { label: 'Delete', danger: true, action: () => del(i) }
+                      ]} /></td>
                     </tr>
                   );
                 })}
@@ -1297,38 +1477,33 @@ function StockTab() {
           )}
       </div>
 
-      {receiveItem && (
-        <Modal title={`Receive — ${receiveItem.name}`} onClose={() => setReceiveItem(null)} width="520px">
-          <form onSubmit={doReceive}>
-            <div className="form-grid">
-              <div className="form-group full">
-                <label>Link to Purchased Item (optional)</label>
-                <select value={rf.purchased_item_id} onChange={e => {
-                  const pi = purchasedItems.find(p => p.item_id === e.target.value);
-                  setRf(r => ({ ...r, purchased_item_id: e.target.value, unit_cost: pi ? pi.unit_cost : r.unit_cost, qty_received: pi ? pi.qty_purchased : r.qty_received }));
-                }}>
-                  <option value="">— none —</option>
-                  {purchasedItems.map(p => <option key={p.item_id} value={p.item_id}>{p.item_id} — {p.item_name} (rem: {p.qty_purchased})</option>)}
-                </select>
-              </div>
-              <div className="form-group"><label>Qty Received *</label><input type="number" value={rf.qty_received} onChange={e => setRf(r => ({ ...r, qty_received: e.target.value }))} min="1" required /></div>
-              <div className="form-group"><label>Unit Cost</label><input type="number" value={rf.unit_cost} onChange={e => setRf(r => ({ ...r, unit_cost: e.target.value }))} step="0.01" min="0" /></div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button type="submit" className="primary">Receive</button>
-              <button type="button" onClick={() => setReceiveItem(null)}>Cancel</button>
-            </div>
-          </form>
+      {viewItem && (
+        <StockItemViewModal
+          item={viewItem}
+          onClose={() => setViewItem(null)}
+          onEdit={i => { setViewItem(null); setEditStockItem(i); }}
+          onAdjust={i => { setViewItem(null); setAdjustItem(i); }}
+          onRetire={i => { setViewItem(null); retire(i); }}
+          onActivate={i => { setViewItem(null); activate(i); }}
+        />
+      )}
+
+      {editStockItem && (
+        <Modal title={`Edit ${editStockItem.sku}`} onClose={() => setEditStockItem(null)} width="520px">
+          <StockItemForm initial={editStockItem} stockItems={items} onSave={async f => {
+            await api(`/api/stock/${editStockItem.id}`, { method: 'PUT', body: f });
+            setEditStockItem(null); load();
+          }} onClose={() => setEditStockItem(null)} />
         </Modal>
       )}
-	  {editStockItem && (
-		  <Modal title={`Edit ${editStockItem.sku}`} onClose={() => setEditStockItem(null)} width="520px">
-			<StockItemForm initial={editStockItem} stockItems={items} onSave={async f => {
-			  await api(`/api/stock/${editStockItem.id}`, { method: 'PUT', body: f });
-			  setEditStockItem(null); load();
-			}} onClose={() => setEditStockItem(null)} />
-		  </Modal>
-		)}
+
+      {adjustItem && (
+        <AdjustModal
+          item={adjustItem}
+          onClose={() => setAdjustItem(null)}
+          onSaved={() => { setAdjustItem(null); load(); }}
+        />
+      )}
     </>
   );
 }

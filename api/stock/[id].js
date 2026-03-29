@@ -3,73 +3,62 @@ const sql = neon(process.env.DATABASE_URL);
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const { id } = req.query;
+
   try {
-    // GET /api/orders?order_number=X → line items for that order
-    if (req.method === 'GET' && req.query.order_number) {
-      const rows = await sql`
-        SELECT * FROM purchased_items
-        WHERE order_number = ${req.query.order_number}
-        ORDER BY item_id`;
-      return res.json(rows);
-    }
-
-    // GET /api/orders → all orders with totals
     if (req.method === 'GET') {
-      const rows = await sql`
-        SELECT o.*,
-          COUNT(p.id)                                    AS item_count,
-          COALESCE(SUM(p.unit_cost * p.qty_purchased),0) AS parts_total,
-          COALESCE(SUM(p.total_line_cost),0)             AS order_total
-        FROM orders o
-        LEFT JOIN purchased_items p ON p.order_number = o.order_number
-        GROUP BY o.id
-        ORDER BY o.order_date DESC NULLS LAST, o.id DESC`;
-      return res.json(rows);
+      const [row] = await sql`SELECT * FROM stock_items WHERE id = ${id}`;
+      if (!row) return res.status(404).json({ error: 'Not found' });
+      // Get ledger entries
+      const ledger = await sql`
+        SELECT sl.*, pi.item_id as purchased_item_ref
+        FROM stock_ledger sl
+        LEFT JOIN purchased_items pi ON pi.id = sl.purchased_item_id
+        WHERE sl.stock_item_id = ${id}
+        ORDER BY sl.created_at DESC
+        LIMIT 50`;
+      return res.json({ ...row, ledger });
     }
 
-    // POST /api/orders → upsert order header
-    if (req.method === 'POST') {
-      const { order_number, vendor, order_date, shipping_total, tax_total, notes } = req.body;
-      const [row] = await sql`
-        INSERT INTO orders (order_number, vendor, order_date, shipping_total, tax_total, notes)
-        VALUES (${order_number}, ${vendor||null}, ${order_date||null},
-                ${shipping_total||0}, ${tax_total||0}, ${notes||null})
-        ON CONFLICT (order_number) DO UPDATE SET
-          vendor         = EXCLUDED.vendor,
-          order_date     = EXCLUDED.order_date,
-          shipping_total = EXCLUDED.shipping_total,
-          tax_total      = EXCLUDED.tax_total,
-          notes          = EXCLUDED.notes,
-          updated_at     = NOW()
-        RETURNING *`;
-      await sql`SELECT recalc_allocation(${order_number})`;
-      return res.status(200).json(row);
-    }
+    if (req.method === 'PUT') {
+      const body = req.body;
 
-    // DELETE /api/orders?order_number=X
-    if (req.method === 'DELETE' && req.query.order_number) {
-      // Get all purchased items for this order that are linked to stock
-      const items = await sql`
-        SELECT id, stock_item_id, qty_purchased
-        FROM purchased_items
-        WHERE order_number = ${req.query.order_number}
-        AND stock_item_id IS NOT NULL`;
-
-      // Reverse stock quantities
-      for (const item of items) {
-        await sql`
-          UPDATE stock_items SET qty_on_hand = qty_on_hand - ${item.qty_purchased}
-          WHERE id = ${item.stock_item_id}`;
-        await sql`
-          INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
-          VALUES (${item.stock_item_id}, ${item.id}, ${-item.qty_purchased}, 'order_deleted')`;
+      // Retire/activate toggle
+      if (body._toggle_active !== undefined) {
+        const [row] = await sql`
+          UPDATE stock_items SET active = ${body._toggle_active}, updated_at = NOW()
+          WHERE id = ${id} RETURNING *`;
+        return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
       }
 
-      await sql`DELETE FROM orders WHERE order_number = ${req.query.order_number}`;
+      // Info fields only
+      const { name, variant, category, location, notes, low_stock_threshold } = body;
+      const threshold = low_stock_threshold !== '' && low_stock_threshold != null
+        ? parseInt(low_stock_threshold) : null;
+      const [row] = await sql`
+        UPDATE stock_items SET
+          name                = ${name},
+          variant             = ${variant||null},
+          category            = ${category||null},
+          location            = ${location||null},
+          notes               = ${notes||null},
+          low_stock_threshold = ${threshold}
+        WHERE id = ${id}
+        RETURNING *`;
+      return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
+    }
+
+    if (req.method === 'DELETE') {
+      const [linked] = await sql`
+        SELECT COUNT(*) as cnt FROM purchased_items WHERE stock_item_id = ${id}`;
+      if (parseInt(linked.cnt) > 0) {
+        return res.status(400).json({ error: 'Cannot delete stock item with linked purchases' });
+      }
+      await sql`DELETE FROM stock_items WHERE id = ${id}`;
       return res.status(204).end();
     }
 
