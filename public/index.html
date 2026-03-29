@@ -269,7 +269,11 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
           <div style={{ display: 'flex', gap: 8 }}>
             <select name="stock_item_id" value={f.stock_item_id} onChange={handle} style={{ flex: 1 }} required>
               <option value="">— select or create —</option>
-              {stockItems.map(s => <option key={s.id} value={s.id}>{s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}</option>)}
+              {stockItems.map(s => (
+				  <option key={s.id} value={s.id} style={!s.active ? {color:'var(--muted)'} : {}}>
+				   {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
+				  </option>
+				))}
             </select>
             <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
               {showNewStock ? 'Cancel' : '+ New'}
@@ -427,7 +431,7 @@ function NewOrderModal({onClose,onSaved,editOrder}){
       const cats = [...new Set(items.map(i => i.category).filter(Boolean))].sort();
       setCategories(cats);
     });
-	api('/api/stock').then(setStockItems);
+	api('/api/stock?active=all').then(setStockItems);
     if (!isEdit) return;
     api(`/api/orders?order_number=${encodeURIComponent(editOrder.order_number)}`).then(items => {
       const mapped = items.map(i => ({
@@ -502,7 +506,7 @@ const parsePasteItems = () => {
   const allocChange=(i,field,val)=>setRows(r=>r.map((x,j)=>j===i?{...x,[field]:val}:x));
   
   const refreshStockItems = async () => {
-	  const items = await api('/api/stock');
+	  const items = await api('/api/stock?active=all');
 	  setStockItems(items);
 	  return items;
 	};
@@ -1027,7 +1031,7 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
   const [skuError, setSkuError] = useState('');
 
   useEffect(() => {
-    api('/api/stock').then(setStockItems);
+    api('/api/stock?active=all').then(setStockItems);
   }, []);
 
   // Pre-fill new stock form from item
@@ -1080,7 +1084,11 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle} style={{ flex: 1 }}>
               <option value="">— none —</option>
-              {stockItems.map(s => <option key={s.id} value={s.id}>{s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}</option>)}
+              {stockItems.map(s => (
+				  <option key={s.id} value={s.id} style={!s.active ? {color:'var(--muted)'} : {}}>
+				   {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
+				  </option>
+				))}
             </select>
             <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
               {showNewStock ? 'Cancel' : '+ New'}
