@@ -1475,13 +1475,25 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
 function GlobalLedgerModal({ onClose, onOpenOrder, onOpenItem }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const PAGE = 200;
 
   useEffect(() => {
-    api('/api/stock?ledger=true').then(data => {
+    api(`/api/stock?ledger=true&limit=${PAGE}&offset=0`).then(data => {
       setRows(data);
+      setHasMore(data.length === PAGE);
       setLoading(false);
     });
   }, []);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    const data = await api(`/api/stock?ledger=true&limit=${PAGE}&offset=${rows.length}`);
+    setRows(r => [...r, ...data]);
+    setHasMore(data.length === PAGE);
+    setLoadingMore(false);
+  };
 
   const reasonLabel = r => ({
     adjustment:       'Adjustment',
@@ -1494,51 +1506,60 @@ function GlobalLedgerModal({ onClose, onOpenOrder, onOpenItem }) {
     purchase_deleted: 'Purchase Deleted',
   }[r] || r);
 
-  return (
+return (
     <Modal title="Stock Ledger — All Items" onClose={onClose} width="900px">
       {loading ? <div className="empty">Loading…</div> : rows.length === 0 ? <div className="empty">No ledger entries yet.</div> : (
-        <div className="overflow-x">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>SKU</th>
-                <th>Item Name</th>
-                <th>Change</th>
-                <th>Reason</th>
-                <th>Ref</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(l => (
-                <tr key={l.id}>
-                  <td style={{ fontSize: 11 }}>{fmtDate(l.created_at)}</td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{l.sku}</td>
-                  <td style={{ fontSize: 12 }}>{l.stock_name}</td>
-                  <td style={{ fontWeight: 600, color: l.qty_change > 0 ? 'var(--success)' : 'var(--danger)' }}>
-                    {l.qty_change > 0 ? '+' : ''}{l.qty_change}
-                  </td>
-                  <td style={{ fontSize: 12 }}>
-                    {l.reason === 'purchase' || l.reason === 'purchase_edit' ||
-                     l.reason === 'purchase_linked' || l.reason === 'purchase_unlinked'
-                      ? l.order_number
-                        ? <span className="order-link" onClick={() => { onClose(); onOpenOrder(l.order_number); }}>{l.order_number}</span>
-                        : l.purchased_item_ref || '—'
-                      : reasonLabel(l.reason)
-                    }
-                  </td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                    {l.purchased_item_ref
-                      ? <span className="order-link" onClick={() => { onClose(); onOpenItem(l.purchased_item_ref); }}>{l.purchased_item_ref}</span>
-                      : '—'}
-                  </td>
-                  <td style={{ fontSize: 12, color: 'var(--muted)' }}>{l.notes || '—'}</td>
+        <>
+          <div className="overflow-x">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>SKU</th>
+                  <th>Item Name</th>
+                  <th>Change</th>
+                  <th>Reason</th>
+                  <th>Ref</th>
+                  <th>Notes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map(l => (
+                  <tr key={l.id}>
+                    <td style={{ fontSize: 11 }}>{fmtDate(l.created_at)}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{l.sku}</td>
+                    <td style={{ fontSize: 12 }}>{l.stock_name}</td>
+                    <td style={{ fontWeight: 600, color: l.qty_change > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                      {l.qty_change > 0 ? '+' : ''}{l.qty_change}
+                    </td>
+                    <td style={{ fontSize: 12 }}>
+                      {l.reason === 'purchase' || l.reason === 'purchase_edit' ||
+                       l.reason === 'purchase_linked' || l.reason === 'purchase_unlinked'
+                        ? l.order_number
+                          ? <span className="order-link" onClick={() => { onClose(); onOpenOrder(l.order_number); }}>{l.order_number}</span>
+                          : l.purchased_item_ref || '—'
+                        : reasonLabel(l.reason)
+                      }
+                    </td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                      {l.purchased_item_ref
+                        ? <span className="order-link" onClick={() => { onClose(); onOpenItem(l.purchased_item_ref); }}>{l.purchased_item_ref}</span>
+                        : '—'}
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--muted)' }}>{l.notes || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <button className="sm ghost" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading…' : 'Load More'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </Modal>
   );

@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   try {
 	if (req.method === 'GET' && req.query.ledger === 'true') {
       const limit = parseInt(req.query.limit) || 200;
+	  const offset = parseInt(req.query.offset) || 0;
       const rows = await sql`
         SELECT
           sl.id, sl.qty_change, sl.reason, sl.notes,
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
         JOIN  stock_items     si ON si.id = sl.stock_item_id
         LEFT JOIN purchased_items pi ON pi.id = sl.purchased_item_id
         ORDER BY sl.created_at DESC
-        LIMIT ${limit}`;
+        LIMIT ${limit} OFFSET ${offset}`;
       return res.json(rows);
     }  
     if (req.method === 'GET') {
