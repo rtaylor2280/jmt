@@ -804,18 +804,20 @@ function OrdersTab(){
 	  load();
 	};
 
-  const totalSpend=orders.reduce((s,o)=>s+Number(o.order_total||0),0);
-  const totalShip =orders.reduce((s,o)=>s+Number(o.shipping_total||0),0);
-  const totalTax  =orders.reduce((s,o)=>s+Number(o.tax_total||0),0);
+  const totalCost = orders.reduce((s,o) => s + Number(o.order_total || 0), 0);
+  const totalShip = orders.reduce((s,o) => s + Number(o.shipping_total || 0), 0);
+  const totalTax  = orders.reduce((s,o) => s + Number(o.tax_total || 0), 0);
+  const avgCost   = orders.length ? totalCost / orders.length : 0;
 
   return(
     <>
       <div className="stats-row">
-        <div className="stat"><div className="stat-label">Orders</div><div className="stat-value">{orders.length}</div></div>
-        <div className="stat"><div className="stat-label">Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
-        <div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShip)}</div></div>
-        <div className="stat"><div className="stat-label">Total Spend</div><div className="stat-value">{fmt$(totalSpend)}</div></div>
-      </div>
+		<div className="stat"><div className="stat-label">Orders</div><div className="stat-value">{orders.length}</div></div>
+		<div className="stat"><div className="stat-label">Avg Cost</div><div className="stat-value">{fmt$(avgCost)}</div></div>
+		<div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShip)}</div></div>
+		<div className="stat"><div className="stat-label">Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
+		<div className="stat"><div className="stat-label">Total Cost</div><div className="stat-value">{fmt$(totalCost)}</div></div>
+	  </div>
 
       <div className="filter-bar">
         <div className="filter-group"><label>Search</label><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Order # or vendor" style={{width:160}}/></div>
@@ -913,16 +915,18 @@ function PurchasedItemsTab({ onOpenOrder }) {
   const totalCost = filtered.reduce((s, i) => s + Number(i.total_line_cost || 0), 0);
   const totalShip = filtered.reduce((s, i) => s + Number(i.shipping_allocated || 0), 0);
   const totalTax  = filtered.reduce((s, i) => s + Number(i.tax_allocated || 0), 0);
+  const avgCost   = filtered.length ? totalCost / filtered.length : 0;
   const hasFilters = search || filterCat || filterVendor || filterCondition || filterDateFrom || filterDateTo;
 
   return (
     <>
       <div className="stats-row">
-        <div className="stat"><div className="stat-label">Line Items</div><div className="stat-value">{filtered.length}{hasFilters && items.length !== filtered.length && <span style={{ fontSize: 13, color: 'var(--muted)' }}> / {items.length}</span>}</div></div>
-        <div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShip)}</div></div>
-        <div className="stat"><div className="stat-label">Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
-        <div className="stat"><div className="stat-label">Total Cost</div><div className="stat-value">{fmt$(totalCost)}</div></div>
-      </div>
+		<div className="stat"><div className="stat-label">Items</div><div className="stat-value">{filtered.length}{hasFilters && items.length !== filtered.length && <span style={{ fontSize: 13, color: 'var(--muted)' }}> / {items.length}</span>}</div></div>
+		<div className="stat"><div className="stat-label">Avg Cost</div><div className="stat-value">{fmt$(avgCost)}</div></div>
+		<div className="stat"><div className="stat-label">Shipping</div><div className="stat-value">{fmt$(totalShip)}</div></div>
+		<div className="stat"><div className="stat-label">Tax</div><div className="stat-value">{fmt$(totalTax)}</div></div>
+		<div className="stat"><div className="stat-label">Total Cost</div><div className="stat-value">{fmt$(totalCost)}</div></div>
+	  </div>
 
       <div className="filter-bar">
         <div className="filter-group"><label>Search</label><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, ID, vendor" style={{ width: 180 }} /></div>
@@ -1419,7 +1423,7 @@ function StockTab() {
       <div className="stats-row">
         <div className="stat"><div className="stat-label">Stock Items</div><div className="stat-value">{items.length}</div></div>
         <div className="stat"><div className="stat-label">Total Units</div><div className="stat-value">{totalQty}</div></div>
-        <div className="stat"><div className="stat-label">Inventory Value</div><div className="stat-value">{fmt$(totalValue)}</div></div>
+        <div className="stat"><div className="stat-label">Inventory Cost</div><div className="stat-value">{fmt$(totalValue)}</div></div>
         <div className="stat"><div className="stat-label">Low Stock</div><div className="stat-value" style={{ color: 'var(--warn)' }}>{lowStock}</div></div>
         <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{ color: 'var(--danger)' }}>{outStock}</div></div>
       </div>
