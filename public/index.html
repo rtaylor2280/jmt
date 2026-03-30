@@ -258,10 +258,12 @@ function SortTh({ label, colKey, sortKey, sortDir, onToggle, style }) {
 // ── ItemForm (used inside NewOrderModal) ──
 function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreated }) {
   const [f, setF] = useState({
-    item_name: '', variant: '', category: '', qty_purchased: 1,
-    unit_cost: '', condition: 'New', notes: '', stock_item_id: '',
-    is_digital: false, ...initial
-  });
+	  item_name: '', variant: '', category: '', qty_purchased: 1,
+	  unit_cost: '', condition: 'New', notes: '', stock_item_id: '',
+	  is_digital: false,
+	  update_unit_cost: !initial.item_id,  // true for new, false for edit
+	  ...initial
+	});
   const [showNewStock, setShowNewStock] = useState(false);
   const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
   const [creatingStock, setCreatingStock] = useState(false);
@@ -314,7 +316,15 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition || 'New'} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
-        <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
+        <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+		  <input type="checkbox" id="update_unit_cost_item"
+			checked={!!f.update_unit_cost}
+			onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
+			style={{ width: 'auto', margin: 0 }} />
+		  <label htmlFor="update_unit_cost_item" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
+			Update stock replacement cost from this purchase
+		  </label>
+		</div>
 
         {/* Digital asset toggle */}
         <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1119,11 +1129,13 @@ function PurchasedItemsTab({ onOpenOrder }) {
 // ── PurchasedItemForm ─────────────────────
 function PurchasedItemForm({ initial = {}, onSave, onClose }) {
   const [f, setF] = useState({
-    item_name: '', variant: '', vendor: '', date_purchased: '',
-    qty_purchased: 1, unit_cost: '', condition: 'New',
-    category: '', location: '', notes: '', stock_item_id: '',
-    is_digital: false, ...initial
-  });
+	  item_name: '', variant: '', vendor: '', date_purchased: '',
+	  qty_purchased: 1, unit_cost: '', condition: 'New',
+	  category: '', location: '', notes: '', stock_item_id: '',
+	  is_digital: false,
+	  update_unit_cost: !initial.item_id,  // true for new, false for edit
+	  ...initial
+	});
   const [stockItems, setStockItems] = useState([]);
   const [showNewStock, setShowNewStock] = useState(false);
   const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
@@ -1181,7 +1193,16 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
+        <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+		  <input type="checkbox" id="update_unit_cost"
+			checked={!!f.update_unit_cost}
+			onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
+			style={{ width: 'auto', margin: 0 }} />
+		  <label htmlFor="update_unit_cost" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
+			Update stock replacement cost from this purchase
+		  </label>
+		</div>
+		<div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
 
         {/* Digital asset toggle */}
         <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1242,6 +1263,7 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
   );
 }
 
+// ── StockItemForm ───────────────────────────
 function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
   const [f, setF] = useState({
     name: '', variant: '', category: '', sku_prefix: '',
@@ -1254,7 +1276,6 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
     setF(p => ({ ...p, [e.target.name]: e.target.value }));
   };
 
-  // Auto-derive SKU prefix from name on create
   useEffect(() => {
     if (f.name && !initial.id) {
       setF(p => ({ ...p, sku_prefix: f.name.slice(0, 2).toUpperCase() }));
@@ -1279,20 +1300,26 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
         <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} /></div>
         <div className="form-group">
           <label>SKU Prefix {!initial.id && '*'}</label>
-          <input
-            name="sku_prefix"
-            value={f.sku_prefix || ''}
-            onChange={handle}
-            placeholder="e.g. EL, PT"
-            maxLength={4}
-            style={{ textTransform: 'uppercase' }}
-            disabled={!!initial.id}
-          />
+          <input name="sku_prefix" value={f.sku_prefix || ''} onChange={handle}
+            placeholder="e.g. EL, PT" maxLength={4}
+            style={{ textTransform: 'uppercase' }} disabled={!!initial.id} />
           {skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
         </div>
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
+        {initial.id && (
+          <div className="form-group">
+            <label>Avg Cost</label>
+            <input value={fmt$(initial.avg_cost)} disabled style={{ opacity: 0.6 }} />
+          </div>
+        )}
+        <div className="form-group">
+          <label>Replacement Cost</label>
+          <input type="number" name="unit_cost" value={f.unit_cost ?? ''} onChange={handle}
+            step="0.01" min="0" placeholder="Auto-updated on purchase" />
+        </div>
         <div className="form-group"><label>Low Stock Threshold</label>
-          <input type="number" name="low_stock_threshold" value={f.low_stock_threshold ?? ''} onChange={handle} min="0" placeholder="Leave blank to disable" />
+          <input type="number" name="low_stock_threshold" value={f.low_stock_threshold ?? ''}
+            onChange={handle} min="0" placeholder="Leave blank to disable" />
         </div>
         <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
         <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
@@ -1304,7 +1331,6 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
     </form>
   );
 }
-
 // ── AdjustModal ───────────────────────────
 function AdjustModal({ item, onClose, onSaved }) {
   const [qty, setQty] = useState('');
@@ -1415,7 +1441,8 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
               ['Variant', item.variant || '—'],
               ['On Hand', <strong style={{color: item.qty_on_hand === 0 ? 'var(--danger)' : item.low_stock_threshold && item.qty_on_hand <= item.low_stock_threshold ? 'var(--warn)' : 'var(--success)'}}>{item.qty_on_hand}</strong>],
               ['Low Stock Threshold', item.low_stock_threshold ?? '—'],
-              ['Avg Cost', fmt$(item.unit_cost)],
+              ['Avg Cost', fmt$(item.avg_cost)],
+			  ['Replacement Cost', fmt$(item.unit_cost)],
               ['Location', item.location || '—'],
               ['Notes', item.notes || '—'],
             ].map(([k,v]) => (
@@ -1632,7 +1659,7 @@ function StockTab({ onOpenOrder, onOpenItem }) {
   const lowStock = items.filter(isLow).length;
   const outStock  = items.filter(isOut).length;
   const totalQty  = items.reduce((s, i) => s + Number(i.qty_on_hand || 0), 0);
-  const totalValue = items.reduce((s, i) => s + Number(i.qty_on_hand || 0) * Number(i.unit_cost || 0), 0);
+  const totalValue = items.reduce((s, i) => s + Number(i.qty_on_hand || 0) * Number(i.avg_cost || 0), 0);
 
   return (
     <>
