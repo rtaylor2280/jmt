@@ -1702,11 +1702,11 @@ function StockTab({ onOpenOrder, onOpenItem }) {
   return (
     <>
       <div className="stats-row">
-        <div className="stat"><div className="stat-label">Stock Items</div><div className="stat-value">{items.length}</div></div>
+        <div className="stat"><div className="stat-label">Inventory Cost</div><div className="stat-value">{fmt$(totalValue)}</div></div>
+		<div className="stat"><div className="stat-label">Stock Items</div><div className="stat-value">{items.length}</div></div>
         <div className="stat"><div className="stat-label">Total Units</div><div className="stat-value">{totalQty}</div></div>
         <div className="stat"><div className="stat-label">Low Stock</div><div className="stat-value" style={{ color: 'var(--warn)' }}>{lowStock}</div></div>
         <div className="stat"><div className="stat-label">Out of Stock</div><div className="stat-value" style={{ color: 'var(--danger)' }}>{outStock}</div></div>
-		<div className="stat"><div className="stat-label">Inventory Cost</div><div className="stat-value">{fmt$(totalValue)}</div></div>
       </div>
 
       <div className="filter-bar">
