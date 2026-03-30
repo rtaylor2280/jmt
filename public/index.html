@@ -1739,7 +1739,8 @@ function StockTab({ onOpenOrder, onOpenItem }) {
 				<SortTh label="Category" colKey="category"     sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
 				<SortTh label="Status"   colKey="active"       sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
 				<SortTh label="On Hand"  colKey="qty_on_hand"  sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
-				<SortTh label="Avg Cost" colKey="unit_cost"    sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="Avg Cost" colKey="avg_cost"    sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="Repl. Cost" colKey="unit_cost"  sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
 				<SortTh label="Location" colKey="location"     sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
 				<th></th>
 			  </tr></thead>
@@ -1753,7 +1754,8 @@ function StockTab({ onOpenOrder, onOpenItem }) {
                       <td>{catBadge(i.category)}</td>
                       <td><span className="badge" style={i.active ? {background:'#102010',color:'var(--success)'} : {background:'#2a1010',color:'var(--danger)'}}>{i.active ? 'Active' : 'Retired'}</span></td>
                       <td><span className={`badge ${sc}`}>{i.qty_on_hand}</span></td>
-                      <td>{fmt$(i.unit_cost)}</td>
+                      <td>{fmt$(i.avg_cost)}</td>					  
+					  <td>{fmt$(i.unit_cost)}</td>
                       <td style={{ fontSize: 12 }}>{i.location || '—'}</td>
                       <td><Kebab items={[
                         { label: 'View', action: () => setViewItem(i) },
