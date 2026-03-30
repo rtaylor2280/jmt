@@ -7,6 +7,11 @@ function calcAvgCost(currentAvg, currentQty, changeQty, changeCost) {
   return ((Number(currentAvg) * currentQty) + (Number(changeCost) * changeQty)) / newQty;
 }
 
+function landedCostPerUnit(unit_cost, qty, shipping_allocated, tax_allocated) {
+  const q = parseInt(qty) || 1;
+  return (parseFloat(unit_cost) || 0) + ((parseFloat(shipping_allocated) || 0) + (parseFloat(tax_allocated) || 0)) / q;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
@@ -24,12 +29,30 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const body = req.body;
 
+      // Partial update: allocation values changed — recalc avg/unit cost on stock
       if (body._partial) {
+        const [current] = await sql`SELECT * FROM purchased_items WHERE item_id = ${id}`;
+        if (!current) return res.status(404).json({ error: 'Not found' });
+
+        const oldLanded = landedCostPerUnit(current.unit_cost, current.qty_purchased, current.shipping_allocated, current.tax_allocated);
+        const newLanded = landedCostPerUnit(current.unit_cost, current.qty_purchased, body.shipping_allocated, body.tax_allocated);
+
         const [row] = await sql`
           UPDATE purchased_items SET
             shipping_allocated = ${body.shipping_allocated},
             tax_allocated      = ${body.tax_allocated}
           WHERE item_id = ${id} RETURNING *`;
+
+        // If linked to stock, reverse old landed cost contribution and apply new
+        if (!current.is_digital && current.stock_item_id) {
+          const qty = current.qty_purchased;
+          const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${current.stock_item_id}`;
+          // Reverse old, apply new
+          let avg = calcAvgCost(si.avg_cost, si.qty_on_hand, -qty, oldLanded);
+          avg = calcAvgCost(avg, si.qty_on_hand - qty, qty, newLanded);
+          await sql`UPDATE stock_items SET avg_cost = ${avg}, updated_at = NOW() WHERE id = ${current.stock_item_id}`;
+        }
+
         return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
       }
 
@@ -50,6 +73,12 @@ export default async function handler(req, res) {
       const newQty     = parseInt(qty_purchased);
       const cost       = parseFloat(unit_cost) || 0;
 
+      // Use stored allocations for landed cost on edits (allocations are managed separately)
+      const shipAlloc  = parseFloat(current.shipping_allocated) || 0;
+      const taxAlloc   = parseFloat(current.tax_allocated) || 0;
+      const oldLanded  = landedCostPerUnit(current.unit_cost, oldQty, shipAlloc, taxAlloc);
+      const newLanded  = landedCostPerUnit(cost, newQty, shipAlloc, taxAlloc);
+
       const [row] = await sql`
         UPDATE purchased_items SET
           item_name      = ${item_name},
@@ -68,27 +97,31 @@ export default async function handler(req, res) {
 
       if (oldStockId && newStockId && oldStockId === newStockId) {
         const diff = newQty - oldQty;
-        if (diff !== 0) {
+        if (diff !== 0 || oldLanded !== newLanded) {
           const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${newStockId}`;
-          const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, diff, cost);
+          // Reverse old contribution, apply new
+          let avg = calcAvgCost(si.avg_cost, si.qty_on_hand, -oldQty, oldLanded);
+          avg = calcAvgCost(avg, si.qty_on_hand - oldQty, newQty, newLanded);
           const shouldUpdateUnitCost = update_unit_cost !== false || Number(si.unit_cost) === 0;
           await sql`UPDATE stock_items SET
             qty_on_hand = qty_on_hand + ${diff},
-            avg_cost    = ${newAvg},
-            unit_cost   = ${shouldUpdateUnitCost ? cost : si.unit_cost},
+            avg_cost    = ${avg},
+            unit_cost   = ${shouldUpdateUnitCost ? newLanded : si.unit_cost},
             active      = true,
             updated_at  = NOW()
             WHERE id = ${newStockId}`;
-          await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
-            VALUES (${newStockId}, ${current.id}, ${diff}, 'purchase_edit')`;
+          if (diff !== 0) {
+            await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
+              VALUES (${newStockId}, ${current.id}, ${diff}, 'purchase_edit')`;
+          }
         }
       } else {
         if (oldStockId) {
           const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${oldStockId}`;
-          const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, -oldQty, Number(current.unit_cost));
+          const avg = calcAvgCost(si.avg_cost, si.qty_on_hand, -oldQty, oldLanded);
           await sql`UPDATE stock_items SET
             qty_on_hand = qty_on_hand - ${oldQty},
-            avg_cost    = ${newAvg},
+            avg_cost    = ${avg},
             updated_at  = NOW()
             WHERE id = ${oldStockId}`;
           await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
@@ -96,12 +129,12 @@ export default async function handler(req, res) {
         }
         if (newStockId) {
           const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${newStockId}`;
-          const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, newQty, cost);
+          const avg = calcAvgCost(si.avg_cost, si.qty_on_hand, newQty, newLanded);
           const shouldUpdateUnitCost = update_unit_cost !== false || Number(si.unit_cost) === 0;
           await sql`UPDATE stock_items SET
             qty_on_hand = qty_on_hand + ${newQty},
-            avg_cost    = ${newAvg},
-            unit_cost   = ${shouldUpdateUnitCost ? cost : si.unit_cost},
+            avg_cost    = ${avg},
+            unit_cost   = ${shouldUpdateUnitCost ? newLanded : si.unit_cost},
             active      = true,
             updated_at  = NOW()
             WHERE id = ${newStockId}`;
@@ -118,11 +151,12 @@ export default async function handler(req, res) {
       if (!current) return res.status(404).end();
 
       if (!current.is_digital && current.stock_item_id) {
+        const landed = landedCostPerUnit(current.unit_cost, current.qty_purchased, current.shipping_allocated, current.tax_allocated);
         const [si] = await sql`SELECT qty_on_hand, avg_cost FROM stock_items WHERE id = ${current.stock_item_id}`;
-        const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, -current.qty_purchased, Number(current.unit_cost));
+        const avg = calcAvgCost(si.avg_cost, si.qty_on_hand, -current.qty_purchased, landed);
         await sql`UPDATE stock_items SET
           qty_on_hand = qty_on_hand - ${current.qty_purchased},
-          avg_cost    = ${newAvg},
+          avg_cost    = ${avg},
           updated_at  = NOW()
           WHERE id = ${current.stock_item_id}`;
         await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
