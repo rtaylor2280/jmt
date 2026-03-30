@@ -1405,7 +1405,8 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
 			{skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
 		  </div>
 
-		  <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
+			<div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
+
 			<div className="form-group">
 			  <label>Link URL</label>
 			  <input
@@ -1414,16 +1415,18 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
 				onChange={handle}
 				placeholder="https://..."
 			  />
-			</div>
 
-			<div className="form-group">
-			  <label>Link Text</label>
-			  <input
-				name="url_text"
-				value={f.url_text || ''}
-				onChange={handle}
-				placeholder="Auto-filled from URL if left blank"
-			  />
+			  {!!(f.url && f.url.trim()) && (
+				<div style={{ marginTop: 10 }}>
+				  <label>Link Text</label>
+				  <input
+					name="url_text"
+					value={f.url_text || ''}
+					onChange={handle}
+					placeholder="Auto-filled from URL if left blank"
+				  />
+				</div>
+			  )}
 			</div>
 
 		  {initial.id ? (
@@ -1474,6 +1477,7 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
 	  </form>
 	);
 }
+
 // ── AdjustModal ───────────────────────────
 function AdjustModal({ item, onClose, onSaved }) {
   const [qty, setQty] = useState('');
@@ -1585,19 +1589,14 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
 			  ['Link',
 				  item.url
 					? (
-					  <div>
-						<a
-						  href={item.url}
-						  target="_blank"
-						  rel="noopener noreferrer"
-						  style={{ color: 'var(--accent)' }}
-						>
-						  {item.url_text || item.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-						</a>
-						<div style={{ fontSize: 11, color: 'var(--muted)' }}>
-						  {item.url}
-						</div>
-					  </div>
+					  <a
+						href={item.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						style={{ color: 'var(--accent)' }}
+					  >
+						{item.url_text || item.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+					  </a>
 					)
 					: '—'
 				],
