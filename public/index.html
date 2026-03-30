@@ -1364,7 +1364,7 @@ function AdjustModal({ item, onClose, onSaved }) {
 }
 
 // ── StockItemViewModal ────────────────────
-function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRetire, onActivate, onOpenOrder }) {
+function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRetire, onActivate, onOpenOrder, onOpenItem }) {
   const [item, setItem] = useState(initialItem);
   const [ledger, setLedger] = useState([]);
   const [showAllLedger, setShowAllLedger] = useState(false);
@@ -1438,24 +1438,28 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
                   <thead><tr><th>Date</th><th>Change</th><th>Reason</th><th>Ref</th><th>Notes</th></tr></thead>
                   <tbody>
                     {displayedLedger.map(l => (
-                      <tr key={l.id}>
-                        <td style={{fontSize:11}}>{fmtDate(l.created_at)}</td>
-                        <td style={{fontWeight:600,color:l.qty_change>0?'var(--success)':'var(--danger)'}}>{l.qty_change>0?'+':''}{l.qty_change}</td>
-                        <td style={{ fontSize: 12 }}>
+					  <tr key={l.id}>
+						<td style={{ fontSize: 11 }}>{fmtDate(l.created_at)}</td>
+						<td style={{ fontWeight: 600, color: l.qty_change > 0 ? 'var(--success)' : 'var(--danger)' }}>
+						  {l.qty_change > 0 ? '+' : ''}{l.qty_change}
+						</td>
+						<td style={{ fontSize: 12 }}>
 						  {l.reason === 'purchase' || l.reason === 'purchase_edit' ||
 						   l.reason === 'purchase_linked' || l.reason === 'purchase_unlinked'
 							? l.order_number
-							  ? <span className="order-link" onClick={() => { onClose(); onOpenOrder(l.order_number); }}>
-								  {l.order_number}
-								</span>
+							  ? <span className="order-link" onClick={() => { onClose(); onOpenOrder(l.order_number); }}>{l.order_number}</span>
 							  : l.purchased_item_ref || '—'
 							: reasonLabel(l.reason)
 						  }
 						</td>
-                        <td style={{fontFamily:'monospace',fontSize:11}}>{l.purchased_item_ref||'—'}</td>
-                        <td style={{fontSize:12,color:'var(--muted)'}}>{l.notes||'—'}</td>
-                      </tr>
-                    ))}
+						<td style={{ fontFamily: 'monospace', fontSize: 11 }}>
+						  {l.purchased_item_ref
+							? <span className="order-link" onClick={() => { onClose(); onOpenItem(l.purchased_item_ref); }}>{l.purchased_item_ref}</span>
+							: '—'}
+						</td>
+						<td style={{ fontSize: 12, color: 'var(--muted)' }}>{l.notes || '—'}</td>
+					  </tr>
+					))}
                   </tbody>
                 </table>
               </div>
@@ -1467,8 +1471,82 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
   );
 }
 
+// ── Global Ledger Modal ─────────────────────────────
+function GlobalLedgerModal({ onClose, onOpenOrder, onOpenItem }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/api/stock?ledger=true').then(data => {
+      setRows(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const reasonLabel = r => ({
+    adjustment:       'Adjustment',
+    Found:            'Found',
+    Lost:             'Lost',
+    Damaged:          'Damaged',
+    Correction:       'Correction',
+    Other:            'Other',
+    order_deleted:    'Order Deleted',
+    purchase_deleted: 'Purchase Deleted',
+  }[r] || r);
+
+  return (
+    <Modal title="Stock Ledger — All Items" onClose={onClose} width="900px">
+      {loading ? <div className="empty">Loading…</div> : rows.length === 0 ? <div className="empty">No ledger entries yet.</div> : (
+        <div className="overflow-x">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>SKU</th>
+                <th>Item Name</th>
+                <th>Change</th>
+                <th>Reason</th>
+                <th>Ref</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(l => (
+                <tr key={l.id}>
+                  <td style={{ fontSize: 11 }}>{fmtDate(l.created_at)}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{l.sku}</td>
+                  <td style={{ fontSize: 12 }}>{l.stock_name}</td>
+                  <td style={{ fontWeight: 600, color: l.qty_change > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                    {l.qty_change > 0 ? '+' : ''}{l.qty_change}
+                  </td>
+                  <td style={{ fontSize: 12 }}>
+                    {l.reason === 'purchase' || l.reason === 'purchase_edit' ||
+                     l.reason === 'purchase_linked' || l.reason === 'purchase_unlinked'
+                      ? l.order_number
+                        ? <span className="order-link" onClick={() => { onClose(); onOpenOrder(l.order_number); }}>{l.order_number}</span>
+                        : l.purchased_item_ref || '—'
+                      : reasonLabel(l.reason)
+                    }
+                  </td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                    {l.purchased_item_ref
+                      ? <span className="order-link" onClick={() => { onClose(); onOpenItem(l.purchased_item_ref); }}>{l.purchased_item_ref}</span>
+                      : '—'}
+                  </td>
+                  <td style={{ fontSize: 12, color: 'var(--muted)' }}>{l.notes || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 // ── Stock Tab ─────────────────────────────
-function StockTab({ onOpenOrder }) {
+function StockTab({ onOpenOrder, onOpenItem }) {
+  const [showLedger, setShowLedger] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -1560,7 +1638,8 @@ function StockTab({ onOpenOrder }) {
           </select>
         </div>
         {(search || filterCat) && <button className="sm ghost" onClick={() => { setSearch(''); setFilterCat(''); }}>Clear</button>}
-        <button className="primary" style={{ marginLeft: 'auto' }} onClick={() => setShowAdd(true)}>+ New Stock Item</button>
+        <button className="sm ghost" onClick={() => setShowLedger(true)}>Ledger</button>
+		<button className="primary" style={{ marginLeft: 'auto' }} onClick={() => setShowAdd(true)}>+ New Stock Item</button>
       </div>
 
       {showAdd && (
@@ -1618,16 +1697,17 @@ function StockTab({ onOpenOrder }) {
       </div>
 
       {viewItem && (
-        <StockItemViewModal
-          item={viewItem}
-          onClose={() => setViewItem(null)}
-          onEdit={i => { setViewItem(null); setEditStockItem(i); }}
-          onAdjust={i => { setViewItem(null); setAdjustItem(i); }}
-          onRetire={i => { setViewItem(null); retire(i); }}
-          onActivate={i => { setViewItem(null); activate(i); }}
-		  onOpenOrder={onOpenOrder}
-        />
-      )}
+		  <StockItemViewModal
+			item={viewItem}
+			onClose={() => setViewItem(null)}
+			onEdit={i => { setViewItem(null); setEditStockItem(i); }}
+			onAdjust={i => { setViewItem(null); setAdjustItem(i); }}
+			onRetire={i => { setViewItem(null); retire(i); }}
+			onActivate={i => { setViewItem(null); activate(i); }}
+			onOpenOrder={onOpenOrder}
+			onOpenItem={onOpenItem}
+		  />
+		)}
 
       {editStockItem && (
         <Modal title={`Edit ${editStockItem.sku}`} onClose={() => setEditStockItem(null)} width="520px">
@@ -1645,6 +1725,14 @@ function StockTab({ onOpenOrder }) {
           onSaved={() => { setAdjustItem(null); load(); }}
         />
       )}
+	  
+	  {showLedger && (
+		<GlobalLedgerModal
+		  onClose={() => setShowLedger(false)}
+		  onOpenOrder={onOpenOrder}
+		  onOpenItem={onOpenItem}
+		/>
+	  )}
     </>
   );
 }
@@ -1884,63 +1972,103 @@ function ImportTab() {
 }
 
 // ── App ───────────────────────────────────
-function App(){
-  const [tab,setTab]=useState('stock');
-  const [tiers,setTiers]=useState([]);
-  const [orderModal,setOrderModal]=useState(null); // for cross-tab order link
+function App() {
+  const [tab, setTab] = useState('stock');
+  const [tiers, setTiers] = useState([]);
+  const [orderModal, setOrderModal] = useState(null);
   const [editOrder, setEditOrder] = useState(null);
+  const [itemModal, setItemModal] = useState(null); // ← new
 
-  const loadTiers=async()=>setTiers(await api('/api/tiers'));
-  useEffect(()=>{loadTiers();},[]);
+  const loadTiers = async () => setTiers(await api('/api/tiers'));
+  useEffect(() => { loadTiers(); }, []);
 
-  // Opens order modal from any tab without navigating away
-  const openOrderModal=useCallback(async(orderNum)=>{
-    const orders=await api('/api/orders');
-    const o=orders.find(x=>x.order_number===orderNum);
-    if(o)setOrderModal(o);
-  },[]);
+  const openOrderModal = useCallback(async orderNum => {
+    const orders = await api('/api/orders');
+    const o = orders.find(x => x.order_number === orderNum);
+    if (o) setOrderModal(o);
+  }, []);
 
-  const tabs=[
-    {id:'stock',     label:'Stock'},
-    {id:'orders',    label:'Orders'},
-    {id:'purchased', label:'Purchased Items'},
-    {id:'builds',    label:'Builds'},
-    {id:'tiers',     label:'Build Tiers'},
-    {id:'import',    label:'Import'},
+  // ← new: fetch purchased item by item_id and show modal
+  const openItemModal = useCallback(async itemId => {
+    const item = await api(`/api/purchased-items/${itemId}`);
+    if (item) setItemModal(item);
+  }, []);
+
+  const tabs = [
+    { id: 'stock',     label: 'Stock' },
+    { id: 'orders',    label: 'Orders' },
+    { id: 'purchased', label: 'Purchased Items' },
+    { id: 'builds',    label: 'Builds' },
+    { id: 'tiers',     label: 'Build Tiers' },
+    { id: 'import',    label: 'Import' },
   ];
 
-  return(
+  return (
     <>
       <div className="header">
-		<h1><img src="/images/logo.png" alt="" style={{height:32,verticalAlign:'middle',marginRight:8}}/>Saber Tracker</h1>
-        <span style={{fontSize:12,color:'var(--muted)'}}>Jedi Master Tech</span>
+        <h1><img src="/images/logo.png" alt="" style={{ height: 32, verticalAlign: 'middle', marginRight: 8 }} />Saber Tracker</h1>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>Jedi Master Tech</span>
       </div>
       <div className="content">
         <div className="tab-bar">
-          {tabs.map(t=><button key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
+          {tabs.map(t => <button key={t.id} className={`tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
         </div>
-        {tab==='stock' 	   && <StockTab onOpenOrder={openOrderModal}/>}
-        {tab==='orders'    && <OrdersTab/>}
-        {tab==='purchased' && <PurchasedItemsTab onOpenOrder={openOrderModal}/>}
-        {tab==='builds'    && <BuildsTab tiers={tiers}/>}
-        {tab==='tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers}/>}
-        {tab==='import'    && <ImportTab/>}
+        {tab === 'stock'     && <StockTab onOpenOrder={openOrderModal} onOpenItem={openItemModal} />}
+        {tab === 'orders'    && <OrdersTab />}
+        {tab === 'purchased' && <PurchasedItemsTab onOpenOrder={openOrderModal} />}
+        {tab === 'builds'    && <BuildsTab tiers={tiers} />}
+        {tab === 'tiers'     && <TiersTab tiers={tiers} onRefresh={loadTiers} />}
+        {tab === 'import'    && <ImportTab />}
       </div>
-      {orderModal&&<OrderDetailModal 
-	  order={orderModal} 
-	  onClose={()=>setOrderModal(null)}
-	  onEdit={o=>{setOrderModal(null);setEditOrder(o);}}
-	  onDelete={async o=>{
-		if(!confirm(`Delete order ${o.order_number}?`))return;
-		await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`,{method:'DELETE'});
-		setOrderModal(null);
-	  }}
-	  />}
-	  {editOrder&&<NewOrderModal 
-		editOrder={editOrder} 
-		onClose={()=>setEditOrder(null)} 
-		onSaved={()=>setEditOrder(null)}
-	  />}
+
+      {orderModal && <OrderDetailModal
+        order={orderModal}
+        onClose={() => setOrderModal(null)}
+        onEdit={o => { setOrderModal(null); setEditOrder(o); }}
+        onDelete={async o => {
+          if (!confirm(`Delete order ${o.order_number}?`)) return;
+          await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`, { method: 'DELETE' });
+          setOrderModal(null);
+        }}
+      />}
+
+      {editOrder && <NewOrderModal
+        editOrder={editOrder}
+        onClose={() => setEditOrder(null)}
+        onSaved={() => setEditOrder(null)}
+      />}
+
+      {/* Cross-tab purchased item view modal */}
+      {itemModal && (
+        <Modal
+          title={`${itemModal.item_id} — ${itemModal.item_name}`}
+          onClose={() => setItemModal(null)}
+          width="560px"
+        >
+          <div className="view-grid">
+            {[
+              ['Item ID',       itemModal.item_id],
+              ['Category',      catBadge(itemModal.category)],
+              ['Variant',       itemModal.variant || '—'],
+              ['Vendor',        itemModal.vendor || '—'],
+              ['Order #',       itemModal.order_number
+                ? <span className="order-link" onClick={() => { setItemModal(null); openOrderModal(itemModal.order_number); }}>{itemModal.order_number}</span>
+                : '—'],
+              ['Date',          fmtDate(itemModal.date_purchased)],
+              ['Condition',     itemModal.condition || '—'],
+              ['Qty Purchased', itemModal.qty_purchased],
+              ['Unit Cost',     fmt$(itemModal.unit_cost)],
+              ['Shipping Alloc',fmt$(itemModal.shipping_allocated)],
+              ['Tax Alloc',     fmt$(itemModal.tax_allocated)],
+              ['Line Total',    fmt$(itemModal.total_line_cost)],
+              ['Location',      itemModal.location || '—'],
+              ['Notes',         itemModal.notes || '—'],
+            ].map(([k, v]) => (
+              <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
+            ))}
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

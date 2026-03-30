@@ -8,6 +8,22 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+	if (req.method === 'GET' && req.query.ledger === 'true') {
+      const limit = parseInt(req.query.limit) || 200;
+      const rows = await sql`
+        SELECT
+          sl.id, sl.qty_change, sl.reason, sl.notes,
+          sl.created_at,
+          si.sku, si.name AS stock_name,
+          pi.item_id AS purchased_item_ref,
+          pi.order_number
+        FROM stock_ledger sl
+        JOIN  stock_items     si ON si.id = sl.stock_item_id
+        LEFT JOIN purchased_items pi ON pi.id = sl.purchased_item_id
+        ORDER BY sl.created_at DESC
+        LIMIT ${limit}`;
+      return res.json(rows);
+    }  
     if (req.method === 'GET') {
       const { category, search, low_stock, active } = req.query;
       const s    = search ? `%${search}%` : null;
