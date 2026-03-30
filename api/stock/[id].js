@@ -15,7 +15,9 @@ export default async function handler(req, res) {
       if (!row) return res.status(404).json({ error: 'Not found' });
       // Get ledger entries
       const ledger = await sql`
-        SELECT sl.*, pi.item_id as purchased_item_ref
+        SELECT sl.*,
+          pi.item_id     AS purchased_item_ref,
+          pi.order_number AS order_number
         FROM stock_ledger sl
         LEFT JOIN purchased_items pi ON pi.id = sl.purchased_item_id
         WHERE sl.stock_item_id = ${id}

@@ -319,7 +319,7 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
         {/* Digital asset toggle */}
         <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input type="checkbox" id="is_digital_item" checked={!!f.is_digital} onChange={toggleDigital} style={{ width: 'auto', margin: 0 }} />
-          <label htmlFor="is_digital_item" style={{ margin: 0, cursor: 'pointer' }}>Digital asset — no stock tracking</label>
+          <label htmlFor="is_digital_item" style={{ margin: 0, cursor: 'pointer' }}>Digital asset</label>
         </div>
 
         {!f.is_digital && (
@@ -1186,7 +1186,7 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
         {/* Digital asset toggle */}
         <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input type="checkbox" id="is_digital" checked={!!f.is_digital} onChange={toggleDigital} style={{ width: 'auto', margin: 0 }} />
-          <label htmlFor="is_digital" style={{ margin: 0, cursor: 'pointer' }}>Digital asset — no stock tracking</label>
+          <label htmlFor="is_digital" style={{ margin: 0, cursor: 'pointer' }}>Digital asset</label>
         </div>
 
         {!f.is_digital && (
@@ -1381,15 +1381,14 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
   const displayedLedger = showAllLedger ? ledger : ledger.slice(0, 10);
 
   const reasonLabel = r => ({
-    purchase: 'Purchase',
-    purchase_edit: 'Purchase Edit',
-    purchase_linked: 'Linked to Purchase',
-    purchase_unlinked: 'Unlinked from Purchase',
-    purchase_deleted: 'Purchase Deleted',
-    order_deleted: 'Order Deleted',
-    adjustment: 'Adjustment',
-    Found: 'Found', Lost: 'Lost', Damaged: 'Damaged',
-    Correction: 'Correction', Other: 'Other'
+	  adjustment:        'Adjustment',
+	  Found:             'Found',
+	  Lost:              'Lost',
+	  Damaged:           'Damaged',
+	  Correction:        'Correction',
+	  Other:             'Other',
+	  order_deleted:     'Order Deleted',
+	  purchase_deleted:  'Purchase Deleted',
   }[r] || r);
 
   return (
@@ -1442,7 +1441,17 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
                       <tr key={l.id}>
                         <td style={{fontSize:11}}>{fmtDate(l.created_at)}</td>
                         <td style={{fontWeight:600,color:l.qty_change>0?'var(--success)':'var(--danger)'}}>{l.qty_change>0?'+':''}{l.qty_change}</td>
-                        <td style={{fontSize:12}}>{reasonLabel(l.reason)}</td>
+                        <td style={{ fontSize: 12 }}>
+						  {l.reason === 'purchase' || l.reason === 'purchase_edit' ||
+						   l.reason === 'purchase_linked' || l.reason === 'purchase_unlinked'
+							? l.order_number
+							  ? <span className="order-link" onClick={() => { onClose(); onOpenOrder(l.order_number); }}>
+								  {l.order_number}
+								</span>
+							  : l.purchased_item_ref || '—'
+							: reasonLabel(l.reason)
+						  }
+						</td>
                         <td style={{fontFamily:'monospace',fontSize:11}}>{l.purchased_item_ref||'—'}</td>
                         <td style={{fontSize:12,color:'var(--muted)'}}>{l.notes||'—'}</td>
                       </tr>
@@ -1459,7 +1468,7 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
 }
 
 // ── Stock Tab ─────────────────────────────
-function StockTab() {
+function StockTab({ onOpenOrder }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -1616,6 +1625,7 @@ function StockTab() {
           onAdjust={i => { setViewItem(null); setAdjustItem(i); }}
           onRetire={i => { setViewItem(null); retire(i); }}
           onActivate={i => { setViewItem(null); activate(i); }}
+		  onOpenOrder={openOrderModal}
         />
       )}
 
@@ -1909,7 +1919,7 @@ function App(){
         <div className="tab-bar">
           {tabs.map(t=><button key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
         </div>
-        {tab==='stock'     && <StockTab/>}
+        {tab==='stock' 	   && <StockTab onOpenOrder={openOrderModal}/>}
         {tab==='orders'    && <OrdersTab/>}
         {tab==='purchased' && <PurchasedItemsTab onOpenOrder={openOrderModal}/>}
         {tab==='builds'    && <BuildsTab tiers={tiers}/>}
