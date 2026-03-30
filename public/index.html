@@ -210,6 +210,44 @@ function Kebab({items}){
   );
 }
 
+// ── Sorting hook + SortTh component ──────
+function useSort(defaultKey, defaultDir = 'asc') {
+  const [sortKey, setSortKey] = useState(defaultKey);
+  const [sortDir, setSortDir] = useState(defaultDir);
+
+  const toggle = key => {
+    if (key === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const sort = (arr, getValue) => [...arr].sort((a, b) => {
+    const av = getValue ? getValue(a, sortKey) : a[sortKey];
+    const bv = getValue ? getValue(b, sortKey) : b[sortKey];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    const cmp = typeof av === 'string'
+      ? av.localeCompare(bv, undefined, { sensitivity: 'base' })
+      : Number(av) - Number(bv);
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  return { sortKey, sortDir, toggle, sort };
+}
+
+function SortTh({ label, colKey, sortKey, sortDir, onToggle, style }) {
+  const active = colKey === sortKey;
+  return (
+    <th onClick={() => onToggle(colKey)}
+      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', ...style }}>
+      {label}
+      <span style={{ marginLeft: 4, opacity: active ? 1 : 0.25, fontSize: 10 }}>
+        {active ? (sortDir === 'asc' ? '▲' : '▼') : '▲'}
+      </span>
+    </th>
+  );
+}
+
 // ── Item Form (shared add/edit) ───────────
 function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreated }) {
   const [f, setF] = useState({
@@ -781,19 +819,23 @@ function OrdersTab(){
   const [filterVendor,setFilterVendor]=useState('');
   const [filterDateFrom,setFilterDateFrom]=useState('');
   const [filterDateTo,setFilterDateTo]=useState('');
+  const { sortKey: oSortKey, sortDir: oSortDir, toggle: oToggle, sort: oSort } = useSort('order_date', 'desc');
 
   const load=useCallback(async()=>{setLoading(true);setOrders(await api('/api/orders'));setLoading(false);},[]);
   useEffect(()=>{let ignore=false;(async()=>{setLoading(true);const d=await api('/api/orders');if(!ignore)setOrders(d);setLoading(false);})();return()=>{ignore=true;};},[]);
 
   const vendors=useMemo(()=>[...new Set(orders.map(o=>o.vendor).filter(Boolean))].sort(),[orders]);
 
-  const filtered=useMemo(()=>orders.filter(o=>{
-    if(search&&!o.order_number.toLowerCase().includes(search.toLowerCase())&&!(o.vendor||'').toLowerCase().includes(search.toLowerCase()))return false;
-    if(filterVendor&&o.vendor!==filterVendor)return false;
-    if(filterDateFrom&&fmtDate(o.order_date)<filterDateFrom)return false;
-    if(filterDateTo&&fmtDate(o.order_date)>filterDateTo)return false;
-    return true;
-  }),[orders,search,filterVendor,filterDateFrom,filterDateTo]);
+  const filtered = useMemo(() => {
+    const f = orders.filter(o => {
+      if (search && !o.order_number.toLowerCase().includes(search.toLowerCase()) && !(o.vendor||'').toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterVendor && o.vendor !== filterVendor) return false;
+      if (filterDateFrom && fmtDate(o.order_date) < filterDateFrom) return false;
+      if (filterDateTo && fmtDate(o.order_date) > filterDateTo) return false;
+      return true;
+    });
+    return oSort(f);
+  }, [orders, search, filterVendor, filterDateFrom, filterDateTo, oSortKey, oSortDir]);
 
 	const del = async o => {
 	  const itemCount = Number(o.item_count || 0);
@@ -835,7 +877,17 @@ function OrdersTab(){
       <div className="overflow-x">
         {loading?<div className="empty">Loading…</div>:filtered.length===0?<div className="empty">No orders match filters.</div>:(
           <table>
-            <thead><tr><th>Order #</th><th>Vendor</th><th>Date</th><th>Items</th><th>Parts</th><th>Shipping</th><th>Tax</th><th>Total</th><th></th></tr></thead>
+            <thead><tr>
+				<SortTh label="Order #"  colKey="order_number"  sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Vendor"   colKey="vendor"        sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Date"     colKey="order_date"    sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Items"    colKey="item_count"    sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Parts"    colKey="parts_total"   sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Shipping" colKey="shipping_total" sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Tax"      colKey="tax_total"     sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Total"    colKey="order_total"   sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<th></th>
+			</tr></thead>
             <tbody>
               {filtered.map(o=>(
                 <tr key={o.id}>
@@ -879,6 +931,7 @@ function PurchasedItemsTab({ onOpenOrder }) {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [viewItem, setViewItem] = useState(null);
   const [editItem, setEditItem] = useState(null);
+  const { sortKey: pSortKey, sortDir: pSortDir, toggle: pToggle, sort: pSort } = useSort('date_purchased', 'desc');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -891,15 +944,18 @@ function PurchasedItemsTab({ onOpenOrder }) {
   const categories = useMemo(() => [...new Set(items.map(i => i.category).filter(Boolean))].sort(), [items]);
   const conditions = useMemo(() => [...new Set(items.map(i => i.condition).filter(Boolean))].sort(), [items]);
 
-  const filtered = useMemo(() => items.filter(i => {
-    if (search && !i.item_name.toLowerCase().includes(search.toLowerCase()) && !i.item_id.toLowerCase().includes(search.toLowerCase()) && !(i.vendor || '').toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterCat && i.category !== filterCat) return false;
-    if (filterVendor && i.vendor !== filterVendor) return false;
-    if (filterCondition && i.condition !== filterCondition) return false;
-    if (filterDateFrom && fmtDate(i.date_purchased) < filterDateFrom) return false;
-    if (filterDateTo && fmtDate(i.date_purchased) > filterDateTo) return false;
-    return true;
-  }), [items, search, filterCat, filterVendor, filterCondition, filterDateFrom, filterDateTo]);
+  const filtered = useMemo(() => {
+    const f = items.filter(i => {
+      if (search && !i.item_name.toLowerCase().includes(search.toLowerCase()) && !i.item_id.toLowerCase().includes(search.toLowerCase()) && !(i.vendor||'').toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterCat && i.category !== filterCat) return false;
+      if (filterVendor && i.vendor !== filterVendor) return false;
+      if (filterCondition && i.condition !== filterCondition) return false;
+      if (filterDateFrom && fmtDate(i.date_purchased) < filterDateFrom) return false;
+      if (filterDateTo && fmtDate(i.date_purchased) > filterDateTo) return false;
+      return true;
+    });
+    return pSort(f);
+  }, [items, search, filterCat, filterVendor, filterCondition, filterDateFrom, filterDateTo, pSortKey, pSortDir]);
 
   const saveEdit = async f => {
     await api(`/api/purchased-items/${editItem.item_id}`, { method: 'PUT', body: f });
@@ -953,7 +1009,20 @@ function PurchasedItemsTab({ onOpenOrder }) {
       <div className="overflow-x">
         {loading ? <div className="empty">Loading…</div> : filtered.length === 0 ? <div className="empty">No items match filters.</div> : (
           <table>
-            <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Vendor</th><th>Order #</th><th>Date</th><th>Qty</th><th>Unit Cost</th><th>Ship Alloc</th><th>Tax Alloc</th><th>Line Total</th><th></th></tr></thead>
+            <thead><tr>
+				<SortTh label="ID"         colKey="item_id"           sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Name"       colKey="item_name"         sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Category"   colKey="category"          sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Vendor"     colKey="vendor"            sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Order #"    colKey="order_number"      sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Date"       colKey="date_purchased"    sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Qty"        colKey="qty_purchased"     sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Unit Cost"  colKey="unit_cost"         sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Ship Alloc" colKey="shipping_allocated" sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Tax Alloc"  colKey="tax_allocated"     sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<SortTh label="Line Total" colKey="total_line_cost"   sortKey={pSortKey} sortDir={pSortDir} onToggle={pToggle}/>
+				<th></th>
+			</tr></thead>
             <tbody>
               {filtered.map(i => (
                 <tr key={i.item_id}>
@@ -1362,6 +1431,7 @@ function StockTab() {
   const [viewItem, setViewItem] = useState(null);
   const [editStockItem, setEditStockItem] = useState(null);
   const [adjustItem, setAdjustItem] = useState(null);
+  const { sortKey: sSortKey, sortDir: sSortDir, toggle: sToggle, sort: sSort } = useSort('name');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1463,9 +1533,18 @@ function StockTab() {
         {loading ? <div className="empty">Loading…</div> : items.length === 0
           ? <div className="empty">No stock items found.</div> : (
             <table>
-              <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Status</th><th>On Hand</th><th>Avg Cost</th><th>Location</th><th></th></tr></thead>
+              <thead><tr>
+				<SortTh label="SKU"      colKey="sku"          sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="Name"     colKey="name"         sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="Category" colKey="category"     sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="Status"   colKey="active"       sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="On Hand"  colKey="qty_on_hand"  sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="Avg Cost" colKey="unit_cost"    sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<SortTh label="Location" colKey="location"     sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<th></th>
+			  </tr></thead>
               <tbody>
-                {items.map(i => {
+                {sSort(items).map(i => {
                   const sc = isOut(i) ? 'badge-out' : isLow(i) ? 'badge-low' : 'badge-ok';
                   return (
                     <tr key={i.id}>
