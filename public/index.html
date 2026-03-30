@@ -316,15 +316,6 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
         <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition || 'New'} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
-        <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-		  <input type="checkbox" id="update_unit_cost_item"
-			checked={!!f.update_unit_cost}
-			onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
-			style={{ width: 'auto', margin: 0 }} />
-		  <label htmlFor="update_unit_cost_item" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
-			Update stock replacement cost from this purchase
-		  </label>
-		</div>
 
         {/* Digital asset toggle */}
         <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -348,6 +339,15 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
                 {showNewStock ? 'Cancel' : '+ New'}
               </button>
             </div>
+			<div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+			  <input type="checkbox" id="update_unit_cost_item"
+				checked={!!f.update_unit_cost}
+				onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
+				style={{ width: 'auto', margin: 0 }} />
+			  <label htmlFor="update_unit_cost_item" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
+				Update stock replacement cost from this purchase
+			  </label>
+			</div>
           </div>
         )}
 
@@ -1193,15 +1193,6 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-		  <input type="checkbox" id="update_unit_cost"
-			checked={!!f.update_unit_cost}
-			onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
-			style={{ width: 'auto', margin: 0 }} />
-		  <label htmlFor="update_unit_cost" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
-			Update stock replacement cost from this purchase
-		  </label>
-		</div>
 		<div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
 
         {/* Digital asset toggle */}
@@ -1227,6 +1218,15 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
               </button>
             </div>
           </div>
+		  <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+			  <input type="checkbox" id="update_unit_cost"
+				checked={!!f.update_unit_cost}
+				onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
+				style={{ width: 'auto', margin: 0 }} />
+			  <label htmlFor="update_unit_cost" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
+				Update stock replacement cost from this purchase
+			  </label>
+			</div>
         )}
 
         <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes || ''} onChange={handle} rows={2} /></div>
