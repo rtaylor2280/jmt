@@ -28,22 +28,21 @@ export default async function handler(req, res) {
         return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
       }
 
-      // Get current state before update
       const [current] = await sql`SELECT * FROM purchased_items WHERE item_id = ${id}`;
       if (!current) return res.status(404).json({ error: 'Not found' });
 
       const {
         item_name, variant, vendor, date_purchased,
         qty_purchased, unit_cost, condition,
-        category, location, notes, stock_item_id
+        category, location, notes, stock_item_id, is_digital
       } = body;
 
-      const newStockId = stock_item_id ? parseInt(stock_item_id) : null;
-      const oldStockId = current.stock_item_id || null;
-      const oldQty = current.qty_purchased;
-      const newQty = qty_purchased;
+      const digital    = !!is_digital;
+      const newStockId = !digital && stock_item_id ? parseInt(stock_item_id) : null;
+      const oldStockId = current.is_digital ? null : (current.stock_item_id || null);
+      const oldQty     = current.qty_purchased;
+      const newQty     = parseInt(qty_purchased);
 
-      // Update purchased item
       const [row] = await sql`
         UPDATE purchased_items SET
           item_name      = ${item_name},
@@ -56,22 +55,22 @@ export default async function handler(req, res) {
           category       = ${category||null},
           location       = ${location||null},
           notes          = ${notes||null},
-          stock_item_id  = ${newStockId}
+          stock_item_id  = ${newStockId},
+          is_digital     = ${digital}
         WHERE item_id = ${id}
         RETURNING *`;
 
-      // Handle stock adjustments
+      // Handle stock adjustments — skip entirely if switching to/from digital
       if (oldStockId && newStockId && oldStockId === newStockId) {
         // Same stock item — adjust for qty difference
         const diff = newQty - oldQty;
         if (diff !== 0) {
-          await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand + ${diff}, updated_at = NOW() WHERE id = ${newStockId}`;
-          await sql`UPDATE stock_items SET active = true WHERE id = ${newStockId}`;
+          await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand + ${diff}, active = true, updated_at = NOW() WHERE id = ${newStockId}`;
           await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
             VALUES (${newStockId}, ${current.id}, ${diff}, 'purchase_edit')`;
         }
       } else {
-        // Stock item changed — reverse old, apply new
+        // Stock item changed (or digital toggle changed) — reverse old, apply new
         if (oldStockId) {
           await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand - ${oldQty}, updated_at = NOW() WHERE id = ${oldStockId}`;
           await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
@@ -91,8 +90,8 @@ export default async function handler(req, res) {
       const [current] = await sql`SELECT * FROM purchased_items WHERE item_id = ${id}`;
       if (!current) return res.status(404).end();
 
-      // Reverse stock qty if linked
-      if (current.stock_item_id) {
+      // Only reverse stock if not digital and linked
+      if (!current.is_digital && current.stock_item_id) {
         await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand - ${current.qty_purchased}, updated_at = NOW() WHERE id = ${current.stock_item_id}`;
         await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
           VALUES (${current.stock_item_id}, ${current.id}, ${-current.qty_purchased}, 'purchase_deleted')`;

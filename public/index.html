@@ -255,11 +255,12 @@ function SortTh({ label, colKey, sortKey, sortDir, onToggle, style }) {
   );
 }
 
-// ── Item Form (shared add/edit) ───────────
+// ── ItemForm (used inside NewOrderModal) ──
 function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreated }) {
   const [f, setF] = useState({
     item_name: '', variant: '', category: '', qty_purchased: 1,
-    unit_cost: '', condition: 'New', notes: '', stock_item_id: '', ...initial
+    unit_cost: '', condition: 'New', notes: '', stock_item_id: '',
+    is_digital: false, ...initial
   });
   const [showNewStock, setShowNewStock] = useState(false);
   const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
@@ -268,36 +269,41 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleNewStock = e => setNewStock(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  // When category or item_name changes, pre-fill new stock form
   useEffect(() => {
-	  setNewStock(p => ({ 
-		...p, 
-		name: f.item_name, 
-		category: f.category,
-		sku_prefix: f.item_name ? f.item_name.slice(0, 2).toUpperCase() : ''
-	  }));
-	}, [f.item_name, f.category]);
+    setNewStock(p => ({
+      ...p,
+      name: f.item_name,
+      category: f.category,
+      sku_prefix: f.item_name ? f.item_name.slice(0, 2).toUpperCase() : ''
+    }));
+  }, [f.item_name, f.category]);
 
-	const createStockItem = async () => {
-	  if (!newStock.name) return;
-	  const prefix = (newStock.sku_prefix || '').toUpperCase();
-	  if (!prefix) { alert('SKU prefix is required.'); return; }
-	  const taken = stockItems.some(s => s.sku && s.sku.startsWith(prefix + '-'));
-	  if (taken) { alert(`Prefix "${prefix}" is already in use. Choose a different one.`); return; }
-	  setCreatingStock(true);
-	  try {
-		const created = await api('/api/stock', { method: 'POST', body: { ...newStock, sku_prefix: prefix } });
-		const refreshed = await onStockCreated();
-		setF(p => ({ ...p, stock_item_id: String(created.id) }));
-		setShowNewStock(false);
-		setNewStock({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
-	  } catch (e) {
-		alert('Failed to create stock item: ' + e.message);
-	  }
-	  setCreatingStock(false);
-	};
+  const toggleDigital = e => {
+    const digital = e.target.checked;
+    setF(p => ({ ...p, is_digital: digital, stock_item_id: digital ? '' : p.stock_item_id }));
+    if (digital) setShowNewStock(false);
+  };
 
-  const canSave = f.item_name && f.stock_item_id;
+  const createStockItem = async () => {
+    if (!newStock.name) return;
+    const prefix = (newStock.sku_prefix || '').toUpperCase();
+    if (!prefix) { alert('SKU prefix is required.'); return; }
+    const taken = stockItems.some(s => s.sku && s.sku.startsWith(prefix + '-'));
+    if (taken) { alert(`Prefix "${prefix}" is already in use. Choose a different one.`); return; }
+    setCreatingStock(true);
+    try {
+      const created = await api('/api/stock', { method: 'POST', body: { ...newStock, sku_prefix: prefix } });
+      await onStockCreated();
+      setF(p => ({ ...p, stock_item_id: String(created.id) }));
+      setShowNewStock(false);
+      setNewStock({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+    } catch (e) {
+      alert('Failed to create stock item: ' + e.message);
+    }
+    setCreatingStock(false);
+  };
+
+  const canSave = f.item_name && (f.is_digital || f.stock_item_id);
 
   return (
     <form onSubmit={e => { e.preventDefault(); if (canSave) onSave(f); }}
@@ -309,33 +315,43 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition || 'New'} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
-        <div className="form-group full">
-          <label>Stock Item *</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <select name="stock_item_id" value={f.stock_item_id} onChange={handle} style={{ flex: 1 }} required>
-              <option value="">— select or create —</option>
-              {stockItems.map(s => (
-				  <option key={s.id} value={s.id} style={!s.active ? {color:'var(--muted)'} : {}}>
-				   {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
-				  </option>
-				))}
-            </select>
-            <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
-              {showNewStock ? 'Cancel' : '+ New'}
-            </button>
-          </div>
+
+        {/* Digital asset toggle */}
+        <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" id="is_digital_item" checked={!!f.is_digital} onChange={toggleDigital} style={{ width: 'auto', margin: 0 }} />
+          <label htmlFor="is_digital_item" style={{ margin: 0, cursor: 'pointer' }}>Digital asset — no stock tracking</label>
         </div>
+
+        {!f.is_digital && (
+          <div className="form-group full">
+            <label>Stock Item *</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select name="stock_item_id" value={f.stock_item_id} onChange={handle} style={{ flex: 1 }}>
+                <option value="">— select or create —</option>
+                {stockItems.map(s => (
+                  <option key={s.id} value={s.id} style={!s.active ? { color: 'var(--muted)' } : {}}>
+                    {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
+                {showNewStock ? 'Cancel' : '+ New'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
       </div>
 
-      {showNewStock && (
+      {!f.is_digital && showNewStock && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 12, marginTop: 10 }}>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>New Stock Item</div>
           <div className="form-grid">
             <div className="form-group full"><label>Name *</label><input name="name" value={newStock.name} onChange={handleNewStock} required /></div>
-			<div className="form-group"><label>Category</label><CategoryCombobox value={newStock.category} onChange={handleNewStock} /></div>
-			<div className="form-group"><label>SKU Prefix</label><input name="sku_prefix" value={newStock.sku_prefix||''} onChange={handleNewStock} placeholder="e.g. EL, PT" maxLength={4} style={{textTransform:'uppercase'}}/></div>
-			<div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
+            <div className="form-group"><label>Category</label><CategoryCombobox value={newStock.category} onChange={handleNewStock} /></div>
+            <div className="form-group"><label>SKU Prefix</label><input name="sku_prefix" value={newStock.sku_prefix || ''} onChange={handleNewStock} placeholder="e.g. EL, PT" maxLength={4} style={{ textTransform: 'uppercase' }} /></div>
+            <div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
             <div className="form-group"><label>Location</label><input name="location" value={newStock.location} onChange={handleNewStock} /></div>
             <div className="form-group full"><label>Notes</label><input name="notes" value={newStock.notes} onChange={handleNewStock} /></div>
           </div>
@@ -889,7 +905,7 @@ function OrdersTab(){
 				<SortTh label="Vendor"   colKey="vendor"        sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
 				<SortTh label="Date"     colKey="order_date"    sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
 				<SortTh label="Items"    colKey="item_count"    sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
-				<SortTh label="Parts"    colKey="parts_total"   sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
+				<SortTh label="Cost"    colKey="parts_total"   sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
 				<SortTh label="Shipping" colKey="shipping_total" sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
 				<SortTh label="Tax"      colKey="tax_total"     sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
 				<SortTh label="Total"    colKey="order_total"   sortKey={oSortKey} sortDir={oSortDir} onToggle={oToggle}/>
@@ -1100,11 +1116,13 @@ function PurchasedItemsTab({ onOpenOrder }) {
   );
 }
 
+// ── PurchasedItemForm ─────────────────────
 function PurchasedItemForm({ initial = {}, onSave, onClose }) {
   const [f, setF] = useState({
     item_name: '', variant: '', vendor: '', date_purchased: '',
     qty_purchased: 1, unit_cost: '', condition: 'New',
-    category: '', location: '', notes: '', stock_item_id: '', ...initial
+    category: '', location: '', notes: '', stock_item_id: '',
+    is_digital: false, ...initial
   });
   const [stockItems, setStockItems] = useState([]);
   const [showNewStock, setShowNewStock] = useState(false);
@@ -1112,11 +1130,8 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
   const [creatingStock, setCreatingStock] = useState(false);
   const [skuError, setSkuError] = useState('');
 
-  useEffect(() => {
-    api('/api/stock?active=all').then(setStockItems);
-  }, []);
+  useEffect(() => { api('/api/stock?active=all').then(setStockItems); }, []);
 
-  // Pre-fill new stock form from item
   useEffect(() => {
     setNewStock(p => ({
       ...p,
@@ -1128,6 +1143,12 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
 
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleNewStock = e => { setSkuError(''); setNewStock(p => ({ ...p, [e.target.name]: e.target.value })); };
+
+  const toggleDigital = e => {
+    const digital = e.target.checked;
+    setF(p => ({ ...p, is_digital: digital, stock_item_id: digital ? '' : p.stock_item_id }));
+    if (digital) setShowNewStock(false);
+  };
 
   const createStockItem = async () => {
     if (!newStock.name) return;
@@ -1161,26 +1182,36 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
         <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
         <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
-        <div className="form-group full">
-          <label>Stock Item</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle} style={{ flex: 1 }}>
-              <option value="">— none —</option>
-              {stockItems.map(s => (
-				  <option key={s.id} value={s.id} style={!s.active ? {color:'var(--muted)'} : {}}>
-				   {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
-				  </option>
-				))}
-            </select>
-            <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
-              {showNewStock ? 'Cancel' : '+ New'}
-            </button>
-          </div>
+
+        {/* Digital asset toggle */}
+        <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" id="is_digital" checked={!!f.is_digital} onChange={toggleDigital} style={{ width: 'auto', margin: 0 }} />
+          <label htmlFor="is_digital" style={{ margin: 0, cursor: 'pointer' }}>Digital asset — no stock tracking</label>
         </div>
+
+        {!f.is_digital && (
+          <div className="form-group full">
+            <label>Stock Item</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle} style={{ flex: 1 }}>
+                <option value="">— none —</option>
+                {stockItems.map(s => (
+                  <option key={s.id} value={s.id} style={!s.active ? { color: 'var(--muted)' } : {}}>
+                    {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
+                {showNewStock ? 'Cancel' : '+ New'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes || ''} onChange={handle} rows={2} /></div>
       </div>
 
-      {showNewStock && (
+      {!f.is_digital && showNewStock && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 12, marginTop: 10 }}>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>New Stock Item</div>
           <div className="form-grid">
