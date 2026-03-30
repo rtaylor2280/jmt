@@ -84,14 +84,16 @@ export default async function handler(req, res) {
       for (const o of orderRows) {
         if (!o.order_number) continue;
         await sql`
-          INSERT INTO orders (order_number, vendor, order_date, shipping_total, tax_total)
+          INSERT INTO orders (order_number, vendor, order_date, shipping_total, tax_total, notes)
           VALUES (${o.order_number}, ${o.vendor || null}, ${o.order_date || null},
-                  ${parseFloat(o.shipping_total) || 0}, ${parseFloat(o.tax_total) || 0})
+                  ${parseFloat(o.shipping_total) || 0}, ${parseFloat(o.tax_total) || 0},
+                  ${o.notes || null})
           ON CONFLICT (order_number) DO UPDATE SET
             vendor          = EXCLUDED.vendor,
             order_date      = EXCLUDED.order_date,
             shipping_total  = EXCLUDED.shipping_total,
             tax_total       = EXCLUDED.tax_total,
+            notes           = EXCLUDED.notes,
             updated_at      = NOW()`;
         insertedOrders++;
       }
@@ -146,14 +148,16 @@ export default async function handler(req, res) {
       for (const r of rows) {
         try {
           await sql`
-            INSERT INTO orders (order_number, vendor, order_date, shipping_total, tax_total)
+            INSERT INTO orders (order_number, vendor, order_date, shipping_total, tax_total, notes)
             VALUES (${r.order_number}, ${r.vendor || null}, ${r.order_date || null},
-                    ${parseFloat(r.shipping_total) || 0}, ${parseFloat(r.tax_total) || 0})
+                    ${parseFloat(r.shipping_total) || 0}, ${parseFloat(r.tax_total) || 0},
+                    ${r.notes || null})
             ON CONFLICT (order_number) DO UPDATE SET
               vendor         = EXCLUDED.vendor,
               order_date     = EXCLUDED.order_date,
               shipping_total = EXCLUDED.shipping_total,
               tax_total      = EXCLUDED.tax_total,
+              notes          = EXCLUDED.notes,
               updated_at     = NOW()`;
           inserted++;
         } catch (e) {

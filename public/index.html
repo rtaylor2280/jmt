@@ -1657,10 +1657,8 @@ function TiersTab({tiers,onRefresh}){
 function ImportTab() {
   const [invCSV, setInvCSV] = useState('');
   const [ordCSV, setOrdCSV] = useState('');
-  const [invResult, setInvResult] = useState(null);
-  const [ordResult, setOrdResult] = useState(null);
-  const [invLoading, setInvLoading] = useState(false);
-  const [ordLoading, setOrdLoading] = useState(false);
+  const [result, setResult]   = useState(null);
+  const [loading, setLoading] = useState(false);
   const invRef = useRef();
   const ordRef = useRef();
 
@@ -1672,91 +1670,82 @@ function ImportTab() {
     r.readAsText(file);
   };
 
-  const runInv = async () => {
-    setInvLoading(true); setInvResult(null);
+  const runImport = async () => {
+    setLoading(true); setResult(null);
     try {
-      const d = await api('/api/import', { method: 'POST', body: { mode: 'inventory', csv: invCSV } });
-      setInvResult(d); setInvCSV('');
+      // Orders first, then items
+      const ordRes = await api('/api/import', { method: 'POST', body: { mode: 'orders', csv: ordCSV } });
+      const invRes = await api('/api/import', { method: 'POST', body: { mode: 'inventory', csv: invCSV } });
+      setResult({ ordRes, invRes });
+      setInvCSV(''); setOrdCSV('');
       if (invRef.current) invRef.current.value = '';
-    } catch (e) { setInvResult({ error: e.message }); }
-    setInvLoading(false);
-  };
-
-  const runOrd = async () => {
-    setOrdLoading(true); setOrdResult(null);
-    try {
-      const d = await api('/api/import', { method: 'POST', body: { mode: 'orders', csv: ordCSV } });
-      setOrdResult(d); setOrdCSV('');
       if (ordRef.current) ordRef.current.value = '';
-    } catch (e) { setOrdResult({ error: e.message }); }
-    setOrdLoading(false);
+    } catch (e) {
+      setResult({ error: e.message });
+    }
+    setLoading(false);
   };
 
-  const Result = ({ r }) => {
-    if (!r) return null;
-    if (r.error) return <div className="result-err">{r.error}</div>;
-    return (
-      <div className="result-ok">
-        {r.inserted ?? r.insertedItems} inserted
-        {(r.insertedOrders > 0) && `, ${r.insertedOrders} orders`}
-        {(r.skipped > 0) && `, ${r.skipped} skipped`}
-        {r.errors?.length > 0 && (
-          <div style={{ marginTop: 6, fontSize: 12, color: 'var(--warn)' }}>
-            {r.errors.map((e, i) => <div key={i}>{e}</div>)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const sections = [
-    {
-      label: '1. Purchased Items CSV',
-      ref: invRef, csv: invCSV, set: setInvCSV,
-      run: runInv, loading: invLoading, result: invResult,
-      hint: 'Required: item_name, qty_purchased, unit_cost',
-      optional: 'Optional: order_number, variant, vendor, date_purchased, condition, category, location, notes, shipping_allocated, tax_allocated, stock_item_id',
-    },
-    {
-      label: '2. Orders CSV',
-      ref: ordRef, csv: ordCSV, set: setOrdCSV,
-      run: runOrd, loading: ordLoading, result: ordResult,
-      hint: 'Required: order_number, shipping_total, tax_total',
-      optional: 'Optional: vendor, order_date, notes',
-    },
-  ];
+  const ready = invCSV && ordCSV && !loading;
 
   return (
     <div style={{ maxWidth: 600 }}>
       <h2>Bulk Import</h2>
       <p style={{ color: 'var(--muted)', marginBottom: 24, fontSize: 13 }}>
-        Run purchased items CSV first, then orders CSV. If a <code>stock_item_id</code> is
-        provided on a purchased item, stock qty will be incremented and a ledger entry created.
+        Load both CSVs then click Import. Orders are submitted first automatically.
       </p>
 
-      {sections.map(s => (
-        <div key={s.label} style={{
-          background: 'var(--card)', border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 16
-        }}>
-          <h2 style={{ marginBottom: 4 }}>{s.label}</h2>
-          <p style={{ fontSize: 12, color: 'var(--accent2)', marginBottom: 2 }}>{s.hint}</p>
-          <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>{s.optional}</p>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input ref={s.ref} type="file" accept=".csv"
-              onChange={e => readFile(e, s.set)} style={{ flex: 1 }} />
-            <button className="primary" onClick={s.run} disabled={!s.csv || s.loading}>
-              {s.loading ? 'Importing…' : 'Import'}
-            </button>
-          </div>
-          {s.csv && (
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
-              {s.csv.trim().split('\n').length - 1} rows
-            </div>
-          )}
-          <Result r={s.result} />
+      {/* Orders CSV */}
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 16 }}>
+        <h2 style={{ marginBottom: 4 }}>Orders CSV</h2>
+        <p style={{ fontSize: 12, color: 'var(--accent2)', marginBottom: 2 }}>Required: order_number, shipping_total, tax_total</p>
+        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Optional: vendor, order_date, notes</p>
+        <input ref={ordRef} type="file" accept=".csv" onChange={e => readFile(e, setOrdCSV)} style={{ width: '100%' }} />
+        {ordCSV && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>{ordCSV.trim().split('\n').length - 1} rows</div>}
+      </div>
+
+      {/* Purchased Items CSV */}
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 16 }}>
+        <h2 style={{ marginBottom: 4 }}>Purchased Items CSV</h2>
+        <p style={{ fontSize: 12, color: 'var(--accent2)', marginBottom: 2 }}>Required: item_name, qty_purchased, unit_cost</p>
+        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Optional: order_number, variant, vendor, date_purchased, condition, category, location, notes, shipping_allocated, tax_allocated, stock_item_id</p>
+        <input ref={invRef} type="file" accept=".csv" onChange={e => readFile(e, setInvCSV)} style={{ width: '100%' }} />
+        {invCSV && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>{invCSV.trim().split('\n').length - 1} rows</div>}
+      </div>
+
+      <button className="primary" onClick={runImport} disabled={!ready} style={{ width: '100%', padding: '10px 0' }}>
+        {loading ? 'Importing…' : 'Import Both'}
+      </button>
+      {!invCSV && !ordCSV ? null : (!invCSV || !ordCSV) &&
+        <div style={{ fontSize: 12, color: 'var(--warn)', marginTop: 8, textAlign: 'center' }}>
+          Both files required before importing.
         </div>
-      ))}
+      }
+
+      {result && (
+        <div style={{ marginTop: 16 }}>
+          {result.error
+            ? <div className="result-err">{result.error}</div>
+            : <>
+                <div className="result-ok">
+                  Orders: {result.ordRes.inserted ?? 0} inserted, {result.ordRes.skipped ?? 0} skipped
+                  {result.ordRes.errors?.length > 0 &&
+                    <div style={{ marginTop: 4, fontSize: 12, color: 'var(--warn)' }}>
+                      {result.ordRes.errors.map((e, i) => <div key={i}>{e}</div>)}
+
+                    </div>}
+                </div>
+                <div className="result-ok" style={{ marginTop: 8 }}>
+                  Items: {result.invRes.inserted ?? 0} inserted, {result.invRes.skipped ?? 0} skipped
+                  {result.invRes.errors?.length > 0 &&
+                    <div style={{ marginTop: 4, fontSize: 12, color: 'var(--warn)' }}>
+                      {result.invRes.errors.map((e, i) => <div key={i}>{e}</div>)}
+                    </div>}
+                </div>
+              </>
+          }
+        </div>
+      )}
     </div>
   );
 }
