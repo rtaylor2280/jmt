@@ -1461,16 +1461,16 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
           <div className="view-grid" style={{marginBottom:16}}>
             {[
               ['SKU', <span style={{fontFamily:'monospace'}}>{item.sku}</span>],
-              ['Status', <span className="badge" style={item.active ? {background:'#102010',color:'var(--success)'} : {background:'#2a1010',color:'var(--danger)'}}>{item.active ? 'Active' : 'Retired'}</span>],
-              ['Name', item.name],
-              ['Category', catBadge(item.category)],
-              ['Variant', item.variant || '—'],
-              ['On Hand', <strong style={{color: item.qty_on_hand === 0 ? 'var(--danger)' : item.low_stock_threshold && item.qty_on_hand <= item.low_stock_threshold ? 'var(--warn)' : 'var(--success)'}}>{item.qty_on_hand}</strong>],
-              ['Low Stock Threshold', item.low_stock_threshold ?? '—'],
-              ['Avg Cost', fmt$(item.avg_cost)],
+			  ['Status', <span className="badge" style={item.active ? {background:'#102010',color:'var(--success)'} : {background:'#2a1010',color:'var(--danger)'}}>{item.active ? 'Active' : 'Retired'}</span>],
+			  ['Name', item.name],
+			  ['Category', catBadge(item.category)],
+			  ['Variant', item.variant || '—'],
+			  ['Location', item.location || '—'],
+			  ['Avg Cost', fmt$(item.avg_cost)],
+			  ['On Hand', <strong style={{color: item.qty_on_hand === 0 ? 'var(--danger)' : item.low_stock_threshold && item.qty_on_hand <= item.low_stock_threshold ? 'var(--warn)' : 'var(--success)'}}>{item.qty_on_hand}</strong>],
 			  ['Replacement Cost', fmt$(item.unit_cost)],
-              ['Location', item.location || '—'],
-              ['Notes', item.notes || '—'],
+			  ['Low Stock Threshold', item.low_stock_threshold ?? '—'],
+			  ['Notes', item.notes || '—'],
             ].map(([k,v]) => (
               <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
             ))}
