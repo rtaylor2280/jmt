@@ -323,33 +323,39 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
           <label htmlFor="is_digital_item" style={{ margin: 0, cursor: 'pointer' }}>Digital asset</label>
         </div>
 
-        {!f.is_digital && (
-          <div className="form-group full">
-            <label>Stock Item *</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select name="stock_item_id" value={f.stock_item_id} onChange={handle} style={{ flex: 1 }}>
-                <option value="">— select or create —</option>
-                {stockItems.map(s => (
-                  <option key={s.id} value={s.id} style={!s.active ? { color: 'var(--muted)' } : {}}>
-                    {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
-                  </option>
-                ))}
-              </select>
-              <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
-                {showNewStock ? 'Cancel' : '+ New'}
-              </button>
-            </div>
+		{!f.is_digital && (
+		  <>
+			<div className="form-group full">
+			  <label>Stock Item</label>
+			  <div style={{ display: 'flex', gap: 8 }}>
+				<select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle} style={{ flex: 1 }}>
+				  <option value="">— none —</option>
+				  {stockItems.map(s => (
+					<option key={s.id} value={s.id} style={!s.active ? { color: 'var(--muted)' } : {}}>
+					  {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
+					</option>
+				  ))}
+				</select>
+				<button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
+				  {showNewStock ? 'Cancel' : '+ New'}
+				</button>
+			  </div>
+			</div>
+
 			<div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-			  <input type="checkbox" id="update_unit_cost_item"
+			  <input
+				type="checkbox"
+				id="update_unit_cost"
 				checked={!!f.update_unit_cost}
 				onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
-				style={{ width: 'auto', margin: 0 }} />
-			  <label htmlFor="update_unit_cost_item" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
+				style={{ width: 'auto', margin: 0 }}
+			  />
+			  <label htmlFor="update_unit_cost" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
 				Update stock replacement cost from this purchase
 			  </label>
 			</div>
-          </div>
-        )}
+		  </>
+		)}
 
         <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
       </div>
@@ -1201,33 +1207,39 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
           <label htmlFor="is_digital" style={{ margin: 0, cursor: 'pointer' }}>Digital asset</label>
         </div>
 
-        {!f.is_digital && (
-          <div className="form-group full">
-            <label>Stock Item</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle} style={{ flex: 1 }}>
-                <option value="">— none —</option>
-                {stockItems.map(s => (
-                  <option key={s.id} value={s.id} style={!s.active ? { color: 'var(--muted)' } : {}}>
-                    {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
-                  </option>
-                ))}
-              </select>
-              <button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
-                {showNewStock ? 'Cancel' : '+ New'}
-              </button>
-            </div>
-          </div>
-		  <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-			  <input type="checkbox" id="update_unit_cost"
+		{!f.is_digital && (
+		  <>
+			<div className="form-group full">
+			  <label>Stock Item</label>
+			  <div style={{ display: 'flex', gap: 8 }}>
+				<select name="stock_item_id" value={f.stock_item_id || ''} onChange={handle} style={{ flex: 1 }}>
+				  <option value="">— none —</option>
+				  {stockItems.map(s => (
+					<option key={s.id} value={s.id} style={!s.active ? { color: 'var(--muted)' } : {}}>
+					  {s.sku} — {s.name}{s.variant ? ` (${s.variant})` : ''}{!s.active ? ' [Retired]' : ''}
+					</option>
+				  ))}
+				</select>
+				<button type="button" className="sm" onClick={() => setShowNewStock(p => !p)}>
+				  {showNewStock ? 'Cancel' : '+ New'}
+				</button>
+			  </div>
+			</div>
+
+			<div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+			  <input
+				type="checkbox"
+				id="update_unit_cost"
 				checked={!!f.update_unit_cost}
 				onChange={e => setF(p => ({ ...p, update_unit_cost: e.target.checked }))}
-				style={{ width: 'auto', margin: 0 }} />
+				style={{ width: 'auto', margin: 0 }}
+			  />
 			  <label htmlFor="update_unit_cost" style={{ margin: 0, cursor: 'pointer', fontSize: 13 }}>
 				Update stock replacement cost from this purchase
 			  </label>
 			</div>
-        )}
+		  </>
+		)}
 
         <div className="form-group full"><label>Notes</label><textarea name="notes" value={f.notes || ''} onChange={handle} rows={2} /></div>
       </div>
