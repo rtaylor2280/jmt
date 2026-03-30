@@ -108,13 +108,13 @@ async function insertPurchasedItem(r) {
     INSERT INTO purchased_items
       (order_number, item_name, variant, vendor, date_purchased,
        qty_purchased, unit_cost, shipping_allocated, tax_allocated,
-       condition, category, location, notes, stock_item_id)
+       condition, category, notes, stock_item_id)
     VALUES
       (${r.order_number || null}, ${r.item_name}, ${r.variant || null},
        ${r.vendor || null}, ${r.date_purchased || null},
        ${qty}, ${unitCost}, ${shipAlloc}, ${taxAlloc},
        ${r.condition || 'New'}, ${r.category || r.source_type || null},
-       ${r.location || null}, ${r.notes || null}, ${stockId})
+       ${r.notes || null}, ${stockId})
     RETURNING id`;
 
   if (stockId) {
