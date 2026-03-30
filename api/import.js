@@ -40,6 +40,63 @@ function calcAvgCost(currentAvg, currentQty, changeQty, changeCost) {
   return ((Number(currentAvg) * currentQty) + (Number(changeCost) * changeQty)) / newQty;
 }
 
+const round2 = v => Math.round(Number(v) * 100) / 100;
+
+// Mirrors the distribute() function in index.html exactly.
+// items: [{ id, unit_cost, qty_purchased }]
+// Returns [{ id, ship_alloc, tax_alloc }]
+function distributeAllocations(items, shipTotal, taxTotal) {
+  const ship = round2(Number(shipTotal) || 0);
+  const tax  = round2(Number(taxTotal)  || 0);
+  if (!ship && !tax) return items.map(i => ({ id: i.id, ship_alloc: 0, tax_alloc: 0 }));
+
+  const total = items.reduce(
+    (s, i) => s + round2(Number(i.unit_cost || 0) * Number(i.qty_purchased || 1)), 0
+  );
+
+  const rows = items.map(i => {
+    const w = total > 0
+      ? round2(Number(i.unit_cost || 0) * Number(i.qty_purchased || 1)) / total
+      : 1 / items.length;
+    return { id: i.id, ship_alloc: round2(ship * w), tax_alloc: round2(tax * w) };
+  });
+
+  // Penny-correct the last row so allocations sum exactly to totals
+  if (rows.length) {
+    const sd = round2(ship - round2(rows.reduce((s, r) => s + r.ship_alloc, 0)));
+    const td = round2(tax  - round2(rows.reduce((s, r) => s + r.tax_alloc,  0)));
+    rows[rows.length - 1].ship_alloc = round2(rows[rows.length - 1].ship_alloc + sd);
+    rows[rows.length - 1].tax_alloc  = round2(rows[rows.length - 1].tax_alloc  + td);
+  }
+
+  return rows;
+}
+
+// After all items for an order are inserted, fetch the order totals and
+// the items, compute proportional allocations, and UPDATE each row.
+async function redistributeOrder(orderNumber) {
+  const [order] = await sql`
+    SELECT shipping_total, tax_total FROM orders WHERE order_number = ${orderNumber}`;
+  if (!order) return;
+
+  const items = await sql`
+    SELECT id, unit_cost, qty_purchased
+    FROM purchased_items
+    WHERE order_number = ${orderNumber} AND is_digital = FALSE`;
+
+  if (!items.length) return;
+
+  const allocs = distributeAllocations(items, order.shipping_total, order.tax_total);
+
+  for (const { id, ship_alloc, tax_alloc } of allocs) {
+    await sql`
+      UPDATE purchased_items
+      SET shipping_allocated = ${ship_alloc},
+          tax_allocated      = ${tax_alloc}
+      WHERE id = ${id}`;
+  }
+}
+
 async function insertPurchasedItem(r) {
   const qty       = parseInt(r.qty_purchased) || 1;
   const unitCost  = parseFloat(r.unit_cost)   || 0;
@@ -122,6 +179,12 @@ export default async function handler(req, res) {
         }
       }
 
+      // Redistribute allocations for every unique order touched
+      const orderNumbers = [...new Set(items.map(r => r.order_number).filter(Boolean))];
+      for (const orderNumber of orderNumbers) {
+        await redistributeOrder(orderNumber);
+      }
+
       return res.json({ insertedItems, insertedOrders, errors: errors.slice(0, 20) });
     }
 
@@ -144,6 +207,12 @@ export default async function handler(req, res) {
           skipped++;
           errors.push(`"${r.item_name}": ${e.message}`);
         }
+      }
+
+      // Redistribute allocations for every unique order touched
+      const orderNumbers = [...new Set(rows.map(r => r.order_number).filter(Boolean))];
+      for (const orderNumber of orderNumbers) {
+        await redistributeOrder(orderNumber);
       }
 
       return res.json({ inserted, skipped, errors: errors.slice(0, 20) });
