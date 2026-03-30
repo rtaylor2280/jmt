@@ -1512,14 +1512,14 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
 						  {l.reason === 'purchase' || l.reason === 'purchase_edit' ||
 						   l.reason === 'purchase_linked' || l.reason === 'purchase_unlinked'
 							? l.order_number
-							  ? <span className="order-link" onClick={() => { onClose(); onOpenOrder(l.order_number); }}>{l.order_number}</span>
+							  ? <span className="order-link" onClick={() => onOpenOrder(l.order_number)}>{l.order_number}</span>
 							  : l.purchased_item_ref || '—'
 							: reasonLabel(l.reason)
 						  }
 						</td>
 						<td style={{ fontFamily: 'monospace', fontSize: 11 }}>
 						  {l.purchased_item_ref
-							? <span className="order-link" onClick={() => { onClose(); onOpenItem(l.purchased_item_ref); }}>{l.purchased_item_ref}</span>
+							? <span className="order-link" onClick={() => onOpenItem(l.purchased_item_ref)}>{l.purchased_item_ref}</span>
 							: '—'}
 						</td>
 						<td style={{ fontSize: 12, color: 'var(--muted)' }}>{l.notes || '—'}</td>
