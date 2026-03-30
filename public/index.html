@@ -902,11 +902,14 @@ function PurchasedItemsTab({ onOpenOrder }) {
     setEditItem(null); setViewItem(null); load();
   };
 
-  const del = async item => {
-    if (!confirm(`Delete ${item.item_id}?`)) return;
-    await api(`/api/purchased-items/${item.item_id}`, { method: 'DELETE' });
-    setViewItem(null); load();
-  };
+	const del = async o => {
+	  const itemCount = Number(o.item_count || 0);
+	  const itemLabel = itemCount === 1 ? '1 purchased item' : `${itemCount} purchased items`;
+	  if (!confirm(`Delete order ${o.order_number}? This will also delete ${itemLabel} and cannot be undone.`)) return;
+	  await api(`/api/orders?order_number=${encodeURIComponent(o.order_number)}`, { method: 'DELETE' });
+	  setDetail(null);
+	  load();
+	};
 
   const totalCost = filtered.reduce((s, i) => s + Number(i.total_line_cost || 0), 0);
   const totalShip = filtered.reduce((s, i) => s + Number(i.shipping_allocated || 0), 0);

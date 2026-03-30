@@ -46,7 +46,6 @@ export default async function handler(req, res) {
           notes          = EXCLUDED.notes,
           updated_at     = NOW()
         RETURNING *`;
-      await sql`SELECT recalc_allocation(${order_number})`;
       return res.status(200).json(row);
     }
 
@@ -59,16 +58,18 @@ export default async function handler(req, res) {
         WHERE order_number = ${req.query.order_number}
         AND stock_item_id IS NOT NULL`;
 
-      // Reverse stock quantities
+      // Reverse stock quantities and write ledger entries
       for (const item of items) {
         await sql`
-          UPDATE stock_items SET qty_on_hand = qty_on_hand - ${item.qty_purchased}
+          UPDATE stock_items SET qty_on_hand = qty_on_hand - ${item.qty_purchased}, updated_at = NOW()
           WHERE id = ${item.stock_item_id}`;
         await sql`
           INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
           VALUES (${item.stock_item_id}, ${item.id}, ${-item.qty_purchased}, 'order_deleted')`;
       }
 
+      // Delete purchased items first, then the order
+      await sql`DELETE FROM purchased_items WHERE order_number = ${req.query.order_number}`;
       await sql`DELETE FROM orders WHERE order_number = ${req.query.order_number}`;
       return res.status(204).end();
     }
