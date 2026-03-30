@@ -1293,43 +1293,69 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
     onSave(f);
   };
 
-  return (
-    <form onSubmit={submit}>
-      <div className="form-grid">
-        <div className="form-group full"><label>Name *</label><input name="name" value={f.name} onChange={handle} required /></div>
-        <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} /></div>
-        <div className="form-group">
-          <label>SKU Prefix {!initial.id && '*'}</label>
-          <input name="sku_prefix" value={f.sku_prefix || ''} onChange={handle}
-            placeholder="e.g. EL, PT" maxLength={4}
-            style={{ textTransform: 'uppercase' }} disabled={!!initial.id} />
-          {skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
-        </div>
-        <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
-        {initial.id && (
-          <div className="form-group">
-            <label>Avg Cost</label>
-            <input value={fmt$(initial.avg_cost)} disabled style={{ opacity: 0.6 }} />
-          </div>
-        )}
-        <div className="form-group">
-          <label>Replacement Cost</label>
-          <input type="number" name="unit_cost" value={f.unit_cost ?? ''} onChange={handle}
-            step="0.01" min="0" placeholder="Auto-updated on purchase" />
-        </div>
-        <div className="form-group"><label>Low Stock Threshold</label>
-          <input type="number" name="low_stock_threshold" value={f.low_stock_threshold ?? ''}
-            onChange={handle} min="0" placeholder="Leave blank to disable" />
-        </div>
-        <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
-        <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
-      </div>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-        <button type="button" onClick={onClose}>Cancel</button>
-        <button type="submit" className="primary">Save</button>
-      </div>
-    </form>
-  );
+	return (
+	  <form onSubmit={submit}>
+		<div className="form-grid">
+		  <div className="form-group full"><label>Name *</label><input name="name" value={f.name} onChange={handle} required /></div>
+		  <div className="form-group"><label>Category</label><CategoryCombobox value={f.category} onChange={handle} /></div>
+		  <div className="form-group">
+			<label>SKU Prefix {!initial.id && '*'}</label>
+			<input name="sku_prefix" value={f.sku_prefix || ''} onChange={handle}
+			  placeholder="e.g. EL, PT" maxLength={4}
+			  style={{ textTransform: 'uppercase' }} disabled={!!initial.id} />
+			{skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
+		  </div>
+
+		  <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
+		  <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
+
+		  {initial.id ? (
+			<>
+			  <div className="form-group">
+				<label>Avg Cost</label>
+				<input value={fmt$(initial.avg_cost)} disabled style={{ opacity: 0.6 }} />
+			  </div>
+			  <div className="form-group">
+				<label>On Hand</label>
+				<input value={initial.qty_on_hand ?? ''} disabled style={{ opacity: 0.6 }} />
+			  </div>
+			</>
+		  ) : (
+			<>
+			  <div className="form-group">
+				<label>Replacement Cost</label>
+				<input type="number" name="unit_cost" value={f.unit_cost ?? ''} onChange={handle}
+				  step="0.01" min="0" placeholder="Auto-updated on purchase" />
+			  </div>
+			  <div className="form-group"><label>Low Stock Threshold</label>
+				<input type="number" name="low_stock_threshold" value={f.low_stock_threshold ?? ''}
+				  onChange={handle} min="0" placeholder="Leave blank to disable" />
+			  </div>
+			</>
+		  )}
+
+		  {initial.id && (
+			<>
+			  <div className="form-group">
+				<label>Replacement Cost</label>
+				<input type="number" name="unit_cost" value={f.unit_cost ?? ''} onChange={handle}
+				  step="0.01" min="0" placeholder="Auto-updated on purchase" />
+			  </div>
+			  <div className="form-group"><label>Low Stock Threshold</label>
+				<input type="number" name="low_stock_threshold" value={f.low_stock_threshold ?? ''}
+				  onChange={handle} min="0" placeholder="Leave blank to disable" />
+			  </div>
+			</>
+		  )}
+
+		  <div className="form-group full"><label>Notes</label><input name="notes" value={f.notes || ''} onChange={handle} /></div>
+		</div>
+		<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+		  <button type="button" onClick={onClose}>Cancel</button>
+		  <button type="submit" className="primary">Save</button>
+		</div>
+	  </form>
+	);
 }
 // ── AdjustModal ───────────────────────────
 function AdjustModal({ item, onClose, onSaved }) {
