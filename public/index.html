@@ -1364,7 +1364,7 @@ function AdjustModal({ item, onClose, onSaved }) {
 }
 
 // ── StockItemViewModal ────────────────────
-function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRetire, onActivate }) {
+function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRetire, onActivate, onOpenOrder }) {
   const [item, setItem] = useState(initialItem);
   const [ledger, setLedger] = useState([]);
   const [showAllLedger, setShowAllLedger] = useState(false);
