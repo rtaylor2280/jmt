@@ -220,15 +220,22 @@ function useSort(defaultKey, defaultDir = 'asc') {
     else { setSortKey(key); setSortDir('asc'); }
   };
 
+  const NUMERIC_KEYS = new Set([
+    'item_count','parts_total','shipping_total','tax_total','order_total',
+    'qty_purchased','unit_cost','shipping_allocated','tax_allocated','total_line_cost',
+    'qty_on_hand','low_stock_threshold'
+  ]);
+
   const sort = (arr, getValue) => [...arr].sort((a, b) => {
     const av = getValue ? getValue(a, sortKey) : a[sortKey];
     const bv = getValue ? getValue(b, sortKey) : b[sortKey];
     if (av == null && bv == null) return 0;
     if (av == null) return 1;
     if (bv == null) return -1;
-    const cmp = typeof av === 'string'
-      ? av.localeCompare(bv, undefined, { sensitivity: 'base' })
-      : Number(av) - Number(bv);
+    const isNum = NUMERIC_KEYS.has(sortKey);
+    const cmp = isNum
+      ? Number(av) - Number(bv)
+      : String(av).localeCompare(String(bv), undefined, { sensitivity: 'base' });
     return sortDir === 'asc' ? cmp : -cmp;
   });
 
