@@ -1,6 +1,12 @@
 import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL);
 
+function calcAvgCost(currentAvg, currentQty, changeQty, changeCost) {
+  const newQty = currentQty + changeQty;
+  if (newQty <= 0) return Number(currentAvg) || 0;
+  return ((Number(currentAvg) * currentQty) + (Number(changeCost) * changeQty)) / newQty;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
@@ -8,16 +14,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // GET /api/orders?order_number=X → line items for that order
     if (req.method === 'GET' && req.query.order_number) {
-      const rows = await sql`
-        SELECT * FROM purchased_items
-        WHERE order_number = ${req.query.order_number}
-        ORDER BY item_id`;
+      const rows = await sql`SELECT * FROM purchased_items WHERE order_number = ${req.query.order_number} ORDER BY item_id`;
       return res.json(rows);
     }
 
-    // GET /api/orders → all orders with totals
     if (req.method === 'GET') {
       const rows = await sql`
         SELECT o.*,
@@ -31,7 +32,6 @@ export default async function handler(req, res) {
       return res.json(rows);
     }
 
-    // POST /api/orders → upsert order header
     if (req.method === 'POST') {
       const { order_number, vendor, order_date, shipping_total, tax_total, notes } = req.body;
       const [row] = await sql`
@@ -49,26 +49,26 @@ export default async function handler(req, res) {
       return res.status(200).json(row);
     }
 
-    // DELETE /api/orders?order_number=X
     if (req.method === 'DELETE' && req.query.order_number) {
-      // Get all purchased items for this order that are linked to stock
       const items = await sql`
-        SELECT id, stock_item_id, qty_purchased
+        SELECT id, stock_item_id, qty_purchased, unit_cost, is_digital
         FROM purchased_items
-        WHERE order_number = ${req.query.order_number}
-        AND stock_item_id IS NOT NULL`;
+        WHERE order_number = ${req.query.order_number}`;
 
-      // Reverse stock quantities and write ledger entries
       for (const item of items) {
-        await sql`
-          UPDATE stock_items SET qty_on_hand = qty_on_hand - ${item.qty_purchased}, updated_at = NOW()
-          WHERE id = ${item.stock_item_id}`;
-        await sql`
-          INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
-          VALUES (${item.stock_item_id}, ${item.id}, ${-item.qty_purchased}, 'order_deleted')`;
+        if (!item.is_digital && item.stock_item_id) {
+          const [si] = await sql`SELECT qty_on_hand, avg_cost FROM stock_items WHERE id = ${item.stock_item_id}`;
+          const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, -item.qty_purchased, Number(item.unit_cost));
+          await sql`UPDATE stock_items SET
+            qty_on_hand = qty_on_hand - ${item.qty_purchased},
+            avg_cost    = ${newAvg},
+            updated_at  = NOW()
+            WHERE id = ${item.stock_item_id}`;
+          await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
+            VALUES (${item.stock_item_id}, ${item.id}, ${-item.qty_purchased}, 'order_deleted')`;
+        }
       }
 
-      // Delete purchased items first, then the order
       await sql`DELETE FROM purchased_items WHERE order_number = ${req.query.order_number}`;
       await sql`DELETE FROM orders WHERE order_number = ${req.query.order_number}`;
       return res.status(204).end();

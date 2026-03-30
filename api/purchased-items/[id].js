@@ -1,6 +1,12 @@
 import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL);
 
+function calcAvgCost(currentAvg, currentQty, changeQty, changeCost) {
+  const newQty = currentQty + changeQty;
+  if (newQty <= 0) return Number(currentAvg) || 0;
+  return ((Number(currentAvg) * currentQty) + (Number(changeCost) * changeQty)) / newQty;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,DELETE,OPTIONS');
@@ -23,8 +29,7 @@ export default async function handler(req, res) {
           UPDATE purchased_items SET
             shipping_allocated = ${body.shipping_allocated},
             tax_allocated      = ${body.tax_allocated}
-          WHERE item_id = ${id}
-          RETURNING *`;
+          WHERE item_id = ${id} RETURNING *`;
         return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
       }
 
@@ -34,7 +39,8 @@ export default async function handler(req, res) {
       const {
         item_name, variant, vendor, date_purchased,
         qty_purchased, unit_cost, condition,
-        category, location, notes, stock_item_id, is_digital
+        category, location, notes, stock_item_id, is_digital,
+        update_unit_cost
       } = body;
 
       const digital    = !!is_digital;
@@ -42,6 +48,7 @@ export default async function handler(req, res) {
       const oldStockId = current.is_digital ? null : (current.stock_item_id || null);
       const oldQty     = current.qty_purchased;
       const newQty     = parseInt(qty_purchased);
+      const cost       = parseFloat(unit_cost) || 0;
 
       const [row] = await sql`
         UPDATE purchased_items SET
@@ -50,34 +57,54 @@ export default async function handler(req, res) {
           vendor         = ${vendor||null},
           date_purchased = ${date_purchased||null},
           qty_purchased  = ${newQty},
-          unit_cost      = ${unit_cost},
+          unit_cost      = ${cost},
           condition      = ${condition||'New'},
           category       = ${category||null},
           location       = ${location||null},
           notes          = ${notes||null},
           stock_item_id  = ${newStockId},
           is_digital     = ${digital}
-        WHERE item_id = ${id}
-        RETURNING *`;
+        WHERE item_id = ${id} RETURNING *`;
 
-      // Handle stock adjustments — skip entirely if switching to/from digital
       if (oldStockId && newStockId && oldStockId === newStockId) {
-        // Same stock item — adjust for qty difference
         const diff = newQty - oldQty;
         if (diff !== 0) {
-          await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand + ${diff}, active = true, updated_at = NOW() WHERE id = ${newStockId}`;
+          const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${newStockId}`;
+          const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, diff, cost);
+          const shouldUpdateUnitCost = update_unit_cost !== false || Number(si.unit_cost) === 0;
+          await sql`UPDATE stock_items SET
+            qty_on_hand = qty_on_hand + ${diff},
+            avg_cost    = ${newAvg},
+            unit_cost   = ${shouldUpdateUnitCost ? cost : si.unit_cost},
+            active      = true,
+            updated_at  = NOW()
+            WHERE id = ${newStockId}`;
           await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
             VALUES (${newStockId}, ${current.id}, ${diff}, 'purchase_edit')`;
         }
       } else {
-        // Stock item changed (or digital toggle changed) — reverse old, apply new
         if (oldStockId) {
-          await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand - ${oldQty}, updated_at = NOW() WHERE id = ${oldStockId}`;
+          const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${oldStockId}`;
+          const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, -oldQty, Number(current.unit_cost));
+          await sql`UPDATE stock_items SET
+            qty_on_hand = qty_on_hand - ${oldQty},
+            avg_cost    = ${newAvg},
+            updated_at  = NOW()
+            WHERE id = ${oldStockId}`;
           await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
             VALUES (${oldStockId}, ${current.id}, ${-oldQty}, 'purchase_unlinked')`;
         }
         if (newStockId) {
-          await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand + ${newQty}, active = true, updated_at = NOW() WHERE id = ${newStockId}`;
+          const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${newStockId}`;
+          const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, newQty, cost);
+          const shouldUpdateUnitCost = update_unit_cost !== false || Number(si.unit_cost) === 0;
+          await sql`UPDATE stock_items SET
+            qty_on_hand = qty_on_hand + ${newQty},
+            avg_cost    = ${newAvg},
+            unit_cost   = ${shouldUpdateUnitCost ? cost : si.unit_cost},
+            active      = true,
+            updated_at  = NOW()
+            WHERE id = ${newStockId}`;
           await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
             VALUES (${newStockId}, ${current.id}, ${newQty}, 'purchase_linked')`;
         }
@@ -90,9 +117,14 @@ export default async function handler(req, res) {
       const [current] = await sql`SELECT * FROM purchased_items WHERE item_id = ${id}`;
       if (!current) return res.status(404).end();
 
-      // Only reverse stock if not digital and linked
       if (!current.is_digital && current.stock_item_id) {
-        await sql`UPDATE stock_items SET qty_on_hand = qty_on_hand - ${current.qty_purchased}, updated_at = NOW() WHERE id = ${current.stock_item_id}`;
+        const [si] = await sql`SELECT qty_on_hand, avg_cost FROM stock_items WHERE id = ${current.stock_item_id}`;
+        const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, -current.qty_purchased, Number(current.unit_cost));
+        await sql`UPDATE stock_items SET
+          qty_on_hand = qty_on_hand - ${current.qty_purchased},
+          avg_cost    = ${newAvg},
+          updated_at  = NOW()
+          WHERE id = ${current.stock_item_id}`;
         await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason)
           VALUES (${current.stock_item_id}, ${current.id}, ${-current.qty_purchased}, 'purchase_deleted')`;
       }

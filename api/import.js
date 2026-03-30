@@ -34,6 +34,12 @@ function parsePaste(text) {
   return { items, orders };
 }
 
+function calcAvgCost(currentAvg, currentQty, changeQty, changeCost) {
+  const newQty = currentQty + changeQty;
+  if (newQty <= 0) return Number(currentAvg) || 0;
+  return ((Number(currentAvg) * currentQty) + (Number(changeCost) * changeQty)) / newQty;
+}
+
 async function insertPurchasedItem(r) {
   const qty       = parseInt(r.qty_purchased) || 1;
   const unitCost  = parseFloat(r.unit_cost)   || 0;
@@ -54,14 +60,17 @@ async function insertPurchasedItem(r) {
        ${r.location || null}, ${r.notes || null}, ${stockId})
     RETURNING id`;
 
-  // Write stock ledger entry if linked to a stock item
   if (stockId) {
-    await sql`
-      UPDATE stock_items
-      SET qty_on_hand = qty_on_hand + ${qty}, updated_at = NOW()
+    const [si] = await sql`SELECT qty_on_hand, avg_cost, unit_cost FROM stock_items WHERE id = ${stockId}`;
+    const newAvg = calcAvgCost(si.avg_cost, si.qty_on_hand, qty, unitCost);
+    const shouldUpdateUnitCost = Number(si.unit_cost) === 0;
+    await sql`UPDATE stock_items SET
+      qty_on_hand = qty_on_hand + ${qty},
+      avg_cost    = ${newAvg},
+      unit_cost   = ${shouldUpdateUnitCost ? unitCost : si.unit_cost},
+      updated_at  = NOW()
       WHERE id = ${stockId}`;
-    await sql`
-      INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason, notes)
+    await sql`INSERT INTO stock_ledger (stock_item_id, purchased_item_id, qty_change, reason, notes)
       VALUES (${stockId}, ${item.id}, ${qty}, 'purchase', ${'Imported: ' + (r.item_name || '')})`;
   }
 }
