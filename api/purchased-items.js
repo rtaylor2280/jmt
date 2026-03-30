@@ -38,12 +38,12 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const {
-        order_number, item_name, variant, vendor, date_purchased,
-        qty_purchased, unit_cost, condition, category, location, notes,
-        shipping_allocated, tax_allocated, stock_item_id, is_digital,
-        update_unit_cost
-      } = req.body;
+		const {
+		  order_number, item_name, variant, vendor, date_purchased,
+		  qty_purchased, unit_cost, condition, category, notes,
+		  shipping_allocated, tax_allocated, stock_item_id, is_digital,
+		  update_unit_cost
+		} = req.body;
 
       const digital  = !!is_digital;
       const stockId  = !digital && stock_item_id ? parseInt(stock_item_id) : null;
@@ -54,16 +54,16 @@ export default async function handler(req, res) {
       const landed   = landedCostPerUnit(cost, qty, shipAlloc, taxAlloc);
 
       const [row] = await sql`
-        INSERT INTO purchased_items
-          (order_number, item_name, variant, vendor, date_purchased,
-           qty_purchased, unit_cost, shipping_allocated, tax_allocated,
-           condition, category, location, notes, stock_item_id, is_digital)
-        VALUES
-          (${order_number||null}, ${item_name}, ${variant||null},
-           ${vendor||null}, ${date_purchased||null},
-           ${qty}, ${cost}, ${shipAlloc}, ${taxAlloc},
-           ${condition||'New'}, ${category||null}, ${location||null}, ${notes||null},
-           ${stockId}, ${digital})
+		INSERT INTO purchased_items
+		  (order_number, item_name, variant, vendor, date_purchased,
+		   qty_purchased, unit_cost, shipping_allocated, tax_allocated,
+		   condition, category, notes, stock_item_id, is_digital)
+		VALUES
+		  (${order_number||null}, ${item_name}, ${variant||null},
+		   ${vendor||null}, ${date_purchased||null},
+		   ${qty}, ${cost}, ${shipAlloc}, ${taxAlloc},
+		   ${condition||'New'}, ${category||null}, ${notes||null},
+		   ${stockId}, ${digital})
         RETURNING *`;
 
       if (stockId) {

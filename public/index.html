@@ -265,7 +265,7 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
 	  ...initial
 	});
   const [showNewStock, setShowNewStock] = useState(false);
-  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', url: '', url_text: '', notes: '' });
   const [creatingStock, setCreatingStock] = useState(false);
 
   const handle = e => setF(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -298,7 +298,7 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
       await onStockCreated();
       setF(p => ({ ...p, stock_item_id: String(created.id) }));
       setShowNewStock(false);
-      setNewStock({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+      setNewStock({ name: '', variant: '', category: '', sku_prefix: '', url: '', url_text: '', notes: '' });
     } catch (e) {
       alert('Failed to create stock item: ' + e.message);
     }
@@ -368,7 +368,25 @@ function ItemForm({ initial = {}, onSave, onClose, stockItems = [], onStockCreat
             <div className="form-group"><label>Category</label><CategoryCombobox value={newStock.category} onChange={handleNewStock} /></div>
             <div className="form-group"><label>SKU Prefix</label><input name="sku_prefix" value={newStock.sku_prefix || ''} onChange={handleNewStock} placeholder="e.g. EL, PT" maxLength={4} style={{ textTransform: 'uppercase' }} /></div>
             <div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
-            <div className="form-group"><label>Location</label><input name="location" value={newStock.location} onChange={handleNewStock} /></div>
+            <div className="form-group">
+			  <label>Link URL</label>
+			  <input
+				name="url"
+				value={newStock.url || ''}
+				onChange={handleNewStock}
+				placeholder="https://..."
+			  />
+			</div>
+
+			<div className="form-group">
+			  <label>Link Text</label>
+			  <input
+				name="url_text"
+				value={newStock.url_text || ''}
+				onChange={handleNewStock}
+				placeholder="Auto-filled from URL if left blank"
+			  />
+			</div>
             <div className="form-group full"><label>Notes</label><input name="notes" value={newStock.notes} onChange={handleNewStock} /></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -614,12 +632,17 @@ const parsePasteItems = () => {
           if(row.item_id){
             // Existing item — update
             await api(`/api/purchased-items/${row.item_id}`,{method:'PUT',body:{
-              item_name:row.item_name,variant:row.variant||null,category:row.category||null,
-			  stock_item_id:row.stock_item_id?parseInt(row.stock_item_id):null,
-              vendor:header.vendor||null,date_purchased:header.order_date||null,
-              qty_purchased:row.qty_purchased,
-              unit_cost:row.unit_cost,condition:row.condition||'New',
-              category:row.category,location:row.location||null,notes:row.notes||null,
+			  item_name:row.item_name,
+			  variant:row.variant||null,
+			  category:row.category||null,
+			  stock_item_id:row.stock_item_id ? parseInt(row.stock_item_id) : null,
+			  vendor:header.vendor||null,
+			  date_purchased:header.order_date||null,
+			  qty_purchased:row.qty_purchased,
+			  unit_cost:row.unit_cost,
+			  condition:row.condition||'New',
+			  is_digital:!!row.is_digital,
+			  notes:row.notes||null,
             }});
             // Save allocation separately
             await api(`/api/purchased-items/${row.item_id}`,{method:'PUT',body:{
@@ -630,15 +653,20 @@ const parsePasteItems = () => {
           } else {
             // New item — insert
             await api('/api/purchased-items',{method:'POST',body:{
-              order_number:header.order_number,
-              item_name:row.item_name,variant:row.variant||null,category:row.category||null,
-			  stock_item_id:row.stock_item_id?parseInt(row.stock_item_id):null,
-              vendor:header.vendor||null,date_purchased:header.order_date||null,
-              qty_purchased:row.qty_purchased,unit_cost:row.unit_cost,
-              condition:row.condition||'New',category:row.category,
-              notes:row.notes||null,
-              shipping_allocated:row.ship_alloc||0,
-              tax_allocated:row.tax_alloc||0,
+				order_number:header.order_number,
+				item_name:row.item_name,
+				variant:row.variant||null,
+				category:row.category||null,
+				stock_item_id:row.stock_item_id ? parseInt(row.stock_item_id) : null,
+				vendor:header.vendor||null,
+				date_purchased:header.order_date||null,
+				qty_purchased:row.qty_purchased,
+				unit_cost:row.unit_cost,
+				condition:row.condition||'New',
+				is_digital:!!row.is_digital,
+				shipping_allocated:row.ship_alloc||0,
+				tax_allocated:row.tax_alloc||0,
+				notes:row.notes||null,
             }});
           }
         }
@@ -646,15 +674,20 @@ const parsePasteItems = () => {
         // New order — insert all items
         for(const row of rows){
           await api('/api/purchased-items',{method:'POST',body:{
-            order_number:header.order_number,
-            item_name:row.item_name,variant:row.variant||null,category:row.category||null,
-			stock_item_id:row.stock_item_id?parseInt(row.stock_item_id):null,
-            vendor:header.vendor||null,date_purchased:header.order_date||null,
-            qty_purchased:row.qty_purchased,unit_cost:row.unit_cost,
-            condition:row.condition||'New',category:row.category,
-            notes:row.notes||null,
-            shipping_allocated:row.ship_alloc||0,
-            tax_allocated:row.tax_alloc||0,
+			  order_number:header.order_number,
+			  item_name:row.item_name,
+			  variant:row.variant||null,
+			  category:row.category||null,
+			  stock_item_id:row.stock_item_id ? parseInt(row.stock_item_id) : null,
+			  vendor:header.vendor||null,
+			  date_purchased:header.order_date||null,
+			  qty_purchased:row.qty_purchased,
+			  unit_cost:row.unit_cost,
+			  condition:row.condition||'New',
+			  is_digital:!!row.is_digital,
+			  shipping_allocated:row.ship_alloc||0,
+			  tax_allocated:row.tax_alloc||0,
+			  notes:row.notes||null,
           }});
         }
       }
@@ -1114,7 +1147,25 @@ function PurchasedItemsTab({ onOpenOrder }) {
               ['Shipping Alloc', fmt$(viewItem.shipping_allocated)],
               ['Tax Alloc', fmt$(viewItem.tax_allocated)],
               ['Line Total', fmt$(viewItem.total_line_cost)],
-              ['Location', viewItem.location || '—'],
+              ['Link',
+				  item.url
+					? (
+					  <div>
+						<a
+						  href={item.url}
+						  target="_blank"
+						  rel="noopener noreferrer"
+						  style={{ color: 'var(--accent)' }}
+						>
+						  {item.url_text || item.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+						</a>
+						<div style={{ fontSize: 11, color: 'var(--muted)' }}>
+						  {item.url}
+						</div>
+					  </div>
+					)
+					: '—'
+				],
               ['Notes', viewItem.notes || '—'],
             ].map(([k, v]) => (
               <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>
@@ -1134,17 +1185,17 @@ function PurchasedItemsTab({ onOpenOrder }) {
 
 // ── PurchasedItemForm ─────────────────────
 function PurchasedItemForm({ initial = {}, onSave, onClose }) {
-  const [f, setF] = useState({
+	const [f, setF] = useState({
 	  item_name: '', variant: '', vendor: '', date_purchased: '',
 	  qty_purchased: 1, unit_cost: '', condition: 'New',
-	  category: '', location: '', notes: '', stock_item_id: '',
+	  category: '', notes: '', stock_item_id: '',
 	  is_digital: false,
-	  update_unit_cost: !initial.item_id,  // true for new, false for edit
+	  update_unit_cost: !initial.item_id,
 	  ...initial
 	});
   const [stockItems, setStockItems] = useState([]);
   const [showNewStock, setShowNewStock] = useState(false);
-  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+  const [newStock, setNewStock] = useState({ name: '', variant: '', category: '', sku_prefix: '', url: '', url_text: '', notes: '' });
   const [creatingStock, setCreatingStock] = useState(false);
   const [skuError, setSkuError] = useState('');
 
@@ -1181,7 +1232,7 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
       setStockItems(refreshed);
       setF(p => ({ ...p, stock_item_id: String(created.id), category: newStock.category }));
       setShowNewStock(false);
-      setNewStock({ name: '', variant: '', category: '', sku_prefix: '', location: '', notes: '' });
+      setNewStock({ name: '', variant: '', category: '', sku_prefix: '', url: '', url_text: '', notes: '' });
     } catch (e) {
       setSkuError('Failed to create stock item: ' + e.message);
     }
@@ -1199,7 +1250,25 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
         <div className="form-group"><label>Condition</label><select name="condition" value={f.condition} onChange={handle}>{CONDITIONS.map(c => <option key={c}>{c}</option>)}</select></div>
         <div className="form-group"><label>Qty Purchased</label><input type="number" name="qty_purchased" value={f.qty_purchased} onChange={handle} min="1" /></div>
         <div className="form-group"><label>Unit Cost</label><input type="number" name="unit_cost" value={f.unit_cost} onChange={handle} step="0.01" min="0" /></div>
-		<div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
+		<div className="form-group">
+		  <label>Link URL</label>
+		  <input
+			name="url"
+			value={f.url || ''}
+			onChange={handle}
+			placeholder="https://..."
+		  />
+		</div>
+
+		<div className="form-group">
+		  <label>Link Text</label>
+		  <input
+			name="url_text"
+			value={f.url_text || ''}
+			onChange={handle}
+			placeholder="Auto-filled from URL if left blank"
+		  />
+		</div>
 
         {/* Digital asset toggle */}
         <div className="form-group full" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1256,7 +1325,25 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
               {skuError && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{skuError}</div>}
             </div>
             <div className="form-group"><label>Variant</label><input name="variant" value={newStock.variant} onChange={handleNewStock} /></div>
-            <div className="form-group"><label>Location</label><input name="location" value={newStock.location} onChange={handleNewStock} /></div>
+            <div className="form-group">
+			  <label>Link URL</label>
+			  <input
+				name="url"
+				value={newStock.url || ''}
+				onChange={handleNewStock}
+				placeholder="https://..."
+			  />
+			</div>
+
+			<div className="form-group">
+			  <label>Link Text</label>
+			  <input
+				name="url_text"
+				value={newStock.url_text || ''}
+				onChange={handleNewStock}
+				placeholder="Auto-filled from URL if left blank"
+			  />
+			</div>
             <div className="form-group full"><label>Notes</label><input name="notes" value={newStock.notes} onChange={handleNewStock} /></div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -1277,10 +1364,10 @@ function PurchasedItemForm({ initial = {}, onSave, onClose }) {
 
 // ── StockItemForm ───────────────────────────
 function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
-  const [f, setF] = useState({
-    name: '', variant: '', category: '', sku_prefix: '',
-    location: '', notes: '', low_stock_threshold: '', ...initial
-  });
+	const [f, setF] = useState({
+	  name: '', variant: '', category: '', sku_prefix: '',
+	  url: '', url_text: '', notes: '', low_stock_threshold: '', ...initial
+	});
   const [skuError, setSkuError] = useState('');
 
   const handle = e => {
@@ -1319,7 +1406,25 @@ function StockItemForm({ initial = {}, onSave, onClose, stockItems = [] }) {
 		  </div>
 
 		  <div className="form-group"><label>Variant</label><input name="variant" value={f.variant || ''} onChange={handle} /></div>
-		  <div className="form-group"><label>Location</label><input name="location" value={f.location || ''} onChange={handle} /></div>
+			<div className="form-group">
+			  <label>Link URL</label>
+			  <input
+				name="url"
+				value={f.url || ''}
+				onChange={handle}
+				placeholder="https://..."
+			  />
+			</div>
+
+			<div className="form-group">
+			  <label>Link Text</label>
+			  <input
+				name="url_text"
+				value={f.url_text || ''}
+				onChange={handle}
+				placeholder="Auto-filled from URL if left blank"
+			  />
+			</div>
 
 		  {initial.id ? (
 			<>
@@ -1477,7 +1582,25 @@ function StockItemViewModal({ item: initialItem, onClose, onEdit, onAdjust, onRe
 			  ['Name', item.name],
 			  ['Category', catBadge(item.category)],
 			  ['Variant', item.variant || '—'],
-			  ['Location', item.location || '—'],
+			  ['Link',
+				  item.url
+					? (
+					  <div>
+						<a
+						  href={item.url}
+						  target="_blank"
+						  rel="noopener noreferrer"
+						  style={{ color: 'var(--accent)' }}
+						>
+						  {item.url_text || item.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+						</a>
+						<div style={{ fontSize: 11, color: 'var(--muted)' }}>
+						  {item.url}
+						</div>
+					  </div>
+					)
+					: '—'
+				],
 			  ['Avg Cost', fmt$(item.avg_cost)],
 			  ['On Hand', <strong style={{color: item.qty_on_hand === 0 ? 'var(--danger)' : item.low_stock_threshold && item.qty_on_hand <= item.low_stock_threshold ? 'var(--warn)' : 'var(--success)'}}>{item.qty_on_hand}</strong>],
 			  ['Replacement Cost', fmt$(item.unit_cost)],
@@ -1753,7 +1876,7 @@ function StockTab({ onOpenOrder, onOpenItem }) {
 				<SortTh label="On Hand"  colKey="qty_on_hand"  sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
 				<SortTh label="Avg Cost" colKey="avg_cost"    sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
 				<SortTh label="Repl. Cost" colKey="unit_cost"  sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
-				<SortTh label="Location" colKey="location"     sortKey={sSortKey} sortDir={sSortDir} onToggle={sToggle}/>
+				<th>Link</th>
 				<th></th>
 			  </tr></thead>
               <tbody>
@@ -1768,7 +1891,22 @@ function StockTab({ onOpenOrder, onOpenItem }) {
                       <td><span className={`badge ${sc}`}>{i.qty_on_hand}</span></td>
                       <td>{fmt$(i.avg_cost)}</td>					  
 					  <td>{fmt$(i.unit_cost)}</td>
-                      <td style={{ fontSize: 12 }}>{i.location || '—'}</td>
+                      <td style={{ fontSize: 12 }}>
+						  {i.url
+							? (
+							  <div>
+								<a
+								  href={i.url}
+								  target="_blank"
+								  rel="noopener noreferrer"
+								  style={{ color: 'var(--accent)' }}
+								>
+								  {i.url_text || i.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+								</a>
+							  </div>
+							)
+							: '—'}
+						</td>
                       <td><Kebab items={[
                         { label: 'View', action: () => setViewItem(i) },
                         { label: 'Edit', action: () => setEditStockItem(i) },
@@ -2017,7 +2155,7 @@ function ImportTab() {
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 16 }}>
         <h2 style={{ marginBottom: 4 }}>Purchased Items CSV</h2>
         <p style={{ fontSize: 12, color: 'var(--accent2)', marginBottom: 2 }}>Required: item_name, qty_purchased, unit_cost</p>
-        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Optional: order_number, variant, vendor, date_purchased, condition, category, location, notes, shipping_allocated, tax_allocated, stock_item_id</p>
+        <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>Optional: order_number, variant, vendor, date_purchased, condition, category, notes, shipping_allocated, tax_allocated, stock_item_id</p>
         <input ref={invRef} type="file" accept=".csv" onChange={e => readFile(e, setInvCSV)} style={{ width: '100%' }} />
         {invCSV && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>{invCSV.trim().split('\n').length - 1} rows</div>}
       </div>
@@ -2149,7 +2287,6 @@ function App() {
               ['Shipping Alloc',fmt$(itemModal.shipping_allocated)],
               ['Tax Alloc',     fmt$(itemModal.tax_allocated)],
               ['Line Total',    fmt$(itemModal.total_line_cost)],
-              ['Location',      itemModal.location || '—'],
               ['Notes',         itemModal.notes || '—'],
             ].map(([k, v]) => (
               <div key={k}><div className="vk">{k}</div><div className="vv">{v}</div></div>

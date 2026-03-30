@@ -56,14 +56,19 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { name, variant, category, sku_prefix, location, notes } = req.body;
-      const skuSeed = sku_prefix ? sku_prefix.toUpperCase() : null;
-      const [row] = await sql`
-        INSERT INTO stock_items (name, variant, category, sku, location, notes)
-        VALUES (${name}, ${variant||null}, ${category||null},
-                ${skuSeed},
-                ${location||null}, ${notes||null})
-        RETURNING *`;
+		const { name, variant, category, sku_prefix, url, url_text, notes } = req.body;
+		const skuSeed = sku_prefix ? sku_prefix.toUpperCase() : null;
+		const cleanUrl = url?.trim() || null;
+		const derivedUrlText = cleanUrl
+		  ? (url_text?.trim() || cleanUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''))
+		  : null;
+
+		const [row] = await sql`
+		  INSERT INTO stock_items (name, variant, category, sku, url, url_text, notes)
+		  VALUES (${name}, ${variant||null}, ${category||null},
+				  ${skuSeed},
+				  ${cleanUrl}, ${derivedUrlText}, ${notes||null})
+		  RETURNING *`;
       return res.status(201).json(row);
     }
 

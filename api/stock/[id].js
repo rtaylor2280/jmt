@@ -38,19 +38,25 @@ export default async function handler(req, res) {
       }
 
       // Info fields only
-      const { name, variant, category, location, notes, low_stock_threshold } = body;
-      const threshold = low_stock_threshold !== '' && low_stock_threshold != null
-        ? parseInt(low_stock_threshold) : null;
-      const [row] = await sql`
-        UPDATE stock_items SET
-          name                = ${name},
-          variant             = ${variant||null},
-          category            = ${category||null},
-          location            = ${location||null},
-          notes               = ${notes||null},
-          low_stock_threshold = ${threshold}
-        WHERE id = ${id}
-        RETURNING *`;
+		const { name, variant, category, url, url_text, notes, low_stock_threshold } = body;
+		const threshold = low_stock_threshold !== '' && low_stock_threshold != null
+		  ? parseInt(low_stock_threshold) : null;
+		const cleanUrl = url?.trim() || null;
+		const derivedUrlText = cleanUrl
+		  ? (url_text?.trim() || cleanUrl.replace(/^https?:\/\//, '').replace(/\/$/, ''))
+		  : null;
+
+		const [row] = await sql`
+		  UPDATE stock_items SET
+			name                = ${name},
+			variant             = ${variant||null},
+			category            = ${category||null},
+			url                 = ${cleanUrl},
+			url_text            = ${derivedUrlText},
+			notes               = ${notes||null},
+			low_stock_threshold = ${threshold}
+		  WHERE id = ${id}
+		  RETURNING *`;
       return row ? res.json(row) : res.status(404).json({ error: 'Not found' });
     }
 

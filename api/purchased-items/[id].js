@@ -59,12 +59,12 @@ export default async function handler(req, res) {
       const [current] = await sql`SELECT * FROM purchased_items WHERE item_id = ${id}`;
       if (!current) return res.status(404).json({ error: 'Not found' });
 
-      const {
-        item_name, variant, vendor, date_purchased,
-        qty_purchased, unit_cost, condition,
-        category, location, notes, stock_item_id, is_digital,
-        update_unit_cost
-      } = body;
+		const {
+		  item_name, variant, vendor, date_purchased,
+		  qty_purchased, unit_cost, condition,
+		  category, notes, stock_item_id, is_digital,
+		  update_unit_cost
+		} = body;
 
       const digital    = !!is_digital;
       const newStockId = !digital && stock_item_id ? parseInt(stock_item_id) : null;
@@ -80,20 +80,19 @@ export default async function handler(req, res) {
       const newLanded  = landedCostPerUnit(cost, newQty, shipAlloc, taxAlloc);
 
       const [row] = await sql`
-        UPDATE purchased_items SET
-          item_name      = ${item_name},
-          variant        = ${variant||null},
-          vendor         = ${vendor||null},
-          date_purchased = ${date_purchased||null},
-          qty_purchased  = ${newQty},
-          unit_cost      = ${cost},
-          condition      = ${condition||'New'},
-          category       = ${category||null},
-          location       = ${location||null},
-          notes          = ${notes||null},
-          stock_item_id  = ${newStockId},
-          is_digital     = ${digital}
-        WHERE item_id = ${id} RETURNING *`;
+		UPDATE purchased_items SET
+		  item_name      = ${item_name},
+		  variant        = ${variant||null},
+		  vendor         = ${vendor||null},
+		  date_purchased = ${date_purchased||null},
+		  qty_purchased  = ${newQty},
+		  unit_cost      = ${cost},
+		  condition      = ${condition||'New'},
+		  category       = ${category||null},
+		  notes          = ${notes||null},
+		  stock_item_id  = ${newStockId},
+		  is_digital     = ${digital}
+		WHERE item_id = ${id} RETURNING *
 
       if (oldStockId && newStockId && oldStockId === newStockId) {
         const diff = newQty - oldQty;
